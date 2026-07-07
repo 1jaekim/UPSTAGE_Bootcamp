@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+/* ── SpoKeeper 스타일 토큰 (SPEC §2) ───────────────────────────── */
+@theme {
+  --color-accent: #4f46e5;
+  --color-node-blue: #2f3edb;
+  --color-node-dark: #2c3242;
+  --color-safe: #22c55e;
+  --color-tense: #e0555a;
+  --color-ally: #22c55e;
+  --color-neutral: #64748b;
+}
+
+:root {
+  color-scheme: light;
+  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f6f7fb;
+  color: #1e2330;
+}
+
+/* reduced-motion 존중 (F4) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
