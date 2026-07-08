@@ -13,6 +13,10 @@ import {
 const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
 const BASE = import.meta.env.VITE_API_BASE ?? '';
 
+export function bookFileUrl(bookId: string): string {
+  return `${BASE}/api/books/${bookId}/file`;
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -104,19 +108,23 @@ export const api = {
     return http<Progress>(`/api/books/${bookId}/progress`);
   },
 
-  async putProgress(bookId: string, readingOffset: number, force = false): Promise<Progress> {
+  async putProgress(
+    bookId: string,
+    args: { offset?: number; cfi?: string; force?: boolean },
+  ): Promise<Progress> {
+    const { offset = 0, cfi, force = false } = args;
     if (USE_MOCK) {
       await sleep(100);
-      mockProgressState.reading_offset = readingOffset;
+      mockProgressState.reading_offset = offset;
       // boundary = max(기존, 신규) 단조 증가 (SPEC 불변식 5) — force=true면 재독 모드로 강제 리셋
       mockProgressState.spoiler_boundary = force
-        ? readingOffset
-        : Math.max(mockProgressState.spoiler_boundary, readingOffset);
+        ? offset
+        : Math.max(mockProgressState.spoiler_boundary, offset);
       return { ...mockProgressState };
     }
     return http<Progress>(`/api/books/${bookId}/progress`, {
       method: 'PUT',
-      body: JSON.stringify({ reading_offset: readingOffset, force }),
+      body: JSON.stringify({ reading_offset: offset, cfi, force }),
     });
   },
 };

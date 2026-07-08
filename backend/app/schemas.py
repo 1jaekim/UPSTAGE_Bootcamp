@@ -89,7 +89,12 @@ class Progress(BaseModel):
 
 
 class ProgressUpdate(BaseModel):
-    reading_offset: int
+    # reading_offset은 epub.js 연동 전 구버전 클라이언트 호환용. cfi가 오면 그쪽을 우선한다.
+    reading_offset: int = 0
+    # epub.js의 rendition.on('relocated') 이벤트가 주는 원본 CFI 문자열.
+    # 서버에서 book_cfi_index 기준 global_index로 변환한다 (프론트/백엔드 CFI 파싱 로직
+    # 이중 구현으로 어긋나는 걸 피하기 위해, 변환은 항상 서버에서만 한다).
+    cfi: str | None = None
     user_id: str = "local"
     # true면 단조증가 규칙을 무시하고 spoiler_boundary를 reading_offset으로 강제 설정한다.
     # 재독(다시 읽기) 모드: 이미 도달한 지점보다 앞으로 되돌아가 스포일러를 다시 가리고 싶을 때 사용.

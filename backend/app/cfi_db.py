@@ -13,6 +13,7 @@ from functools import lru_cache
 import psycopg2
 import psycopg2.extras
 
+from .cfi_utils import cfi_to_path
 from .config import SUPABASE_DB_URL
 
 
@@ -23,6 +24,7 @@ class CfiParagraph:
     chapter_title: str
     paragraph_index: int
     cfi_raw: str
+    cfi_path: list[int]
     text_preview: str
 
 
@@ -40,7 +42,7 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(
                 """
-                SELECT chapter_index, chapter_title, paragraph_index, cfi_raw, text_preview
+                SELECT chapter_index, chapter_title, paragraph_index, cfi_raw, cfi_path, text_preview
                 FROM book_cfi_index
                 WHERE book_id = %s
                 ORDER BY cfi_path
@@ -58,10 +60,35 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
             chapter_title=row["chapter_title"] or f"Chapter {row['chapter_index']}",
             paragraph_index=row["paragraph_index"],
             cfi_raw=row["cfi_raw"],
+            cfi_path=list(row["cfi_path"]),
             text_preview=row["text_preview"],
         )
         for i, row in enumerate(rows)
     )
+
+
+def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
+    """epub.js가 준 원본 CFI 문자열을 이 책의 global_index로 변환한다.
+
+    정확히 일치하는 문단이 없으면(문단 사이의 임의 위치를 가리키는 CFI일 수 있음)
+    그 위치보다 앞선 문단 중 가장 마지막 것의 global_index를 반환한다(cfi_path 배열의
+    사전식 비교가 곧 문서 순서와 같다는 성질 이용, book_cfi_index README에서 검증됨).
+    """
+    target = cfi_to_path(raw_cfi)
+    paragraphs = get_paragraphs(book_id)
+    if not paragraphs:
+        return 0
+
+    lo, hi = 0, len(paragraphs) - 1
+    best = 0
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if paragraphs[mid].cfi_path <= target:
+            best = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+    return paragraphs[best].global_index
 
 
 def total_paragraphs(book_id: str) -> int:

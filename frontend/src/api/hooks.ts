@@ -60,10 +60,10 @@ export function useProgress(bookId: string) {
 export function usePutProgress(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: number | { offset: number; force?: boolean }) =>
+    mutationFn: (args: number | { offset?: number; cfi?: string; force?: boolean }) =>
       typeof args === 'number'
-        ? api.putProgress(bookId, args)
-        : api.putProgress(bookId, args.offset, args.force),
+        ? api.putProgress(bookId, { offset: args })
+        : api.putProgress(bookId, args),
     onSuccess: (data) => {
       qc.setQueryData(['progress', bookId], data);
     },

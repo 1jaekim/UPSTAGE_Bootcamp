@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from . import cfi_db, db, fixtures as fx
 from .content_source import AgentResultSource, ContentSource, FixtureSource
@@ -92,6 +93,16 @@ def get_book(book_id: str) -> Book:
     return _require_book(book_id)
 
 
+@app.get("/api/books/{book_id}/file")
+def get_book_file(book_id: str):
+    """epub.js가 브라우저에서 직접 렌더링할 수 있도록 원본 EPUB 바이트를 서빙한다."""
+    _require_book(book_id)
+    path = Path(fx._epub_path_for(book_id))
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="원본 EPUB 파일을 찾을 수 없습니다.")
+    return FileResponse(path, media_type="application/epub+zip", filename=path.name)
+
+
 @app.get("/api/books/{book_id}/chapters/{index}", response_model=Chapter)
 def get_chapter(book_id: str, index: int) -> Chapter:
     book = _require_book(book_id)
@@ -131,7 +142,12 @@ def get_progress(book_id: str, user_id: str = "local") -> Progress:
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
 def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     _require_book(book_id)
-    row = db.put_progress(body.user_id, book_id, body.reading_offset, force=body.force)
+    offset = (
+        cfi_db.find_global_index_by_cfi(book_id, body.cfi)
+        if body.cfi
+        else body.reading_offset
+    )
+    row = db.put_progress(body.user_id, book_id, offset, force=body.force)
     return Progress(user_id=row.user_id, book_id=row.book_id,
                     reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
 
