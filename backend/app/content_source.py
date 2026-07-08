@@ -6,7 +6,9 @@
 """
 from __future__ import annotations
 
+import json
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from . import fixtures as fx
 from .schemas import GraphJson, ReminderLine, Reminders
@@ -70,6 +72,24 @@ class AgentResultSource(ContentSource):
     def __init__(self, store: dict | None = None):
         # store[(book_id, boundary)] = {"graph": GraphJson, "reminders": list[ReminderLine]}
         self._store = store or {}
+
+    @classmethod
+    def from_json_file(cls, path: str | Path) -> "AgentResultSource":
+        """precompute 가 만든 계약 JSON 파일에서 store 를 로드한다.
+
+        파일 형식: {"book_id": str, "entries": [{"boundary": int, "graph": {...},
+        "reminders": [{...}]}]}. schemas 로 검증하며 읽으므로 계약 위반 시 즉시 실패.
+        """
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        book_id = data["book_id"]
+        store: dict = {}
+        for entry in data.get("entries", []):
+            boundary = int(entry["boundary"])
+            store[(book_id, boundary)] = {
+                "graph": GraphJson.model_validate(entry["graph"]),
+                "reminders": [ReminderLine.model_validate(l) for l in entry.get("reminders", [])],
+            }
+        return cls(store)
 
     def _lookup(self, book_id: str, boundary: int):
         # 경계선 이하 중 가장 큰 precompute 지점을 사용 (없으면 빈 결과)

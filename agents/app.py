@@ -1,9 +1,9 @@
 import streamlit as st
 
 from pathlib import Path
-from spokeeper.agents.build_agent import build_agent
-from spokeeper.parsers.epub_parser import parse_epub
-from spokeeper.tools.chunk_tool import make_chunks
+from agents.build_agent import build_agent
+from agents.parsers.epub_parser import parse_epub
+from agents.tools.chunk_tool import make_chunks
 
 
 st.set_page_config(

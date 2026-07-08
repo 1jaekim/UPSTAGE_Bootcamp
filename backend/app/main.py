@@ -5,13 +5,15 @@
 """
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import db, fixtures as fx
-from .content_source import ContentSource, FixtureSource
+from .content_source import AgentResultSource, ContentSource, FixtureSource
+from .precompute import store_path
 from .schemas import (
     Book,
     BookSummary,
@@ -22,8 +24,21 @@ from .schemas import (
     Reminders,
 )
 
+
 # ── 소스 주입 (교체 지점) ────────────────────────────────────────
-content_source: ContentSource = FixtureSource()
+# SPO_SOURCE=agent 면 precompute 결과(AgentResultSource)를, 아니면 FixtureSource 를 서빙.
+# 계약이 동일하므로 라우트/스키마 변경 없이 이 선택만 바뀐다.
+def _make_source() -> ContentSource:
+    if os.environ.get("SPO_SOURCE", "fixture").lower() == "agent":
+        book_id = os.environ.get("SPO_BOOK", fx.BOOK_ID)
+        path = store_path(book_id)
+        if path.exists():
+            return AgentResultSource.from_json_file(path)
+        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {path} → FixtureSource 폴백")
+    return FixtureSource()
+
+
+content_source: ContentSource = _make_source()
 
 
 @asynccontextmanager

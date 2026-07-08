@@ -2,8 +2,8 @@ import json
 from langchain_upstage import ChatUpstage
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from spokeeper.config import UPSTAGE_API_KEY
-from spokeeper.agents.build_agent import extract_json_from_text
+from agents.config import UPSTAGE_API_KEY
+from agents.build_agent import extract_json_from_text
 
 
 CHARACTER_PROFILER_PROMPT = """

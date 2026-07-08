@@ -2,7 +2,7 @@ import json
 from langchain_upstage import ChatUpstage
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from spokeeper.config import UPSTAGE_API_KEY
+from agents.config import UPSTAGE_API_KEY
 
 
 BUILD_AGENT_SYSTEM_PROMPT = """
@@ -90,10 +90,7 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
     if not UPSTAGE_API_KEY:
         raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
 
-    readable_chunks = [
-        chunk for chunk in chunks
-        if chunk["offset"] <= current_offset
-    ]
+    readable_chunks = chunks
 
     context_text = "\n\n".join(
         [
@@ -136,4 +133,120 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
         "events": result.get("events", []),
         "parse_error": result.get("parse_error", False),
         "raw_response": response.content,
-}
+    }
+
+def incremental_build_agent(
+    chunks: list[dict],
+    current_offset: int,
+    last_built_offset: int,
+    previous_results: dict,
+    ) -> dict:
+    """
+    마지막으로 분석한 offset 이후의 chunk만 분석하고,
+    기존 결과에 새 결과를 누적한다.
+    """
+    new_chunks = [
+        chunk for chunk in chunks
+        if last_built_offset < chunk["offset"] <= current_offset
+    ]
+
+    MAX_NEW_CHUNKS = 5
+
+    new_chunks = new_chunks[:MAX_NEW_CHUNKS]
+
+    if not new_chunks:
+        return {
+            "current_offset": current_offset,
+            "last_built_offset": last_built_offset,
+            "used_chunk_count": 0,
+            "characters": previous_results.get("characters", []),
+            "relations": previous_results.get("relations", []),
+            "events": previous_results.get("events", []),
+            "message": "새로 분석할 chunk가 없습니다.",
+        }
+
+    partial_result = build_agent(
+    chunks=new_chunks,
+    current_offset=max(chunk["offset"] for chunk in new_chunks),
+    )
+
+    merged_result = merge_build_results(
+        previous_results=previous_results,
+        new_result=partial_result,
+    )
+
+    return {
+        "current_offset": current_offset,
+        "last_built_offset": current_offset,
+        "used_chunk_count": len(new_chunks),
+        "characters": merged_result["characters"],
+        "relations": merged_result["relations"],
+        "events": merged_result["events"],
+        "message": "증분 분석 완료",
+    }
+
+
+def merge_build_results(previous_results: dict, new_result: dict) -> dict:
+    """
+    기존 인물/관계/사건 결과에 새 결과를 병합한다.
+    완전한 동일성 판단은 아직 하지 않고, 단순 중복 제거만 수행한다.
+    """
+    characters = deduplicate_by_key(
+        previous_results.get("characters", []) + new_result.get("characters", []),
+        key="name",
+    )
+
+    relations = deduplicate_relation(
+        previous_results.get("relations", []) + new_result.get("relations", [])
+    )
+
+    events = deduplicate_by_key(
+        previous_results.get("events", []) + new_result.get("events", []),
+        key="summary",
+    )
+
+    return {
+        "characters": characters,
+        "relations": relations,
+        "events": events,
+    }
+
+
+def deduplicate_by_key(items: list[dict], key: str) -> list[dict]:
+    seen = set()
+    result = []
+
+    for item in items:
+        value = item.get(key)
+
+        if not value:
+            result.append(item)
+            continue
+
+        if value in seen:
+            continue
+
+        seen.add(value)
+        result.append(item)
+
+    return result
+
+
+def deduplicate_relation(relations: list[dict]) -> list[dict]:
+    seen = set()
+    result = []
+
+    for relation in relations:
+        source = relation.get("source", "")
+        target = relation.get("target", "")
+        rel = relation.get("relation", "")
+
+        key = (source, target, rel)
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+        result.append(relation)
+
+    return result

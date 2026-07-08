@@ -187,30 +187,40 @@ Retriever가 검색한 결과 중
 
 #  프로젝트 구조
 
-```text
-spokeeper/
+저장소는 **frontend / backend / agents** 3개 폴더로 구성된다.
 
-├── agents/
-│   ├── build_agent.py
-│   ├── character_profiler_agent.py
-│   ├── verifier_agent.py
-│   └── reminder_writer_agent.py
+```text
+.
+├── frontend/                # React + Vite (읽기 UI, 관계도, 리마인드)
+│   ├── src/
+│   │   ├── api/             # 통합 계약 타입·클라이언트·훅
+│   │   └── components/
+│   └── vite.config.ts       # /api → 127.0.0.1:8000 프록시
 │
-├── parsers/
-│   └── epub_parser.py
+├── backend/                 # FastAPI 서빙 (계약 graph_json·reminders·progress)
+│   ├── app/
+│   │   ├── main.py          # 라우트 + 소스 주입(_make_source)
+│   │   ├── schemas.py       # 통합 계약 스키마
+│   │   ├── content_source.py# FixtureSource / AgentResultSource
+│   │   ├── agent_adapter.py # 에이전트 출력 → 계약 변환
+│   │   ├── precompute.py    # 경계선별 build 결과 → 계약 JSON store
+│   │   └── db.py, fixtures.py
+│   ├── scripts/make_demo_store.py
+│   └── tests/
 │
-├── storage/
-│   └── chroma_store.py
-│
-├── tools/
-│   ├── chunk_tool.py
-│   └── graph_tool.py
-│
-├── data/
-│
-├── app.py
-└── requirements.txt
+└── agents/                  # AI 에이전트 파이프라인 (Solar-Pro2 + LangChain)
+    ├── build_agent.py       # 인물·관계·사건 추출 (+ 증분 빌드)
+    ├── character_profiler_agent.py
+    ├── parsers/epub_parser.py
+    ├── tools/chunk_tool.py
+    ├── config.py
+    ├── app.py               # Streamlit 프로토타입
+    ├── data/books/          # EPUB 샘플
+    └── requirements.txt
 ```
+
+> 실행: 모든 명령은 **저장소 최상위**에서. `agents`·`backend` 는 최상위를 sys.path 기준으로
+> import 한다 (`from agents.build_agent import ...`, `from backend.app...`).
 
 ---
 

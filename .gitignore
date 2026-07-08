@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Runtime DB (regenerated on backend start)
+spokeeper.db
+backend/spokeeper.db
+
+# Env
+.env
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
