@@ -9,7 +9,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -33,12 +33,15 @@ from .upload_pipeline import CfiBuildError, ingest_epub
 # 계약이 동일하므로 라우트/스키마 변경 없이 이 선택만 바뀐다.
 # AgentResultSource._store는 (book_id, boundary) 복합키라 원래도 여러 책을 담을 수 있었는데,
 # 예전엔 book_id 하나짜리 파일만 로드해서 사실상 단일 책만 서빙되고 있었다 — 이제
-# data/precomputed/ 안의 모든 책 precompute 파일을 합쳐서 로드한다.
+# Supabase(build_agent_snapshots)를 우선 사용하고, 아직 거기 없는 책은
+# data/precomputed/ 로컬 파일에서 보충해서 합친다.
 def _make_source() -> ContentSource:
     if os.environ.get("SPO_SOURCE", "fixture").lower() == "agent":
-        combined_store: dict = {}
+        combined_store: dict = dict(AgentResultSource.from_supabase()._store)
         for path in sorted(STORE_DIR.glob("*.json")):
-            combined_store.update(AgentResultSource.from_json_file(path)._store)
+            file_store = AgentResultSource.from_json_file(path)._store
+            for key, value in file_store.items():
+                combined_store.setdefault(key, value)
         if combined_store:
             return AgentResultSource(combined_store)
         print(f"[SPO_SOURCE=agent] precompute 파일 없음: {STORE_DIR} → FixtureSource 폴백")
@@ -154,8 +157,32 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
                     reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
 
 
+def _run_full_analysis(book_id: str) -> None:
+    """BuildAgent~IndirectLeakageJudge 4단계 파이프라인을 백그라운드에서 실행.
+
+    업로드 응답은 CFI 인덱싱만 끝나면 바로 나가고, 이 분석(몇 분~수십 분 소요, LLM
+    호출 다수)은 별도로 돌아간다. 완료되면 precompute_from_epub이 알아서
+    Supabase build_agent_snapshots에 적재하므로, 다음 요청부터 바로 서빙된다.
+    """
+    from agents.parsers.epub_parser import parse_epub
+    from agents.tools.chunk_tool import make_chunks
+    from .precompute import precompute_from_epub
+    from .upload_pipeline import epub_path_for
+
+    epub_path = str(epub_path_for(book_id))
+    parsed = parse_epub(epub_path)
+    chunks = make_chunks(parsed["chapters"])
+    last = len(chunks) - 1
+    boundaries = list(range(4, last, 5)) + [last]
+
+    try:
+        precompute_from_epub(epub_path, book_id, boundaries)
+    except Exception as e:  # pragma: no cover - 백그라운드 작업 실패는 로그만
+        print(f"[분석 실패] book_id={book_id}: {e}")
+
+
 @app.post("/api/books/upload")
-async def upload_book(file: UploadFile) -> dict:
+async def upload_book(file: UploadFile, background_tasks: BackgroundTasks) -> dict:
     if not file.filename or not file.filename.lower().endswith(".epub"):
         raise HTTPException(status_code=400, detail="EPUB 파일만 업로드할 수 있습니다.")
 
@@ -166,6 +193,9 @@ async def upload_book(file: UploadFile) -> dict:
         result = ingest_epub(epub_bytes, file.filename, title)
     except CfiBuildError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
+
+    if not result["reused"]:
+        background_tasks.add_task(_run_full_analysis, result["book_id"])
 
     return result
 

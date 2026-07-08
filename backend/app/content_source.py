@@ -74,6 +74,37 @@ class AgentResultSource(ContentSource):
         self._store = store or {}
 
     @classmethod
+    def from_supabase(cls) -> "AgentResultSource":
+        """Supabase build_agent_snapshots 테이블에서 전체 책의 스냅샷을 로드한다.
+
+        로컬 JSON 파일과 달리 여러 책이 한 테이블에 같이 있으므로, book_id 필터 없이
+        전부 읽어서 (book_id, boundary) 복합키 store 하나로 합친다.
+        """
+        import psycopg2
+        import psycopg2.extras
+
+        from .config import SUPABASE_DB_URL
+
+        store: dict = {}
+        if not SUPABASE_DB_URL:
+            return cls(store)
+
+        conn = psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
+        try:
+            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+                cur.execute("SELECT book_id, boundary, graph, reminders FROM build_agent_snapshots")
+                rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        for row in rows:
+            store[(str(row["book_id"]), int(row["boundary"]))] = {
+                "graph": GraphJson.model_validate(row["graph"]),
+                "reminders": [ReminderLine.model_validate(l) for l in row["reminders"]],
+            }
+        return cls(store)
+
+    @classmethod
     def from_json_file(cls, path: str | Path) -> "AgentResultSource":
         """precompute 가 만든 계약 JSON 파일에서 store 를 로드한다.
 
