@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import db, fixtures as fx
+from . import cfi_db, db, fixtures as fx
 from .content_source import AgentResultSource, ContentSource, FixtureSource
 from .precompute import store_path
 from .schemas import (
@@ -23,6 +24,7 @@ from .schemas import (
     ProgressUpdate,
     Reminders,
 )
+from .upload_pipeline import CfiBuildError, ingest_epub
 
 
 # ── 소스 주입 (교체 지점) ────────────────────────────────────────
@@ -57,11 +59,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_BOOKS = {fx.BOOK_MIST.id: fx.BOOK_MIST}
+def _all_books() -> dict[str, Book]:
+    books = {fx.BOOK_MIST.id: fx.BOOK_MIST}
+    for row in cfi_db.list_books():
+        if row["book_id"] in books:
+            continue
+        books[row["book_id"]] = fx.book_for(row["book_id"], title=row["title"])
+    return books
 
 
 def _require_book(book_id: str) -> Book:
-    book = _BOOKS.get(book_id)
+    book = _all_books().get(book_id)
     if book is None:
         raise HTTPException(status_code=404, detail=f"book {book_id} 없음")
     return book
@@ -71,7 +79,7 @@ def _require_book(book_id: str) -> Book:
 def list_books() -> list[BookSummary]:
     return [
         BookSummary(id=b.id, title=b.title, author=b.author, total_offset=b.total_offset)
-        for b in _BOOKS.values()
+        for b in _all_books().values()
     ]
 
 
@@ -82,10 +90,10 @@ def get_book(book_id: str) -> Book:
 
 @app.get("/api/books/{book_id}/chapters/{index}", response_model=Chapter)
 def get_chapter(book_id: str, index: int) -> Chapter:
-    _require_book(book_id)
-    if index not in fx.CHAPTER_CONTENT:
+    book = _require_book(book_id)
+    if index not in {c.index for c in book.chapters}:
         raise HTTPException(status_code=404, detail=f"chapter {index} 없음")
-    return fx.chapter_with_content(index)
+    return fx.chapter_with_content(book_id, index)
 
 
 @app.get("/api/books/{book_id}/graph", response_model=GraphJson)
@@ -122,6 +130,22 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     row = db.put_progress(body.user_id, book_id, body.reading_offset)
     return Progress(user_id=row.user_id, book_id=row.book_id,
                     reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
+
+
+@app.post("/api/books/upload")
+async def upload_book(file: UploadFile) -> dict:
+    if not file.filename or not file.filename.lower().endswith(".epub"):
+        raise HTTPException(status_code=400, detail="EPUB 파일만 업로드할 수 있습니다.")
+
+    epub_bytes = await file.read()
+    title = Path(file.filename).stem
+
+    try:
+        result = ingest_epub(epub_bytes, file.filename, title)
+    except CfiBuildError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    return result
 
 
 @app.get("/api/health")

@@ -1,0 +1,177 @@
+"""Supabase(Postgres)의 book_cfi_index 조회 계층.
+
+CFI 통합의 핵심 아이디어: 지금까지 시스템 곳곳에 흩어져 있던 "offset"의 정의를
+하나로 통일한다 — 여기서 offset 이란 `book_cfi_index`를 cfi_path 기준으로 정렬했을 때
+해당 문단의 0부터 시작하는 순번(global_index)이다. BuildAgent의 chunk 순번, 스포일러
+경계선, 프론트 페이지네이션이 전부 이 정수를 그대로 공유한다.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from functools import lru_cache
+
+import psycopg2
+import psycopg2.extras
+
+from .config import SUPABASE_DB_URL
+
+
+@dataclass(frozen=True)
+class CfiParagraph:
+    global_index: int
+    chapter_index: int
+    chapter_title: str
+    paragraph_index: int
+    cfi_raw: str
+    text_preview: str
+
+
+def _connect():
+    if not SUPABASE_DB_URL:
+        raise RuntimeError("SUPABASE_DB_URL 환경변수가 설정되어 있지 않습니다.")
+    return psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
+
+
+@lru_cache(maxsize=8)
+def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
+    """book_id의 전체 문단을 cfi_path 순서(=global_index)로 반환. 결과는 캐시됨."""
+    conn = _connect()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute(
+                """
+                SELECT chapter_index, chapter_title, paragraph_index, cfi_raw, text_preview
+                FROM book_cfi_index
+                WHERE book_id = %s
+                ORDER BY cfi_path
+                """,
+                (book_id,),
+            )
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    return tuple(
+        CfiParagraph(
+            global_index=i,
+            chapter_index=row["chapter_index"],
+            chapter_title=row["chapter_title"] or f"Chapter {row['chapter_index']}",
+            paragraph_index=row["paragraph_index"],
+            cfi_raw=row["cfi_raw"],
+            text_preview=row["text_preview"],
+        )
+        for i, row in enumerate(rows)
+    )
+
+
+def total_paragraphs(book_id: str) -> int:
+    return len(get_paragraphs(book_id))
+
+
+def paragraphs_up_to(book_id: str, boundary: int) -> tuple[CfiParagraph, ...]:
+    """global_index <= boundary 인 문단만 반환 (스포일러 경계선 게이팅)."""
+    return tuple(p for p in get_paragraphs(book_id) if p.global_index <= boundary)
+
+
+def clear_cache() -> None:
+    get_paragraphs.cache_clear()
+
+
+# ── 쓰기 경로 (업로드 파이프라인용) ──────────────────────────────────────
+
+def find_book_by_hash(content_hash: str) -> str | None:
+    """같은 content_hash의 책이 이미 있으면 book_id를, 없으면 None을 반환."""
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT book_id FROM books WHERE content_hash = %s", (content_hash,))
+            row = cur.fetchone()
+            return str(row[0]) if row else None
+    finally:
+        conn.close()
+
+
+def set_storage_path(book_id: str, storage_path: str) -> None:
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE books SET storage_path=%s WHERE book_id=%s", (storage_path, book_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def list_books() -> list[dict]:
+    """status='ready'인 책 목록을 (book_id, title, storage_path)로 반환."""
+    conn = _connect()
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            cur.execute("SELECT book_id, title, storage_path FROM books WHERE status='ready'")
+            return [dict(row) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def has_paragraphs(book_id: str) -> bool:
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM book_cfi_index WHERE book_id = %s", (book_id,))
+            return cur.fetchone()[0] > 0
+    finally:
+        conn.close()
+
+
+def insert_book(content_hash: str, title: str, storage_path: str) -> str:
+    """books row 생성(이미 있으면 기존 row 재사용). book_id 반환."""
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO books (content_hash, title, storage_path, status)
+                VALUES (%s, %s, %s, 'processing')
+                ON CONFLICT (content_hash) DO UPDATE SET title = EXCLUDED.title
+                RETURNING book_id
+                """,
+                (content_hash, title, storage_path),
+            )
+            book_id = str(cur.fetchone()[0])
+        conn.commit()
+        return book_id
+    finally:
+        conn.close()
+
+
+def insert_paragraphs(book_id: str, rows: list[dict]) -> int:
+    """CFI 생성 스크립트 결과(rows)를 book_cfi_index에 적재. 적재된 행 수 반환."""
+    if not rows:
+        return 0
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            psycopg2.extras.execute_values(
+                cur,
+                """
+                INSERT INTO book_cfi_index
+                    (book_id, chapter_index, chapter_title, paragraph_index, cfi_raw, cfi_path, text_preview)
+                VALUES %s
+                """,
+                [
+                    (
+                        book_id,
+                        r["chapter_index"],
+                        r["chapter_title"],
+                        r["paragraph_index"],
+                        r["cfi_raw"],
+                        r["cfi_path"],
+                        r["text_preview"],
+                    )
+                    for r in rows
+                ],
+            )
+            cur.execute("UPDATE books SET status='ready' WHERE book_id=%s", (book_id,))
+        conn.commit()
+        return len(rows)
+    finally:
+        conn.close()
