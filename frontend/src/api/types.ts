@@ -74,4 +74,18 @@ export interface Progress {
   book_id: string;
   reading_offset: number;
   spoiler_boundary: number;
+  cfi?: string | null;
+}
+
+export interface BookSummary {
+  id: string;
+  title: string;
+  author: string;
+  total_offset: number;
+}
+
+export interface UploadResult {
+  book_id: string;
+  reused: boolean;
+  paragraph_count: number;
 }

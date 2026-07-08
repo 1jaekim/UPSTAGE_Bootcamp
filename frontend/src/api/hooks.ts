@@ -2,6 +2,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
 
+export function useBooks() {
+  return useQuery({
+    queryKey: ['books'],
+    queryFn: () => api.getBooks(),
+  });
+}
+
+export function useUploadBook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => api.uploadBook(file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['books'] });
+    },
+  });
+}
+
 export function useBook(bookId: string) {
   return useQuery({
     queryKey: ['book', bookId],
@@ -43,7 +60,10 @@ export function useProgress(bookId: string) {
 export function usePutProgress(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (readingOffset: number) => api.putProgress(bookId, readingOffset),
+    mutationFn: (args: number | { offset?: number; cfi?: string; force?: boolean }) =>
+      typeof args === 'number'
+        ? api.putProgress(bookId, { offset: args })
+        : api.putProgress(bookId, args),
     onSuccess: (data) => {
       qc.setQueryData(['progress', bookId], data);
     },

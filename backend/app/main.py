@@ -7,13 +7,15 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-from . import db, fixtures as fx
+from . import cfi_db, db, fixtures as fx
 from .content_source import AgentResultSource, ContentSource, FixtureSource
-from .precompute import store_path
+from .precompute import STORE_DIR
 from .schemas import (
     Book,
     BookSummary,
@@ -23,18 +25,26 @@ from .schemas import (
     ProgressUpdate,
     Reminders,
 )
+from .upload_pipeline import CfiBuildError, ingest_epub
 
 
 # ── 소스 주입 (교체 지점) ────────────────────────────────────────
 # SPO_SOURCE=agent 면 precompute 결과(AgentResultSource)를, 아니면 FixtureSource 를 서빙.
 # 계약이 동일하므로 라우트/스키마 변경 없이 이 선택만 바뀐다.
+# AgentResultSource._store는 (book_id, boundary) 복합키라 원래도 여러 책을 담을 수 있었는데,
+# 예전엔 book_id 하나짜리 파일만 로드해서 사실상 단일 책만 서빙되고 있었다 — 이제
+# Supabase(build_agent_snapshots)를 우선 사용하고, 아직 거기 없는 책은
+# data/precomputed/ 로컬 파일에서 보충해서 합친다.
 def _make_source() -> ContentSource:
     if os.environ.get("SPO_SOURCE", "fixture").lower() == "agent":
-        book_id = os.environ.get("SPO_BOOK", fx.BOOK_ID)
-        path = store_path(book_id)
-        if path.exists():
-            return AgentResultSource.from_json_file(path)
-        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {path} → FixtureSource 폴백")
+        combined_store: dict = dict(AgentResultSource.from_supabase()._store)
+        for path in sorted(STORE_DIR.glob("*.json")):
+            file_store = AgentResultSource.from_json_file(path)._store
+            for key, value in file_store.items():
+                combined_store.setdefault(key, value)
+        if combined_store:
+            return AgentResultSource(combined_store)
+        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {STORE_DIR} → FixtureSource 폴백")
     return FixtureSource()
 
 
@@ -57,11 +67,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_BOOKS = {fx.BOOK_MIST.id: fx.BOOK_MIST}
+def _all_books() -> dict[str, Book]:
+    books = {fx.BOOK_MIST.id: fx.BOOK_MIST}
+    for row in cfi_db.list_books():
+        if row["book_id"] in books:
+            continue
+        books[row["book_id"]] = fx.book_for(row["book_id"], title=row["title"])
+    return books
 
 
 def _require_book(book_id: str) -> Book:
-    book = _BOOKS.get(book_id)
+    book = _all_books().get(book_id)
     if book is None:
         raise HTTPException(status_code=404, detail=f"book {book_id} 없음")
     return book
@@ -71,7 +87,7 @@ def _require_book(book_id: str) -> Book:
 def list_books() -> list[BookSummary]:
     return [
         BookSummary(id=b.id, title=b.title, author=b.author, total_offset=b.total_offset)
-        for b in _BOOKS.values()
+        for b in _all_books().values()
     ]
 
 
@@ -80,12 +96,22 @@ def get_book(book_id: str) -> Book:
     return _require_book(book_id)
 
 
+@app.get("/api/books/{book_id}/file")
+def get_book_file(book_id: str):
+    """epub.js가 브라우저에서 직접 렌더링할 수 있도록 원본 EPUB 바이트를 서빙한다."""
+    _require_book(book_id)
+    path = Path(fx._epub_path_for(book_id))
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="원본 EPUB 파일을 찾을 수 없습니다.")
+    return FileResponse(path, media_type="application/epub+zip", filename=path.name)
+
+
 @app.get("/api/books/{book_id}/chapters/{index}", response_model=Chapter)
 def get_chapter(book_id: str, index: int) -> Chapter:
-    _require_book(book_id)
-    if index not in fx.CHAPTER_CONTENT:
+    book = _require_book(book_id)
+    if index not in {c.index for c in book.chapters}:
         raise HTTPException(status_code=404, detail=f"chapter {index} 없음")
-    return fx.chapter_with_content(index)
+    return fx.chapter_with_content(book_id, index)
 
 
 @app.get("/api/books/{book_id}/graph", response_model=GraphJson)
@@ -112,16 +138,66 @@ def get_reminders(
 def get_progress(book_id: str, user_id: str = "local") -> Progress:
     _require_book(book_id)
     row = db.get_progress(user_id, book_id)
+    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
     return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
+                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
 
 
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
 def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     _require_book(book_id)
-    row = db.put_progress(body.user_id, book_id, body.reading_offset)
+    offset = (
+        cfi_db.find_global_index_by_cfi(book_id, body.cfi)
+        if body.cfi
+        else body.reading_offset
+    )
+    row = db.put_progress(body.user_id, book_id, offset, force=body.force)
+    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
     return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
+                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
+
+
+def _run_full_analysis(book_id: str) -> None:
+    """BuildAgent~IndirectLeakageJudge 4단계 파이프라인을 백그라운드에서 실행.
+
+    업로드 응답은 CFI 인덱싱만 끝나면 바로 나가고, 이 분석(몇 분~수십 분 소요, LLM
+    호출 다수)은 별도로 돌아간다. 완료되면 precompute_from_epub이 알아서
+    Supabase build_agent_snapshots에 적재하므로, 다음 요청부터 바로 서빙된다.
+    """
+    from agents.parsers.epub_parser import parse_epub
+    from agents.tools.chunk_tool import make_chunks
+    from .precompute import precompute_from_epub
+    from .upload_pipeline import epub_path_for
+
+    epub_path = str(epub_path_for(book_id))
+    parsed = parse_epub(epub_path)
+    chunks = make_chunks(parsed["chapters"])
+    last = len(chunks) - 1
+    boundaries = list(range(4, last, 5)) + [last]
+
+    try:
+        precompute_from_epub(epub_path, book_id, boundaries)
+    except Exception as e:  # pragma: no cover - 백그라운드 작업 실패는 로그만
+        print(f"[분석 실패] book_id={book_id}: {e}")
+
+
+@app.post("/api/books/upload")
+async def upload_book(file: UploadFile, background_tasks: BackgroundTasks) -> dict:
+    if not file.filename or not file.filename.lower().endswith(".epub"):
+        raise HTTPException(status_code=400, detail="EPUB 파일만 업로드할 수 있습니다.")
+
+    epub_bytes = await file.read()
+    title = Path(file.filename).stem
+
+    try:
+        result = ingest_epub(epub_bytes, file.filename, title)
+    except CfiBuildError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    if not result["reused"]:
+        background_tasks.add_task(_run_full_analysis, result["book_id"])
+
+    return result
 
 
 @app.get("/api/health")
