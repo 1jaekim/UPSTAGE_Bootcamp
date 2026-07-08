@@ -190,6 +190,8 @@ def merge_build_results(previous_results: dict, new_result: dict) -> dict:
     """
     기존 인물/관계/사건 결과에 새 결과를 병합한다.
     완전한 동일성 판단은 아직 하지 않고, 단순 중복 제거만 수행한다.
+    (표기가 다른 동일 인물 병합은 이름 유사도로는 오탐이 커서, VerifierAgent의
+    LLM 판단으로 옮겼다 — agents/verifier_agent.py의 canonicalize_character_names 참고.)
     """
     characters = deduplicate_by_key(
         previous_results.get("characters", []) + new_result.get("characters", []),
