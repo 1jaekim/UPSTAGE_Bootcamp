@@ -1,5 +1,5 @@
 // ── 공유 상수 (SPEC §1 청크 경계) ─────────────────────────────
-export const BOOK_ID = 'b_mist';
+export const BOOK_ID = '29f8f4f6-1cff-4b13-95e3-5405a19f8b11';
 
 // 청크 경계 (strict_chunk_end) — 이 값을 넘어 끝까지 읽어야 fact 공개
 export const CHUNK_BOUNDARIES = [215, 320, 380, 430] as const;

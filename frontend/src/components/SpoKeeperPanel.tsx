@@ -1,7 +1,7 @@
 // ── SpoKeeper Panel (구성: main app.py '🧠 SpoKeeper Panel') ────────
 // '현재 위치까지 분석' → 추출된 인물 / 관계 / 사건(리마인드) / 로그.
 // 데이터는 master의 계약(useGraph·useReminders)을 그대로 사용, 스타일 유지.
-import { BOOK_ID, TYPE_LABEL } from '../lib/constants';
+import { TYPE_LABEL } from '../lib/constants';
 import { useGraph, useReminders } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { RelationshipGraph } from './RelationshipGraph';
@@ -17,13 +17,14 @@ function SectionTitle({ icon, children }: { icon: string; children: React.ReactN
 }
 
 export function SpoKeeperPanel() {
+  const bookId = useSpoStore((s) => s.selectedBookId);
   const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
   const spoilerSafe = useSpoStore((s) => s.spoilerSafe);
   const analyzed = useSpoStore((s) => s.analyzed);
   const setAnalyzed = useSpoStore((s) => s.setAnalyzed);
 
-  const { data: graph, isLoading: gLoading } = useGraph(BOOK_ID, spoilerBoundary, spoilerSafe);
-  const { data: reminders, isLoading: rLoading } = useReminders(BOOK_ID, spoilerBoundary);
+  const { data: graph, isLoading: gLoading } = useGraph(bookId, spoilerBoundary, spoilerSafe);
+  const { data: reminders, isLoading: rLoading } = useReminders(bookId, spoilerBoundary);
 
   const loading = gLoading || rLoading;
   const isEmpty = !!graph && graph.entities.length === 0;

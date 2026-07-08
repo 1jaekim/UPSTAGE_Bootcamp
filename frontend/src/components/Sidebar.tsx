@@ -1,20 +1,36 @@
 // ── 사이드바 (구성: main app.py) : 브랜드 · EPUB 업로드 · 읽기 위치 슬라이더 ──
 // 스타일은 기존 React 디자인 토큰(accent·slate·rounded)을 그대로 따른다.
 import { useEffect, useRef, useState } from 'react';
-import { BOOK_ID, CHUNK_BOUNDARIES } from '../lib/constants';
-import { useBook, useProgress, usePutProgress } from '../api/hooks';
+import { CHUNK_BOUNDARIES } from '../lib/constants';
+import { useBook, useBooks, useProgress, usePutProgress, useUploadBook } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { SpoilerModeToggle } from './SpoilerModeToggle';
 
 export function Sidebar() {
-  const { data: book } = useBook(BOOK_ID);
-  const { data: progress } = useProgress(BOOK_ID);
-  const putProgress = usePutProgress(BOOK_ID);
+  const selectedBookId = useSpoStore((s) => s.selectedBookId);
+  const setSelectedBookId = useSpoStore((s) => s.setSelectedBookId);
+  const { data: books } = useBooks();
+  const { data: book } = useBook(selectedBookId);
+  const { data: progress } = useProgress(selectedBookId);
+  const putProgress = usePutProgress(selectedBookId);
+  const uploadBook = useUploadBook();
   const setProgress = useSpoStore((s) => s.setProgress);
   const readingOffset = useSpoStore((s) => s.readingOffset);
 
   const [fileName, setFileName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    setUploadError(null);
+    uploadBook.mutate(file, {
+      onSuccess: (result) => setSelectedBookId(result.book_id),
+      onError: (err) => setUploadError(err instanceof Error ? err.message : '업로드 실패'),
+    });
+  };
 
   // 최초 progress → store 동기화
   useEffect(() => {
@@ -56,25 +72,44 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500 transition hover:border-accent hover:text-accent"
+          disabled={uploadBook.isPending}
+          className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-xs text-slate-500 transition hover:border-accent hover:text-accent disabled:opacity-50"
         >
           <div className="mb-1 text-2xl" aria-hidden>📚</div>
-          {fileName ?? '소설 EPUB 파일을 업로드하세요'}
+          {uploadBook.isPending
+            ? '업로드 중... (CFI 인덱스 생성)'
+            : (fileName ?? '소설 EPUB 파일을 업로드하세요')}
         </button>
         <input
           ref={fileRef}
           type="file"
           accept=".epub"
           className="hidden"
-          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+          onChange={onFileChange}
         />
+        {uploadError && <p className="text-xs text-red-500">{uploadError}</p>}
 
-        {/* 현재 로드된 책 (데모 픽스처) */}
-        {book && (
-          <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="text-[11px] font-medium text-slate-400">현재 분석 중인 책</div>
-            <div className="mt-0.5 text-sm font-bold text-slate-800">{book.title}</div>
-            <div className="text-xs text-slate-500">{book.author}</div>
+        {/* 책 목록 (Supabase에서 조회) */}
+        {books && books.length > 0 && (
+          <div className="space-y-1.5">
+            {books.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setSelectedBookId(b.id)}
+                className={`w-full rounded-xl border p-3 text-left shadow-sm transition ${
+                  b.id === selectedBookId
+                    ? 'border-accent bg-accent/5'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className="text-[11px] font-medium text-slate-400">
+                  {b.id === selectedBookId ? '현재 분석 중인 책' : '책'}
+                </div>
+                <div className="mt-0.5 text-sm font-bold text-slate-800">{b.title}</div>
+                <div className="text-xs text-slate-500">{b.author}</div>
+              </button>
+            ))}
           </div>
         )}
       </section>
