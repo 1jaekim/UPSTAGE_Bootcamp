@@ -107,16 +107,20 @@ def book_for(book_id: str, title: str = "", author: str = "—") -> Book:
 def chapter_with_content(book_id: str, index: int) -> Chapter:
     book = book_for(book_id)
     base = next(c for c in book.chapters if c.index == index)
-    text = _chapter_text(book_id, index, base.title)
+    # 오프셋은 항상 1챕터 제목을 기준으로 계산해야 한다 — 요청한 챕터 자신의 제목을
+    # 넘기면 챕터마다 다른(그리고 틀린) 오프셋이 나와 엉뚱한 챕터 본문이 매칭된다.
+    anchor = next((c for c in book.chapters if c.index == 1), base)
+    text = _chapter_text(book_id, index, anchor.title)
     return base.model_copy(update={"content": text})
 
 
 # ── 기존 단일 책(셜록 홈즈) 코드와의 호환용 별칭 ──────────────────────────
 BOOK_MIST = book_for(BOOK_ID, title="The Hound of the Baskervilles", author="Arthur Conan Doyle")
+_BOOK_MIST_ANCHOR_TITLE = next((c.title for c in BOOK_MIST.chapters if c.index == 1), "")
 CHAPTER_CONTENT: dict[int, str] = {
     c.index: text
     for c in BOOK_MIST.chapters
-    if (text := _chapter_text(BOOK_ID, c.index, c.title)) is not None
+    if (text := _chapter_text(BOOK_ID, c.index, _BOOK_MIST_ANCHOR_TITLE)) is not None
 }
 
 

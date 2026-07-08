@@ -39,7 +39,10 @@ export function Sidebar() {
 
   const total = book?.total_offset ?? 430;
 
-  // 슬라이더로 읽기 위치(offset) 변경 → PUT progress → 경계선 갱신
+  // 슬라이더로 읽기 위치(offset) 변경 → PUT progress → 경계선 갱신.
+  // 이제 BuildAgent 경계선이 CFI global_index 기준 35개 지점으로 촘촘히 재정렬되어
+  // 있어서(챕터당 여러 개), 매 이동마다 갱신해도 실제로는 가장 가까운 경계선으로만
+  // 스냅되므로 챕터 단위로 묶어 트리거를 늦출 필요가 없다.
   const onSlide = (value: number) => {
     setProgress(value, Math.max(useSpoStore.getState().spoilerBoundary, value));
     putProgress.mutate(value, {
