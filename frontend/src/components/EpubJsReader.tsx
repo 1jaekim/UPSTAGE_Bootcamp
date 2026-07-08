@@ -19,6 +19,7 @@ export function EpubJsReader() {
   const bookId = useSpoStore((s) => s.selectedBookId);
   const setProgress = useSpoStore((s) => s.setProgress);
   const setPage = useSpoStore((s) => s.setPage);
+  const setLatestCfi = useSpoStore((s) => s.setLatestCfi);
   const currentPage = useSpoStore((s) => s.currentPage);
   const totalPages = useSpoStore((s) => s.totalPages);
   const putProgress = usePutProgress(bookId);
@@ -68,7 +69,10 @@ export function EpubJsReader() {
         // 마지막으로 읽던 CFI가 있으면 거기서, 없으면 처음부터 연다.
         return rendition.display(progress?.cfi ?? undefined).then(() => {
           const current = rendition.currentLocation() as unknown as { start?: { cfi: string } } | undefined;
-          if (current?.start?.cfi) reportPage(current.start.cfi);
+          if (current?.start?.cfi) {
+            reportPage(current.start.cfi);
+            setLatestCfi(current.start.cfi);
+          }
         });
       })
       .catch((e: unknown) => {
@@ -77,6 +81,7 @@ export function EpubJsReader() {
 
     rendition.on('relocated', (location: { start: { cfi: string } }) => {
       reportPage(location.start.cfi);
+      setLatestCfi(location.start.cfi);
       pageCountRef.current += 1;
 
       // 분석 갱신(서버 반영)은 10페이지마다 한 번씩만
