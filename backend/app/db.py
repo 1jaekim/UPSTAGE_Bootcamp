@@ -38,7 +38,7 @@ def get_progress(user_id: str, book_id: str) -> ProgressRow:
         return row
 
 
-def put_progress(user_id: str, book_id: str, reading_offset: int) -> ProgressRow:
+def put_progress(user_id: str, book_id: str, reading_offset: int, force: bool = False) -> ProgressRow:
     with Session(engine) as s:
         row = s.get(ProgressRow, (user_id, book_id))
         if row is None:
@@ -47,8 +47,12 @@ def put_progress(user_id: str, book_id: str, reading_offset: int) -> ProgressRow
             s.add(row)
         prev_boundary = row.spoiler_boundary or 0
         row.reading_offset = reading_offset
-        # 단조 증가 (SPEC progress 규칙 / 불변 규칙 5)
-        row.spoiler_boundary = max(prev_boundary, reading_offset)
+        if force:
+            # 재독 모드: 단조 증가 규칙을 의도적으로 깨고 현재 위치로 경계선을 되돌린다.
+            row.spoiler_boundary = reading_offset
+        else:
+            # 단조 증가 (SPEC progress 규칙 / 불변 규칙 5)
+            row.spoiler_boundary = max(prev_boundary, reading_offset)
         s.commit()
         s.refresh(row)
         return row

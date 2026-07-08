@@ -16,6 +16,7 @@ export function Sidebar() {
   const uploadBook = useUploadBook();
   const setProgress = useSpoStore((s) => s.setProgress);
   const readingOffset = useSpoStore((s) => s.readingOffset);
+  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -145,6 +146,22 @@ export function Sidebar() {
             </div>
           </div>
         </div>
+
+        {/* 이미 도달한 위치(spoilerBoundary)보다 앞으로 돌아왔을 때만 노출 */}
+        {readingOffset < spoilerBoundary && (
+          <button
+            type="button"
+            onClick={() => {
+              putProgress.mutate(
+                { offset: readingOffset, force: true },
+                { onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary) },
+              );
+            }}
+            className="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
+          >
+            📖 이 위치(offset {readingOffset})부터 다시 보기
+          </button>
+        )}
       </section>
 
       {/* 안심 모드 (master 고유 기능 유지) */}

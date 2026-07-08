@@ -127,7 +127,7 @@ def get_progress(book_id: str, user_id: str = "local") -> Progress:
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
 def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     _require_book(book_id)
-    row = db.put_progress(body.user_id, book_id, body.reading_offset)
+    row = db.put_progress(body.user_id, book_id, body.reading_offset, force=body.force)
     return Progress(user_id=row.user_id, book_id=row.book_id,
                     reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
 

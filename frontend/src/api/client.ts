@@ -104,20 +104,19 @@ export const api = {
     return http<Progress>(`/api/books/${bookId}/progress`);
   },
 
-  async putProgress(bookId: string, readingOffset: number): Promise<Progress> {
+  async putProgress(bookId: string, readingOffset: number, force = false): Promise<Progress> {
     if (USE_MOCK) {
       await sleep(100);
       mockProgressState.reading_offset = readingOffset;
-      // boundary = max(기존, 신규) 단조 증가 (SPEC 불변식 5)
-      mockProgressState.spoiler_boundary = Math.max(
-        mockProgressState.spoiler_boundary,
-        readingOffset,
-      );
+      // boundary = max(기존, 신규) 단조 증가 (SPEC 불변식 5) — force=true면 재독 모드로 강제 리셋
+      mockProgressState.spoiler_boundary = force
+        ? readingOffset
+        : Math.max(mockProgressState.spoiler_boundary, readingOffset);
       return { ...mockProgressState };
     }
     return http<Progress>(`/api/books/${bookId}/progress`, {
       method: 'PUT',
-      body: JSON.stringify({ reading_offset: readingOffset }),
+      body: JSON.stringify({ reading_offset: readingOffset, force }),
     });
   },
 };
