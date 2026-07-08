@@ -1,18 +1,28 @@
 // ── epub.js 기반 실제 리더 ──────────────────────────────────────
 // 화면(뷰포트) 크기에 맞춰 실제로 페이지를 나눠서 보여주고, epub.js가 주는 진짜 CFI를
-// 그대로 백엔드에 보낸다. 10페이지마다 한 번씩만 progress를 갱신해 분석 트리거를 늦춘다.
+// 그대로 백엔드에 보낸다. 페이지 표시는 매번 즉시 갱신하되, 분석 갱신(서버 반영)은
+// 10페이지마다 한 번씩만 트리거한다. 새로고침 시엔 마지막으로 읽던 위치부터 이어서 연다.
+//
+// 페이지 번호는 챕터(spine 섹션)마다 따로 매겨지는 epub.js의 기본 displayed.page가 아니라,
+// book.locations(책 전체를 미리 스캔해 만드는 절대 위치 인덱스)를 써서 챕터와 무관하게
+// 책 전체 기준으로 계산한다.
 import { useEffect, useRef, useState } from 'react';
 import ePub, { type Book, type Rendition } from 'epubjs';
 import { bookFileUrl } from '../api/client';
-import { usePutProgress } from '../api/hooks';
+import { useProgress, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
 
 const PAGES_PER_UPDATE = 10;
+const CHARS_PER_LOCATION = 1000; // book.locations 생성 단위 (작을수록 촘촘하지만 생성이 느려짐)
 
 export function EpubJsReader() {
   const bookId = useSpoStore((s) => s.selectedBookId);
   const setProgress = useSpoStore((s) => s.setProgress);
+  const setPage = useSpoStore((s) => s.setPage);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
   const putProgress = usePutProgress(bookId);
+  const { data: progress, isLoading: progressLoading } = useProgress(bookId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<Book | null>(null);
@@ -20,11 +30,13 @@ export function EpubJsReader() {
   const pageCountRef = useRef(0);
 
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [locationLabel, setLocationLabel] = useState<string>('');
+  const [locationsReady, setLocationsReady] = useState(false);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    // progress 조회가 끝날 때까지 기다렸다가 열어야 마지막 위치로 바로 이어서 열 수 있다.
+    if (!containerRef.current || progressLoading) return;
     setLoadError(null);
+    setLocationsReady(false);
     pageCountRef.current = 0;
 
     // URL이 '.epub'로 안 끝나서(우리 API는 /file 경로) openAs를 명시해야
@@ -38,15 +50,36 @@ export function EpubJsReader() {
     });
     renditionRef.current = rendition;
 
-    rendition.display().catch((e: unknown) => {
-      setLoadError(e instanceof Error ? e.message : 'EPUB을 불러오지 못했습니다.');
-    });
+    let cancelled = false;
 
-    rendition.on('relocated', (location: { start: { cfi: string; displayed: { page: number; total: number } } }) => {
-      setLocationLabel(`${location.start.displayed.page} / ${location.start.displayed.total}`);
+    const reportPage = (cfi: string) => {
+      const loc = book.locations.locationFromCfi(cfi);
+      const total = book.locations.total;
+      if (typeof loc === 'number' && total > 0) {
+        setPage(loc + 1, total + 1); // locationFromCfi는 0-based
+      }
+    };
+
+    book.ready
+      .then(() => book.locations.generate(CHARS_PER_LOCATION))
+      .then(() => {
+        if (cancelled) return;
+        setLocationsReady(true);
+        // 마지막으로 읽던 CFI가 있으면 거기서, 없으면 처음부터 연다.
+        return rendition.display(progress?.cfi ?? undefined).then(() => {
+          const current = rendition.currentLocation() as unknown as { start?: { cfi: string } } | undefined;
+          if (current?.start?.cfi) reportPage(current.start.cfi);
+        });
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setLoadError(e instanceof Error ? e.message : 'EPUB을 불러오지 못했습니다.');
+      });
+
+    rendition.on('relocated', (location: { start: { cfi: string } }) => {
+      reportPage(location.start.cfi);
       pageCountRef.current += 1;
 
-      // 10페이지마다 한 번씩만 서버에 반영 (분석 갱신 트리거 억제)
+      // 분석 갱신(서버 반영)은 10페이지마다 한 번씩만
       if (pageCountRef.current % PAGES_PER_UPDATE === 0) {
         putProgress.mutate(
           { cfi: location.start.cfi },
@@ -56,13 +89,14 @@ export function EpubJsReader() {
     });
 
     return () => {
+      cancelled = true;
       rendition.destroy();
       book.destroy();
       renditionRef.current = null;
       bookRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId]);
+  }, [bookId, progressLoading]);
 
   return (
     <section className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -71,7 +105,9 @@ export function EpubJsReader() {
           <span className="text-lg" aria-hidden>📖</span>
           <h2 className="text-sm font-bold text-slate-800">EPUB 리더 (epub.js)</h2>
         </div>
-        <span className="text-xs text-slate-400">{locationLabel}</span>
+        <span className="text-xs text-slate-400">
+          {!locationsReady ? '페이지 계산 중...' : totalPages > 0 ? `${currentPage} / ${totalPages}` : ''}
+        </span>
       </header>
 
       <div className="relative min-h-0 flex-1">

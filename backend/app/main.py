@@ -135,8 +135,9 @@ def get_reminders(
 def get_progress(book_id: str, user_id: str = "local") -> Progress:
     _require_book(book_id)
     row = db.get_progress(user_id, book_id)
+    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
     return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
+                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
 
 
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
@@ -148,8 +149,9 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
         else body.reading_offset
     )
     row = db.put_progress(body.user_id, book_id, offset, force=body.force)
+    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
     return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary)
+                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
 
 
 @app.post("/api/books/upload")

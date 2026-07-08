@@ -67,6 +67,15 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
     )
 
 
+def cfi_for_global_index(book_id: str, global_index: int) -> str | None:
+    """global_index -> 원본 CFI 문자열 (역방향 조회, 새로고침 시 위치 복원용)."""
+    paragraphs = get_paragraphs(book_id)
+    if not paragraphs:
+        return None
+    clamped = max(0, min(global_index, len(paragraphs) - 1))
+    return paragraphs[clamped].cfi_raw
+
+
 def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
     """epub.js가 준 원본 CFI 문자열을 이 책의 global_index로 변환한다.
 

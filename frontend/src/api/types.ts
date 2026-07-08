@@ -74,6 +74,7 @@ export interface Progress {
   book_id: string;
   reading_offset: number;
   spoiler_boundary: number;
+  cfi?: string | null;
 }
 
 export interface BookSummary {

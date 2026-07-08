@@ -1,7 +1,6 @@
 // ── 사이드바 (구성: main app.py) : 브랜드 · EPUB 업로드 · 읽기 위치 슬라이더 ──
 // 스타일은 기존 React 디자인 토큰(accent·slate·rounded)을 그대로 따른다.
 import { useEffect, useRef, useState } from 'react';
-import { CHUNK_BOUNDARIES } from '../lib/constants';
 import { useBook, useBooks, useProgress, usePutProgress, useUploadBook } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { SpoilerModeToggle } from './SpoilerModeToggle';
@@ -17,6 +16,8 @@ export function Sidebar() {
   const setProgress = useSpoStore((s) => s.setProgress);
   const readingOffset = useSpoStore((s) => s.readingOffset);
   const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -50,9 +51,6 @@ export function Sidebar() {
       onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary),
     });
   };
-
-  // 현재 offset이 몇 번째 청크 구간인지 (main의 '현재 읽은 Chunk 위치' 대응)
-  const chunkIndex = CHUNK_BOUNDARIES.filter((b) => readingOffset >= b).length;
 
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col gap-6 overflow-y-auto border-r border-slate-200 bg-white/80 px-4 py-5 backdrop-blur">
@@ -134,16 +132,10 @@ export function Sidebar() {
           className="w-full accent-accent"
         />
 
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg bg-slate-50 px-2 py-1.5">
-            <div className="text-slate-400">현재 offset</div>
-            <div className="font-mono font-semibold text-slate-700">{readingOffset}</div>
-          </div>
-          <div className="rounded-lg bg-slate-50 px-2 py-1.5">
-            <div className="text-slate-400">청크 구간</div>
-            <div className="font-mono font-semibold text-slate-700">
-              {chunkIndex} / {CHUNK_BOUNDARIES.length}
-            </div>
+        <div className="rounded-lg bg-slate-50 px-2 py-1.5 text-xs">
+          <div className="text-slate-400">현재 페이지</div>
+          <div className="font-mono font-semibold text-slate-700">
+            {totalPages > 0 ? `${currentPage} / ${totalPages}` : '—'}
           </div>
         </div>
 

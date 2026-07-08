@@ -86,6 +86,9 @@ class Progress(BaseModel):
     book_id: str
     reading_offset: int
     spoiler_boundary: int
+    # reading_offset(global_index)에 해당하는 문단의 원본 CFI. 새로고침 시 프론트(epub.js)가
+    # 이 값으로 rendition.display(cfi)를 호출해 마지막으로 읽던 위치로 복원한다.
+    cfi: str | None = None
 
 
 class ProgressUpdate(BaseModel):
