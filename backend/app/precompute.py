@@ -26,23 +26,50 @@ def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
 
     boundary_results 는 경계선 오름차순. build_result 는 해당 경계선까지 '누적된'
     characters/relations/events (incremental_build_agent 반환 형태).
+
+    각 경계선마다 VerifierAgent → ReminderWriterAgent → IndirectLeakageJudge 순으로
+    체이닝한다 (BuildAgent는 이미 incremental_build_agent 단계에서 끝난 상태로 들어옴).
     """
+    from agents.indirect_leakage_judge import judge_reminders
+    from agents.reminder_writer_agent import write_reminders
+    from agents.verifier_agent import verify_build_result
+
     ordered = sorted(boundary_results, key=lambda x: x[0])
     first_seen: dict[str, int] = {}
     entries: list[dict] = []
 
     for boundary, result in ordered:
+        # 1차 가드: 근거 없는 relations/events 제거
+        verified = verify_build_result(result)
+
         # 이 경계선에서 처음 보이는 관계의 revision_offset 을 boundary 로 고정
-        for rid in ad.build_relation_ids(result):
+        for rid in ad.build_relation_ids(verified):
             first_seen.setdefault(rid, boundary)
 
-        graph = ad.to_graph_json(result, boundary, revision_offsets=first_seen)
-        reminders = ad.to_reminder_lines(result)
+        graph = ad.to_graph_json(verified, boundary, revision_offsets=first_seen)
+
+        # 2차 가드: 서술형으로 재작성 → 3차 가드: 암시/복선 판정 후 최종 확정
+        written = write_reminders(verified)
+        entity_name_to_id = {e.name: e.id for e in graph.entities}
+        judged_lines = judge_reminders(written.get("lines", []))
+        reminders = [
+            {
+                "text": line.get("text", ""),
+                "entity_ids": [
+                    entity_name_to_id[n]
+                    for n in line.get("entity_names", [])
+                    if n in entity_name_to_id
+                ],
+            }
+            for line in judged_lines
+            if line.get("text")
+        ]
+
         entries.append(
             {
                 "boundary": boundary,
                 "graph": graph.model_dump(),
-                "reminders": [r.model_dump() for r in reminders],
+                "reminders": reminders,
             }
         )
     return entries
