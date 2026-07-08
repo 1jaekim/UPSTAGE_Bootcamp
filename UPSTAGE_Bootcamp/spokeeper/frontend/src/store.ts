@@ -10,6 +10,7 @@ interface SpoState {
   spoilerBoundary: number;
   maskNames: boolean; // 설정: 이름 마스킹
   theme: 'light' | 'dark';
+  analyzed: boolean; // 🧠 SpoKeeper Panel: '현재 위치까지 분석' 실행 여부
 
   setSpoilerSafe: (v: boolean) => void;
   setPanel: (p: PanelKind) => void;
@@ -17,6 +18,7 @@ interface SpoState {
   setProgress: (readingOffset: number, spoilerBoundary: number) => void;
   setMaskNames: (v: boolean) => void;
   setTheme: (t: 'light' | 'dark') => void;
+  setAnalyzed: (v: boolean) => void;
 }
 
 export const useSpoStore = create<SpoState>((set) => ({
@@ -26,6 +28,7 @@ export const useSpoStore = create<SpoState>((set) => ({
   spoilerBoundary: 0,
   maskNames: false,
   theme: 'light',
+  analyzed: false,
 
   setSpoilerSafe: (v) => set({ spoilerSafe: v }),
   setPanel: (panel) => set({ panel }),
@@ -34,4 +37,5 @@ export const useSpoStore = create<SpoState>((set) => ({
     set({ readingOffset, spoilerBoundary }),
   setMaskNames: (maskNames) => set({ maskNames }),
   setTheme: (theme) => set({ theme }),
+  setAnalyzed: (analyzed) => set({ analyzed }),
 }));
