@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import cfi_db, db, fixtures as fx
 from .content_source import AgentResultSource, ContentSource, FixtureSource
-from .precompute import store_path
+from .precompute import STORE_DIR
 from .schemas import (
     Book,
     BookSummary,
@@ -30,13 +30,17 @@ from .upload_pipeline import CfiBuildError, ingest_epub
 # ── 소스 주입 (교체 지점) ────────────────────────────────────────
 # SPO_SOURCE=agent 면 precompute 결과(AgentResultSource)를, 아니면 FixtureSource 를 서빙.
 # 계약이 동일하므로 라우트/스키마 변경 없이 이 선택만 바뀐다.
+# AgentResultSource._store는 (book_id, boundary) 복합키라 원래도 여러 책을 담을 수 있었는데,
+# 예전엔 book_id 하나짜리 파일만 로드해서 사실상 단일 책만 서빙되고 있었다 — 이제
+# data/precomputed/ 안의 모든 책 precompute 파일을 합쳐서 로드한다.
 def _make_source() -> ContentSource:
     if os.environ.get("SPO_SOURCE", "fixture").lower() == "agent":
-        book_id = os.environ.get("SPO_BOOK", fx.BOOK_ID)
-        path = store_path(book_id)
-        if path.exists():
-            return AgentResultSource.from_json_file(path)
-        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {path} → FixtureSource 폴백")
+        combined_store: dict = {}
+        for path in sorted(STORE_DIR.glob("*.json")):
+            combined_store.update(AgentResultSource.from_json_file(path)._store)
+        if combined_store:
+            return AgentResultSource(combined_store)
+        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {STORE_DIR} → FixtureSource 폴백")
     return FixtureSource()
 
 
