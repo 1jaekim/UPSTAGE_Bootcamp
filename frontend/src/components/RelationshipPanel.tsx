@@ -14,10 +14,10 @@ export function RelationshipPanel() {
   const isEmpty = !!graph && graph.entities.length === 0;
 
   return (
-    <SlideOverPanel title="관계도" subtitle={`경계선 offset ${spoilerBoundary} 기준`}>
+    <SlideOverPanel title="관계도" subtitle="현재 읽은 위치까지의 관계">
       {/* 안내 배너 */}
       <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs leading-5 text-indigo-700">
-        현재 읽은 위치까지만 보여줘요. {spoilerSafe ? '경계선 뒤 내용은 숨겨집니다.' : '안심 모드 OFF — 전체가 공개됩니다.'}
+        현재 읽은 위치까지만 보여줘요. {spoilerSafe ? '아직 읽지 않은 내용은 숨겨집니다.' : '안심 모드 OFF — 전체 내용이 표시됩니다.'}
       </div>
 
       {isLoading && (
@@ -33,7 +33,7 @@ export function RelationshipPanel() {
         </div>
       )}
 
-      {/* 빈 상태 (offset 150 등) */}
+      {/* 빈 상태 */}
       {isEmpty && (
         <div className="grid place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center">
           <div className="mb-2 text-3xl" aria-hidden>🌫️</div>

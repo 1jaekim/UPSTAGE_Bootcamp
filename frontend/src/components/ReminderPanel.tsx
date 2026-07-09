@@ -1,4 +1,4 @@
-// ── 리마인드 패널 (F3): 경계선까지의 요약 라인 ─────────────────
+// ── 리마인드 패널 (F3): 읽은 위치까지의 요약 라인 ─────────────────
 import { BOOK_ID } from '../lib/constants';
 import { useReminders } from '../api/hooks';
 import { useSpoStore } from '../store';
@@ -11,7 +11,7 @@ export function ReminderPanel() {
   const isEmpty = !!data && data.lines.length === 0;
 
   return (
-    <SlideOverPanel title="리마인드" subtitle={`경계선 offset ${spoilerBoundary}까지의 줄거리`}>
+    <SlideOverPanel title="리마인드" subtitle="현재 읽은 위치까지의 줄거리">
       <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs leading-5 text-indigo-700">
         읽은 지점까지의 핵심만 다시 짚어드려요. 스포일러는 포함하지 않습니다.
       </div>

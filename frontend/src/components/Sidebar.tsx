@@ -151,7 +151,7 @@ export function Sidebar() {
             }}
             className="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
           >
-            📖 이 위치(offset {readingOffset})부터 다시 보기
+            📖 현재 읽기 위치로 이동하기
           </button>
         )}
       </section>

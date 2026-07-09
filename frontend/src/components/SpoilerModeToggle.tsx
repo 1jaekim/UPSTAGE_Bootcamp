@@ -12,7 +12,7 @@ export function SpoilerModeToggle() {
       aria-checked={spoilerSafe}
       onClick={() => setSpoilerSafe(!spoilerSafe)}
       className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition hover:border-slate-300"
-      title={spoilerSafe ? '안심 모드 ON — 경계선 뒤는 숨김' : '안심 모드 OFF — 전체 공개(reveal_all)'}
+      title={spoilerSafe ? '안심 모드 ON — 아직 읽지 않은 내용은 숨김' : '안심 모드 OFF — 전체 내용 표시'}
     >
       <span
         className={`inline-flex h-4 w-4 items-center justify-center rounded-full transition ${

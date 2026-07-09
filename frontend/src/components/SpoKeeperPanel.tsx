@@ -64,7 +64,7 @@ export function SpoKeeperPanel() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <p className="mb-3 text-xs leading-5 text-slate-500">
-          현재 읽기 위치(offset {spoilerBoundary}) 기준으로 인물·관계·사건을 분석합니다.
+          현재 읽은 위치까지 인물·관계·사건을 분석합니다.
         </p>
 
         <button
@@ -156,11 +156,11 @@ export function SpoKeeperPanel() {
               <pre className="overflow-x-auto rounded-xl bg-slate-900 px-3 py-2.5 text-[11px] leading-5 text-slate-100">
 {JSON.stringify(
   {
-    offset: spoilerBoundary,
-    spoiler_safe: spoilerSafe,
-    entity_count: graph.entities.length,
-    relation_count: graph.relationships.length,
-    event_count: reminders?.lines.length ?? 0,
+    분석범위: '현재 읽은 위치까지',
+    안심모드: spoilerSafe ? '켜짐' : '꺼짐',
+    인물수: graph.entities.length,
+    관계수: graph.relationships.length,
+    사건수: reminders?.lines.length ?? 0,
   },
   null,
   2,

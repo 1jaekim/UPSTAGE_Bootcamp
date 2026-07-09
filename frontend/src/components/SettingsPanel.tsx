@@ -50,7 +50,7 @@ export function SettingsPanel() {
       <div className="space-y-3">
         <Row
           label="안심 모드"
-          desc="켜면 읽은 경계선 뒤 정보는 절대 요청/표시하지 않습니다."
+          desc="켜면 아직 읽지 않은 내용은 요청하거나 표시하지 않습니다."
           checked={spoilerSafe}
           onChange={setSpoilerSafe}
         />
@@ -73,7 +73,7 @@ export function SettingsPanel() {
             </span>
           </div>
           <p className="mt-1.5 leading-5 text-slate-400">
-            계약(graph_json·reminders)은 mock/실서버/에이전트가 동일합니다. 플래그만 바꾸면 소스가 교체됩니다.
+            같은 화면에서 테스트 데이터와 실제 서버 데이터를 바꿔 볼 수 있습니다.
           </p>
         </div>
       </div>
