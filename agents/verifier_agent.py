@@ -5,6 +5,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from agents.config import UPSTAGE_API_KEY
 from agents.build_agent import extract_json_from_text
+from agents.character_aliases import load_character_alias_map
 
 
 VERIFIER_SYSTEM_PROMPT = """
@@ -362,7 +363,11 @@ def _augment_identity_map_with_alias_rules(
     return _apply_transitive_map(result)
 
 
-def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
+def canonicalize_character_names(
+    characters: list[dict],
+    book_id: str | None = None,
+    alias_map: dict[str, str] | None = None,
+) -> dict[str, str]:
     """
     characters(name/description/evidence 포함)를 LLM에게 보여주고, 표기만 다른
     동일 인물을 찾아 대표 이름으로 묶은 매핑을 반환한다.
@@ -372,12 +377,14 @@ def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
     맥락으로 판단하게 한다 (프롬프트에 판단 예시 다수 포함, CHARACTER_DEDUP_SYSTEM_PROMPT 참고).
     """
     identity_map = {c.get("name", ""): c.get("name", "") for c in characters if c.get("name")}
+    json_alias_map = load_character_alias_map(book_id) if alias_map is None else dict(alias_map)
+    identity_map.update(json_alias_map)
 
     if not UPSTAGE_API_KEY:
         raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
 
     if len(characters) < 2:
-        return identity_map
+        return _apply_transitive_map(identity_map)
 
     llm = ChatUpstage(
         model="solar-pro2",
@@ -422,6 +429,7 @@ def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
             if name in identity_map:
                 identity_map[name] = canonical
 
+    identity_map.update(json_alias_map)
     return _augment_identity_map_with_alias_rules(characters, identity_map)
 
 
@@ -546,7 +554,7 @@ def _apply_character_name_map(
     return build_result, characters, relations, events
 
 
-def verify_build_result(build_result: dict) -> dict:
+def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
     """
     build_result(누적된 characters/relations/events)를 검증해서,
     근거가 확인된 relations/events만 남기고, 표기만 다른 동일 인물을
@@ -560,7 +568,13 @@ def verify_build_result(build_result: dict) -> dict:
         raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
 
     # 인물 이름 정규화 (LLM 판단) — characters/relations/events 전부에 적용
-    name_map = canonicalize_character_names(characters)
+    json_alias_map = load_character_alias_map(book_id)
+    name_map = canonicalize_character_names(
+        characters,
+        book_id=book_id,
+        alias_map=json_alias_map,
+    )
+    name_map.update(json_alias_map)
     name_map = _augment_identity_map_with_alias_rules(
         _names_from_build_result(build_result),
         name_map,

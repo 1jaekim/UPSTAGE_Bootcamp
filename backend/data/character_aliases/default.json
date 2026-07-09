@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "book_id": null,
+  "characters": [
+    {
+      "canonical_name": "셜록 홈즈",
+      "aliases": [
+        "셜록 홈스",
+        "홈즈",
+        "셜록",
+        "홈즈 씨",
+        "셜록 홈즈 씨"
+      ],
+      "notes": "Common Korean variants for Sherlock Holmes."
+    },
+    {
+      "canonical_name": "존 H. 왓슨",
+      "aliases": [
+        "존 왓슨",
+        "왓슨",
+        "왓슨 박사",
+        "닥터 왓슨"
+      ],
+      "notes": "Common Korean variants for Dr. John H. Watson."
+    }
+  ]
+}

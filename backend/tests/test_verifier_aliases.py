@@ -2,6 +2,46 @@ from agents.verifier_agent import (
     _apply_character_name_map,
     _augment_identity_map_with_alias_rules,
 )
+from agents.character_aliases import load_character_alias_map
+
+
+def test_load_default_character_alias_map():
+    alias_map = load_character_alias_map(None)
+
+    assert alias_map["셜록 홈스"] == "셜록 홈즈"
+    assert alias_map["홈즈"] == "셜록 홈즈"
+    assert alias_map["왓슨 박사"] == "존 H. 왓슨"
+
+
+def test_load_book_character_alias_map_merges_default_and_book_specific_aliases():
+    alias_map = load_character_alias_map("3fb1a332-ae08-450b-8b20-3567a4da4180")
+
+    assert alias_map["셜록 홈스"] == "셜록 홈즈"
+    assert alias_map["나(화자)"] == "존 H. 왓슨"
+    assert alias_map["화자(왓슨)"] == "존 H. 왓슨"
+
+
+def test_json_alias_map_resolves_names_before_llm_alias_rules():
+    alias_map = load_character_alias_map("3fb1a332-ae08-450b-8b20-3567a4da4180")
+    build_result = {
+        "characters": [
+            {"name": "셜록 홈스", "description": "탐정", "evidence": "셜록 홈스가 말했다."},
+            {"name": "나(화자)", "description": "사건의 기록자", "evidence": "나는 홈즈와 만났다."},
+        ],
+        "relations": [
+            {"source": "홈즈", "target": "화자(왓슨)", "relation": "동행", "evidence": "함께 움직였다."},
+        ],
+        "events": [
+            {"summary": "조사 시작", "participants": ["셜록", "나(화자)"], "evidence": "조사가 시작되었다."},
+        ],
+    }
+
+    _, characters, relations, events = _apply_character_name_map(build_result, alias_map)
+
+    assert [character["name"] for character in characters] == ["셜록 홈즈", "존 H. 왓슨"]
+    assert relations[0]["source"] == "셜록 홈즈"
+    assert relations[0]["target"] == "존 H. 왓슨"
+    assert events[0]["participants"] == ["셜록 홈즈", "존 H. 왓슨"]
 
 
 def test_alias_rules_merge_sherlock_variants():
