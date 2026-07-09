@@ -27,6 +27,23 @@ class Relationship(BaseModel):
     tone: RelationTone
     description: str
     revision_offset: int
+    display_label: str | None = None
+    relation_category: Literal[
+        "ally",
+        "family",
+        "conflict",
+        "romance",
+        "work",
+        "mystery",
+        "neutral",
+    ] = "neutral"
+    directionality: Literal["directed", "undirected"] = "undirected"
+    relation_importance_score: int = 1
+    relation_importance_level: Literal["major", "minor"] = "minor"
+    first_seen_global_index: int | None = None
+    first_seen_boundary: int | None = None
+    is_new_at_current_position: bool = False
+    detail: str | None = None
 
 
 class GraphJson(BaseModel):

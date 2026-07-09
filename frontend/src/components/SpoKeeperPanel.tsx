@@ -1,7 +1,7 @@
 // ── SpoKeeper Panel (구성: main app.py '🧠 SpoKeeper Panel') ────────
 // '현재 위치까지 분석' → 추출된 인물 / 관계 / 사건(리마인드) / 로그.
 // 데이터는 master의 계약(useGraph·useReminders)을 그대로 사용, 스타일 유지.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useGraph, useReminders, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { CharacterImportanceList } from './CharacterImportanceList';
@@ -27,12 +27,25 @@ export function SpoKeeperPanel() {
   const setProgress = useSpoStore((s) => s.setProgress);
   const putProgress = usePutProgress(bookId);
   const [syncing, setSyncing] = useState(false);
+  const [showMinorRelations, setShowMinorRelations] = useState(false);
 
   const { data: graph, isLoading: gLoading } = useGraph(bookId, spoilerBoundary, spoilerSafe);
   const { data: reminders, isLoading: rLoading } = useReminders(bookId, spoilerBoundary);
 
   const loading = gLoading || rLoading || syncing;
   const isEmpty = !!graph && graph.entities.length === 0;
+  const visibleGraph = useMemo(() => {
+    if (!graph) return undefined;
+    if (showMinorRelations) return graph;
+    return {
+      ...graph,
+      relationships: graph.relationships.filter(
+        (relationship) => relationship.relation_importance_level !== 'minor',
+      ),
+    };
+  }, [graph, showMinorRelations]);
+  const minorRelationCount =
+    graph?.relationships.filter((relationship) => relationship.relation_importance_level === 'minor').length ?? 0;
 
   // 평소엔 10페이지마다만 경계선이 갱신되지만, 이 버튼을 누르는 순간만은
   // "현재 위치"라는 이름에 맞게 진짜 현재 페이지의 CFI로 강제 동기화한다.
@@ -99,7 +112,7 @@ export function SpoKeeperPanel() {
           </div>
         )}
 
-        {analyzed && !loading && graph && !isEmpty && (
+        {analyzed && !loading && graph && visibleGraph && !isEmpty && (
           <div className="mt-6 space-y-6">
             {/* 👤 추출된 인물 */}
             <div>
@@ -109,11 +122,20 @@ export function SpoKeeperPanel() {
 
             {/* 🔗 추출된 관계 */}
             <div>
-              <SectionTitle icon="🔗">추출된 관계 {graph.relationships.length}</SectionTitle>
+              <SectionTitle icon="🔗">추출된 관계 {visibleGraph.relationships.length}</SectionTitle>
               <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50/60 p-2">
-                <RelationshipGraph graph={graph} />
+                <RelationshipGraph graph={visibleGraph} />
               </div>
-              <RelationshipList graph={graph} />
+              {minorRelationCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowMinorRelations((value) => !value)}
+                  className="mb-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                >
+                  기타 관계 {showMinorRelations ? '숨기기' : `보기 (${minorRelationCount})`}
+                </button>
+              )}
+              <RelationshipList graph={visibleGraph} />
             </div>
 
             {/* 📌 추출된 사건 (리마인드) */}
@@ -147,7 +169,7 @@ export function SpoKeeperPanel() {
     분석범위: '현재 읽은 위치까지',
     안심모드: spoilerSafe ? '켜짐' : '꺼짐',
     인물수: graph.entities.length,
-    관계수: graph.relationships.length,
+    관계수: visibleGraph.relationships.length,
     사건수: reminders?.lines.length ?? 0,
   },
   null,

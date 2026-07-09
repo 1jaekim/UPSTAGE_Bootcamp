@@ -1,20 +1,21 @@
-// ── 관계도 그래프 (F2): 2열 노드 + 점선 라벨 엣지 ───────────────
-import { useMemo } from 'react';
-import type { GraphJson } from '../api/types';
-import { mergeEdges } from '../lib/mergeEdges';
+import { useMemo, useState } from 'react';
+import type { GraphJson, Relationship } from '../api/types';
 import { useSpoStore } from '../store';
 
-const NODE_W = 130;
-const NODE_H = 44;
-const COL_L = 95;
-const COL_R = 265;
-const ROW_H = 92;
-const TOP = 40;
-const VIEW_W = 360;
+const NODE_W = 132;
+const NODE_H = 46;
+const VIEW_W = 620;
+const VIEW_H = 430;
+const CX = VIEW_W / 2;
+const CY = VIEW_H / 2;
 
-const TONE_STROKE: Record<string, string> = {
+const CATEGORY_STROKE: Record<string, string> = {
   ally: '#22c55e',
-  tense: '#e0555a',
+  family: '#8b5cf6',
+  conflict: '#ef4444',
+  romance: '#ec4899',
+  work: '#0ea5e9',
+  mystery: '#f59e0b',
   neutral: '#94a3b8',
 };
 
@@ -23,112 +24,161 @@ function maskName(name: string, mask: boolean) {
   return name[0] + '•'.repeat(Math.max(name.length - 1, 1));
 }
 
+function relationLabel(relationship: Relationship) {
+  return relationship.display_label || relationship.label || '관련';
+}
+
 export function RelationshipGraph({ graph }: { graph: GraphJson }) {
   const maskNames = useSpoStore((s) => s.maskNames);
-  const merged = useMemo(() => mergeEdges(graph.relationships), [graph.relationships]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedRelation, setSelectedRelation] = useState<Relationship | null>(null);
 
-  // 노드 좌표: 인덱스 지그재그로 2열 배치
+  const connectedIds = useMemo(() => {
+    if (!selectedNodeId) return null;
+    const ids = new Set([selectedNodeId]);
+    graph.relationships.forEach((relationship) => {
+      if (relationship.source === selectedNodeId || relationship.target === selectedNodeId) {
+        ids.add(relationship.source);
+        ids.add(relationship.target);
+      }
+    });
+    return ids;
+  }, [graph.relationships, selectedNodeId]);
+
   const pos = useMemo(() => {
     const m = new Map<string, { x: number; y: number }>();
-    graph.entities.forEach((e, i) => {
-      const row = Math.floor(i / 2);
-      const x = i % 2 === 0 ? COL_L : COL_R;
-      m.set(e.id, { x, y: TOP + row * ROW_H });
+    const count = Math.max(graph.entities.length, 1);
+    const radiusX = Math.min(230, 120 + count * 8);
+    const radiusY = Math.min(145, 85 + count * 5);
+    graph.entities.forEach((entity, index) => {
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / count;
+      m.set(entity.id, {
+        x: CX + Math.cos(angle) * radiusX,
+        y: CY + Math.sin(angle) * radiusY,
+      });
     });
     return m;
   }, [graph.entities]);
 
-  const rows = Math.ceil(graph.entities.length / 2);
-  const viewH = TOP + Math.max(rows, 1) * ROW_H;
-
   return (
-    <svg
-      viewBox={`0 0 ${VIEW_W} ${viewH}`}
-      className="w-full"
-      role="img"
-      aria-label="인물 관계도"
-    >
-      {/* 엣지 (점선) */}
-      {merged.map((edge) => {
-        const s = pos.get(edge.source);
-        if (!s) return null;
-        const stroke = TONE_STROKE[edge.tone] ?? TONE_STROKE.neutral;
-        // 타깃 중심 좌표
-        const targetPts = edge.targets
-          .map((t) => pos.get(t))
-          .filter(Boolean) as { x: number; y: number }[];
-        const cx = targetPts.reduce((a, p) => a + p.x, 0) / (targetPts.length || 1);
-        const cy = targetPts.reduce((a, p) => a + p.y, 0) / (targetPts.length || 1);
-        const mx = (s.x + cx) / 2;
-        const my = (s.y + cy) / 2;
-        return (
-          <g key={edge.key}>
-            {targetPts.map((p, i) => (
+    <div className="space-y-3">
+      <svg
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        className="w-full"
+        role="img"
+        aria-label="인물 관계도"
+      >
+        <defs>
+          {Object.entries(CATEGORY_STROKE).map(([category, color]) => (
+            <marker
+              key={category}
+              id={`arrow-${category}`}
+              viewBox="0 0 10 10"
+              refX="9"
+              refY="5"
+              markerWidth="7"
+              markerHeight="7"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
+            </marker>
+          ))}
+        </defs>
+
+        {graph.relationships.map((relationship) => {
+          const source = pos.get(relationship.source);
+          const target = pos.get(relationship.target);
+          if (!source || !target) return null;
+          const category = relationship.relation_category ?? 'neutral';
+          const stroke = CATEGORY_STROKE[category] ?? CATEGORY_STROKE.neutral;
+          const isConnected =
+            !connectedIds || connectedIds.has(relationship.source) || connectedIds.has(relationship.target);
+          const mx = (source.x + target.x) / 2;
+          const my = (source.y + target.y) / 2;
+          const isNew = relationship.is_new_at_current_position;
+
+          return (
+            <g
+              key={relationship.id}
+              opacity={isConnected ? 1 : 0.18}
+              onClick={() => setSelectedRelation(relationship)}
+              className="cursor-pointer"
+            >
               <line
-                key={i}
-                x1={s.x}
-                y1={s.y}
-                x2={p.x}
-                y2={p.y}
+                x1={source.x}
+                y1={source.y}
+                x2={target.x}
+                y2={target.y}
                 stroke={stroke}
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-                opacity={0.7}
+                strokeWidth={isNew ? 3 : 2}
+                strokeDasharray={relationship.relation_importance_level === 'minor' ? '5 5' : undefined}
+                markerEnd={relationship.directionality === 'directed' ? `url(#arrow-${category})` : undefined}
               />
-            ))}
-            <g>
               <rect
-                x={mx - edge.label.length * 6 - 6}
-                y={my - 10}
-                width={edge.label.length * 12 + 12}
-                height={20}
-                rx={10}
+                x={mx - relationLabel(relationship).length * 6 - 18}
+                y={my - 12}
+                width={relationLabel(relationship).length * 12 + (isNew ? 56 : 24)}
+                height={24}
+                rx={12}
                 fill="#fff"
                 stroke={stroke}
                 strokeWidth={1}
               />
-              <text
-                x={mx}
-                y={my + 4}
-                textAnchor="middle"
-                fontSize={11}
-                fill="#475569"
-                fontWeight={600}
-              >
-                {edge.label}
+              <text x={mx} y={my + 4} textAnchor="middle" fontSize={11} fill="#334155" fontWeight={700}>
+                {relationLabel(relationship)}
+                {isNew ? ' · 새 관계' : ''}
+              </text>
+              <title>{relationship.detail || relationship.description}</title>
+            </g>
+          );
+        })}
+
+        {graph.entities.map((entity) => {
+          const p = pos.get(entity.id)!;
+          const isFocused = !connectedIds || connectedIds.has(entity.id);
+          const fill = entity.importance_level === 'major' ? '#2437c7' : '#475569';
+          return (
+            <g
+              key={entity.id}
+              opacity={isFocused ? 1 : 0.22}
+              onClick={() => {
+                setSelectedNodeId((current) => (current === entity.id ? null : entity.id));
+                setSelectedRelation(null);
+              }}
+              className="cursor-pointer"
+            >
+              <rect
+                x={p.x - NODE_W / 2}
+                y={p.y - NODE_H / 2}
+                width={NODE_W}
+                height={NODE_H}
+                rx={10}
+                fill={fill}
+              />
+              <text x={p.x} y={p.y - 2} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff">
+                {maskName(entity.name, maskNames)}
+              </text>
+              <text x={p.x} y={p.y + 14} textAnchor="middle" fontSize={10} fill="#dbeafe">
+                {'★'.repeat(entity.importance_score ?? 1)}
               </text>
             </g>
-          </g>
-        );
-      })}
+          );
+        })}
+      </svg>
 
-      {/* 노드 */}
-      {graph.entities.map((e) => {
-        const p = pos.get(e.id)!;
-        const fill = e.color === 'dark' ? '#2c3242' : '#2f3edb';
-        return (
-          <g key={e.id}>
-            <rect
-              x={p.x - NODE_W / 2}
-              y={p.y - NODE_H / 2}
-              width={NODE_W}
-              height={NODE_H}
-              rx={12}
-              fill={fill}
-            />
-            <text
-              x={p.x}
-              y={p.y + 5}
-              textAnchor="middle"
-              fontSize={14}
-              fontWeight={700}
-              fill="#fff"
-            >
-              {maskName(e.name, maskNames)}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+      {selectedRelation && (
+        <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600 shadow-sm">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="font-semibold text-slate-800">{relationLabel(selectedRelation)}</span>
+            {selectedRelation.is_new_at_current_position && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                새 관계
+              </span>
+            )}
+          </div>
+          <p>{selectedRelation.detail || selectedRelation.description}</p>
+        </div>
+      )}
+    </div>
   );
 }

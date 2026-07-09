@@ -15,6 +15,7 @@ from agents.character_aliases import load_character_alias_map
 from agents.character_entity_filter import should_keep_character_entity
 
 from .entity_importance import apply_entity_importance
+from .relation_summary import summarize_relationships
 from .schemas import Entity, GraphJson, Relationship, ReminderLine, Reminders
 
 
@@ -371,6 +372,11 @@ class AgentResultSource(ContentSource):
             if entity_id in entity_id_map
         ]
         graph = apply_entity_importance(book_id, graph, reminder_entity_ids)
+        graph = summarize_relationships(
+            graph,
+            current_boundary_global_index=graph.offset,
+            reminder_entity_ids=reminder_entity_ids,
+        )
         return graph.model_copy(update={"offset": boundary_global_index})
 
     def get_reminders(

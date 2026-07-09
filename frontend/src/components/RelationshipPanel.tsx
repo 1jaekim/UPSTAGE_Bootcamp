@@ -1,4 +1,5 @@
 // ── 관계도 패널 (F2): 빈/부분/전체 3상태 처리 ──────────────────
+import { useMemo, useState } from 'react';
 import { BOOK_ID } from '../lib/constants';
 import { useGraph } from '../api/hooks';
 import { useSpoStore } from '../store';
@@ -11,8 +12,21 @@ export function RelationshipPanel() {
   const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
   const spoilerSafe = useSpoStore((s) => s.spoilerSafe);
   const { data: graph, isLoading, isError } = useGraph(BOOK_ID, spoilerBoundary, spoilerSafe);
+  const [showMinorRelations, setShowMinorRelations] = useState(false);
 
   const isEmpty = !!graph && graph.entities.length === 0;
+  const visibleGraph = useMemo(() => {
+    if (!graph) return undefined;
+    if (showMinorRelations) return graph;
+    return {
+      ...graph,
+      relationships: graph.relationships.filter(
+        (relationship) => relationship.relation_importance_level !== 'minor',
+      ),
+    };
+  }, [graph, showMinorRelations]);
+  const minorRelationCount =
+    graph?.relationships.filter((relationship) => relationship.relation_importance_level === 'minor').length ?? 0;
 
   return (
     <SlideOverPanel title="관계도" subtitle="현재 읽은 위치까지의 관계">
@@ -44,24 +58,33 @@ export function RelationshipPanel() {
       )}
 
       {/* 부분/전체 상태 */}
-      {graph && !isEmpty && (
+      {graph && visibleGraph && !isEmpty && (
         <div className="space-y-5">
           <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-2">
-            <RelationshipGraph graph={graph} />
+            <RelationshipGraph graph={visibleGraph} />
           </div>
+          {minorRelationCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowMinorRelations((value) => !value)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+            >
+              기타 관계 {showMinorRelations ? '숨기기' : `보기 (${minorRelationCount})`}
+            </button>
+          )}
           <div>
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                 인물 {graph.entities.length}명
               </h3>
             </div>
-            <CharacterImportanceList entities={graph.entities} />
+            <CharacterImportanceList entities={visibleGraph.entities} />
           </div>
           <div>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              관계 {graph.relationships.length}건
+              관계 {visibleGraph.relationships.length}건
             </h3>
-            <RelationshipList graph={graph} />
+            <RelationshipList graph={visibleGraph} />
           </div>
         </div>
       )}

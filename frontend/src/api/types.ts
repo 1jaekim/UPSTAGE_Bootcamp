@@ -22,6 +22,15 @@ export interface Relationship {
   tone: RelationTone;
   description: string;
   revision_offset: number;
+  display_label?: string | null;
+  relation_category?: 'ally' | 'family' | 'conflict' | 'romance' | 'work' | 'mystery' | 'neutral';
+  directionality?: 'directed' | 'undirected';
+  relation_importance_score?: number;
+  relation_importance_level?: 'major' | 'minor';
+  first_seen_global_index?: number | null;
+  first_seen_boundary?: number | null;
+  is_new_at_current_position?: boolean;
+  detail?: string | null;
 }
 
 /** 계약 graph_json */

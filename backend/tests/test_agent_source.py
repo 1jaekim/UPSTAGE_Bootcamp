@@ -475,3 +475,47 @@ def test_agent_source_adds_entity_importance_without_changing_snapshot_contract(
     assert by_name["프레이저"].importance_score < 4
     assert by_name["프레이저"].importance_level == "minor"
     assert by_name["프레이저"].id == "e_minor"
+
+
+def test_agent_source_summarizes_relationships_for_story_graph():
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    graph = GraphJson(
+        offset=70,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_holmes", name="셜록 홈즈", type="person", color="blue"),
+            Entity(id="e_watson", name="존 H. 왓슨", type="person", color="blue"),
+            Entity(id="e_henry", name="헨리 배스커빌", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_holmes", target="e_watson", label="동료", tone="ally", description="홈즈와 왓슨은 함께 조사한다.", revision_offset=60),
+            Relationship(id="r2", source="e_watson", target="e_holmes", label="신뢰", tone="ally", description="왓슨은 홈즈를 신뢰한다.", revision_offset=65),
+            Relationship(id="r3", source="e_holmes", target="e_henry", label="의뢰", tone="neutral", description="헨리의 사건을 조사한다.", revision_offset=70),
+            Relationship(id="r4", source="e_holmes", target="e_henry", label="조사", tone="neutral", description="홈즈가 단서를 조사한다.", revision_offset=70),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 70): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(text="홈즈와 왓슨이 헨리 사건을 조사한다.", entity_ids=["e_holmes", "e_watson", "e_henry"])
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 70, reveal_all=False)
+
+    assert len(normalized_graph.relationships) == 2
+    ally = next(relationship for relationship in normalized_graph.relationships if relationship.relation_category == "ally")
+    work = next(relationship for relationship in normalized_graph.relationships if relationship.relation_category == "work")
+    assert ally.display_label in {"동료", "신뢰"}
+    assert ally.directionality == "undirected"
+    assert ally.relation_importance_level == "major"
+    assert ally.first_seen_global_index == 60
+    assert not ally.is_new_at_current_position
+    assert work.display_label in {"의뢰", "조사"}
+    assert work.directionality == "directed"
+    assert work.is_new_at_current_position
+    assert "헨리의 사건" in work.detail
