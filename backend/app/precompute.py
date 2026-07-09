@@ -23,7 +23,7 @@ STORE_DIR = Path(__file__).resolve().parent.parent / "data" / "precomputed"
 _GRAPH_POSITION_FIELDS = {"offset", "boundary", "revision_offset"}
 
 
-def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
+def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None = None) -> list[dict]:
     """(chunk_boundary, accumulated_build_result) 시퀀스 → 계약 entries.
 
     boundary_results 는 chunk 경계선 오름차순. build_result 는 해당 chunk 경계선까지
@@ -45,7 +45,7 @@ def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
 
     for chunk_boundary, result in ordered:
         # 1차 가드: 근거 없는 relations/events 제거
-        verified = verify_build_result(result)
+        verified = verify_build_result(result, book_id=book_id)
 
         # 이 chunk 경계선에서 처음 보이는 관계의 revision_offset 을 chunk_boundary 로 고정
         for rid in ad.build_relation_ids(verified):
@@ -288,7 +288,7 @@ def precompute_from_epub(
         last_built_chunk_boundary = chunk_boundary
         boundary_results.append((chunk_boundary, result))
 
-    entries = build_entries(boundary_results)
+    entries = build_entries(boundary_results, book_id=book_id)
     entries = remap_entries_to_global_index(book_id, epub_path, entries)
 
     path = write_store(book_id, entries, store_dir)
