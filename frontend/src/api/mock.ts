@@ -1,6 +1,7 @@
 // ── Mock 픽스처 (MOCKS.md 그대로) ──────────────────────────────
 // VITE_USE_MOCK=true 일 때 client 레이어가 이 값을 반환한다.
-// offset 버킷팅: <215 → 150, 215..379 → 215, >=380 → 380
+// 아래 숫자들은 실제 책의 chunk/page offset이 아니라 mock 전용 global_index 흉내값이다.
+// mock boundary 버킷팅: <215 → 150, 215..379 → 215, >=380 → 380
 
 import type { Book, Chapter, GraphJson, Progress, Reminders } from './types';
 
@@ -63,7 +64,8 @@ export const CHAPTERS_BY_INDEX: Record<number, Chapter> = {
   3: CHAPTER_3,
 };
 
-// progress는 mock에서 메모리 상태로 관리 (PUT 시 boundary 단조 증가)
+// progress는 mock에서 메모리 상태로 관리한다.
+// reading_offset/spoiler_boundary 필드명은 백엔드 계약을 따르지만 값은 mock global_index다.
 export const mockProgress: Progress = {
   user_id: 'local',
   book_id: 'b_mist',
@@ -71,11 +73,20 @@ export const mockProgress: Progress = {
   spoiler_boundary: 380,
 };
 
-// ── graph 픽스처 (offset 버킷별) ───────────────────────────────
-const GRAPH_150: GraphJson = { offset: 150, spoiler_safe: true, entities: [], relationships: [] };
+// ── graph 픽스처 (mock global_index 버킷별) ────────────────────
+const MOCK_BOUNDARY_EMPTY = 150;
+const MOCK_BOUNDARY_C1 = 215;
+const MOCK_BOUNDARY_C3 = 380;
+
+const GRAPH_150: GraphJson = {
+  offset: MOCK_BOUNDARY_EMPTY,
+  spoiler_safe: true,
+  entities: [],
+  relationships: [],
+};
 
 const GRAPH_215: GraphJson = {
-  offset: 215,
+  offset: MOCK_BOUNDARY_C1,
   spoiler_safe: true,
   entities: [
     { id: 'e_minu', name: '민우', type: 'person', color: 'blue' },
@@ -95,7 +106,7 @@ const GRAPH_215: GraphJson = {
 };
 
 const GRAPH_380: GraphJson = {
-  offset: 380,
+  offset: MOCK_BOUNDARY_C3,
   spoiler_safe: true,
   entities: [
     { id: 'e_minu', name: '민우', type: 'person', color: 'blue' },
@@ -128,15 +139,15 @@ const GRAPH_380: GraphJson = {
   ],
 };
 
-/** offset → 버킷 픽스처 선택 (MOCKS.md 규칙) */
-export function pickGraph(offset: number): GraphJson {
-  if (offset >= 380) return GRAPH_380;
-  if (offset >= 215) return GRAPH_215;
+/** mock global_index boundary → 버킷 픽스처 선택 (MOCKS.md 규칙) */
+export function pickGraph(mockBoundaryGlobalIndex: number): GraphJson {
+  if (mockBoundaryGlobalIndex >= MOCK_BOUNDARY_C3) return GRAPH_380;
+  if (mockBoundaryGlobalIndex >= MOCK_BOUNDARY_C1) return GRAPH_215;
   return GRAPH_150;
 }
 
 const REMINDERS_380: Reminders = {
-  offset: 380,
+  offset: MOCK_BOUNDARY_C3,
   lines: [
     { text: '민우와 서현은 통제실에서 아틀라스 호의 신호를 함께 확인했다.', entity_ids: ['e_minu', 'e_seohyun'] },
     { text: '서현은 신호 속에서 강 국장의 보안 서명을 발견해 은폐 의혹을 품었다.', entity_ids: ['e_seohyun', 'e_kang'] },
@@ -145,17 +156,17 @@ const REMINDERS_380: Reminders = {
 };
 
 const REMINDERS_215: Reminders = {
-  offset: 215,
+  offset: MOCK_BOUNDARY_C1,
   lines: [
     { text: '민우와 서현은 통제실에서 아틀라스 호의 신호를 함께 확인했다.', entity_ids: ['e_minu', 'e_seohyun'] },
     { text: '민우가 실종 탐사선 아틀라스 호의 고유 신호를 포착했다.', entity_ids: ['e_minu', 'e_atlas'] },
   ],
 };
 
-const REMINDERS_150: Reminders = { offset: 150, lines: [] };
+const REMINDERS_150: Reminders = { offset: MOCK_BOUNDARY_EMPTY, lines: [] };
 
-export function pickReminders(offset: number): Reminders {
-  if (offset >= 380) return REMINDERS_380;
-  if (offset >= 215) return REMINDERS_215;
+export function pickReminders(mockBoundaryGlobalIndex: number): Reminders {
+  if (mockBoundaryGlobalIndex >= MOCK_BOUNDARY_C3) return REMINDERS_380;
+  if (mockBoundaryGlobalIndex >= MOCK_BOUNDARY_C1) return REMINDERS_215;
   return REMINDERS_150;
 }

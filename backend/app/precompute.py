@@ -13,22 +13,27 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from . import agent_adapter as ad
 
 # precompute 결과 저장 위치
 STORE_DIR = Path(__file__).resolve().parent.parent / "data" / "precomputed"
+_GRAPH_POSITION_FIELDS = {"offset", "boundary", "revision_offset"}
 
 
 def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
-    """(boundary, accumulated_build_result) 시퀀스 → 계약 entries.
+    """(chunk_boundary, accumulated_build_result) 시퀀스 → 계약 entries.
 
-    boundary_results 는 경계선 오름차순. build_result 는 해당 경계선까지 '누적된'
-    characters/relations/events (incremental_build_agent 반환 형태).
+    boundary_results 는 chunk 경계선 오름차순. build_result 는 해당 chunk 경계선까지
+    '누적된' characters/relations/events (incremental_build_agent 반환 형태).
 
     각 경계선마다 VerifierAgent → ReminderWriterAgent → IndirectLeakageJudge 순으로
     체이닝한다 (BuildAgent는 이미 incremental_build_agent 단계에서 끝난 상태로 들어옴).
+
+    주의: 이 함수의 boundary/offset 값은 아직 내부 분석용 chunk offset이다.
+    저장 직전 `remap_entries_to_global_index()` 에서 global_index로 통일한다.
     """
     from agents.indirect_leakage_judge import judge_reminders
     from agents.reminder_writer_agent import write_reminders
@@ -38,15 +43,15 @@ def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
     first_seen: dict[str, int] = {}
     entries: list[dict] = []
 
-    for boundary, result in ordered:
+    for chunk_boundary, result in ordered:
         # 1차 가드: 근거 없는 relations/events 제거
         verified = verify_build_result(result)
 
-        # 이 경계선에서 처음 보이는 관계의 revision_offset 을 boundary 로 고정
+        # 이 chunk 경계선에서 처음 보이는 관계의 revision_offset 을 chunk_boundary 로 고정
         for rid in ad.build_relation_ids(verified):
-            first_seen.setdefault(rid, boundary)
+            first_seen.setdefault(rid, chunk_boundary)
 
-        graph = ad.to_graph_json(verified, boundary, revision_offsets=first_seen)
+        graph = ad.to_graph_json(verified, chunk_boundary, revision_offsets=first_seen)
 
         # 2차 가드: 서술형으로 재작성 → 3차 가드: 암시/복선 판정 후 최종 확정
         written = write_reminders(verified)
@@ -67,7 +72,7 @@ def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
 
         entries.append(
             {
-                "boundary": boundary,
+                "boundary": chunk_boundary,
                 "graph": graph.model_dump(),
                 "reminders": reminders,
             }
@@ -75,10 +80,8 @@ def build_entries(boundary_results: list[tuple[int, dict]]) -> list[dict]:
     return entries
 
 
-def remap_boundaries_to_global_index(
-    book_id: str, epub_path: str | Path, entries: list[dict]
-) -> list[dict]:
-    """entries의 boundary(청크 순번)를 CFI global_index로 재매핑한다.
+def build_chunk_boundary_to_global_index_map(book_id: str, epub_path: str | Path) -> dict[int, int]:
+    """내부 분석용 chunk boundary를 CFI global_index로 바꾸는 매핑을 만든다.
 
     BuildAgent의 chunk_tool은 epub_parser 기준 문자 단위로 청크를 만드는데, 실제
     스포일러 게이팅은 book_cfi_index 기준 global_index로 이뤄지므로 두 단위를 반드시
@@ -92,11 +95,13 @@ def remap_boundaries_to_global_index(
     parsed = parse_epub(epub_path)
     chapters = parsed["chapters"]
     chunks = make_chunks(chapters)
-    chunk_by_offset = {c["offset"]: c for c in chunks}
     chapter_charcount = {c["chapter_index"]: c["char_count"] for c in chapters}
 
     cfi_db.clear_cache()
     paragraphs = cfi_db.get_paragraphs(book_id)
+    if not paragraphs:
+        return {int(chunk["offset"]): int(chunk["offset"]) for chunk in chunks}
+
     by_cfi_chapter: dict[int, list] = {}
     for p in paragraphs:
         by_cfi_chapter.setdefault(p.chapter_index, []).append(p)
@@ -108,8 +113,6 @@ def remap_boundaries_to_global_index(
     ch1_title = next(
         (ps[0].chapter_title for idx, ps in sorted(by_cfi_chapter.items()) if idx == 1), None
     )
-    import re
-
     def normalize(t: str) -> str:
         return re.sub(r"[^a-z0-9]+", "", t.lower())
 
@@ -121,10 +124,7 @@ def remap_boundaries_to_global_index(
                 computed_offset = c["chapter_index"] - 1
                 break
 
-    def remap(old_boundary: int) -> int:
-        chunk = chunk_by_offset.get(old_boundary)
-        if chunk is None:
-            return old_boundary
+    def chunk_to_global_index(chunk: dict) -> int:
         cfi_chapter_index = max(0, chunk["chapter_index"] - computed_offset)
         if cfi_chapter_index not in cfi_chapter_range:
             cfi_chapter_index = max(cfi_chapter_range.keys())
@@ -133,14 +133,72 @@ def remap_boundaries_to_global_index(
         frac = min(1.0, chunk["end_char"] / total_chars)
         return round(start + frac * (end - start))
 
+    return {int(chunk["offset"]): chunk_to_global_index(chunk) for chunk in chunks}
+
+
+def _remap_position_value_to_global_index(
+    value: object,
+    chunk_boundary_to_global_index: dict[int, int],
+) -> object:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return value
+    return chunk_boundary_to_global_index.get(value, value)
+
+
+def _remap_graph_positions_to_global_index(
+    value: object,
+    chunk_boundary_to_global_index: dict[int, int],
+) -> object:
+    """graph 내부의 offset/boundary/revision_offset 값을 global_index로 변환한다."""
+    if isinstance(value, list):
+        return [
+            _remap_graph_positions_to_global_index(item, chunk_boundary_to_global_index)
+            for item in value
+        ]
+    if isinstance(value, dict):
+        remapped: dict = {}
+        for key, item in value.items():
+            if key in _GRAPH_POSITION_FIELDS:
+                remapped[key] = _remap_position_value_to_global_index(
+                    item,
+                    chunk_boundary_to_global_index,
+                )
+            else:
+                remapped[key] = _remap_graph_positions_to_global_index(
+                    item,
+                    chunk_boundary_to_global_index,
+                )
+        return remapped
+    return value
+
+
+def remap_entries_to_global_index(
+    book_id: str, epub_path: str | Path, entries: list[dict]
+) -> list[dict]:
+    """entry boundary와 graph 내부 위치 필드를 모두 CFI global_index로 재매핑한다."""
+    chunk_boundary_to_global_index = build_chunk_boundary_to_global_index_map(book_id, epub_path)
+
     remapped = []
     for entry in entries:
-        new_boundary = remap(entry["boundary"])
-        entry = {**entry, "boundary": new_boundary}
-        entry["graph"] = {**entry["graph"], "offset": new_boundary}
-        remapped.append(entry)
+        chunk_boundary = int(entry["boundary"])
+        boundary_global_index = chunk_boundary_to_global_index.get(chunk_boundary, chunk_boundary)
+        graph = _remap_graph_positions_to_global_index(
+            entry.get("graph", {}),
+            chunk_boundary_to_global_index,
+        )
+        graph = {**graph, "offset": boundary_global_index}
+        if "boundary" in graph:
+            graph["boundary"] = boundary_global_index
+        remapped.append({**entry, "boundary": boundary_global_index, "graph": graph})
     remapped.sort(key=lambda e: e["boundary"])
     return remapped
+
+
+def remap_boundaries_to_global_index(
+    book_id: str, epub_path: str | Path, entries: list[dict]
+) -> list[dict]:
+    """하위 호환용 wrapper. 새 코드에서는 `remap_entries_to_global_index`를 사용한다."""
+    return remap_entries_to_global_index(book_id, epub_path, entries)
 
 
 def upload_snapshots_to_supabase(book_id: str, entries: list[dict]) -> int:
@@ -218,20 +276,20 @@ def precompute_from_epub(
 
     boundary_results: list[tuple[int, dict]] = []
     previous: dict = {"characters": [], "relations": [], "events": []}
-    last_built = -1
-    for boundary in sorted(boundaries):
+    last_built_chunk_boundary = -1
+    for chunk_boundary in sorted(boundaries):
         result = incremental_build_agent(
             chunks=chunks,
-            current_offset=boundary,
-            last_built_offset=last_built,
+            current_offset=chunk_boundary,
+            last_built_offset=last_built_chunk_boundary,
             previous_results=previous,
         )
         previous = result
-        last_built = boundary
-        boundary_results.append((boundary, result))
+        last_built_chunk_boundary = chunk_boundary
+        boundary_results.append((chunk_boundary, result))
 
     entries = build_entries(boundary_results)
-    entries = remap_boundaries_to_global_index(book_id, epub_path, entries)
+    entries = remap_entries_to_global_index(book_id, epub_path, entries)
 
     path = write_store(book_id, entries, store_dir)
     if upload_to_supabase:

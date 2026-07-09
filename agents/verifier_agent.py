@@ -1,4 +1,5 @@
 import json
+import re
 from langchain_upstage import ChatUpstage
 from langchain_core.messages import SystemMessage, HumanMessage
 
@@ -82,6 +83,285 @@ BuildAgent가 같은 소설을 여러 구간으로 나눠서 반복 분석하다
 """
 
 
+_HONORIFIC_SUFFIXES = (
+    "씨",
+    "님",
+    "군",
+    "양",
+    "경",
+)
+_TITLE_SUFFIXES = (
+    "박사",
+    "교수",
+    "선생",
+    "형사",
+    "경감",
+    "경위",
+)
+_FAMILY_OR_ROLE_WORDS = (
+    "부인",
+    "아내",
+    "남편",
+    "아버지",
+    "어머니",
+    "딸",
+    "아들",
+    "형",
+    "누나",
+    "언니",
+    "동생",
+    "가정부",
+    "하인",
+)
+_GENERIC_REFERENCES = {"나", "화자", "서술자", "주인공"}
+_SAFE_FIRST_NAME_ALIASES = {"셜록"}
+
+
+def _normalize_alias_text(name: str) -> str:
+    """표기 흔들림 비교용 이름 정규화. 표시 이름 자체는 바꾸지 않는다."""
+    text = (name or "").strip()
+    text = re.sub(r"[\"'“”‘’.,!?]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    text = text.replace("홈스", "홈즈")
+    return text.strip()
+
+
+def _without_parentheses(name: str) -> str:
+    return re.sub(r"\([^)]*\)", "", name or "").strip()
+
+
+def _strip_suffixes(name: str) -> str:
+    text = _without_parentheses(_normalize_alias_text(name))
+    changed = True
+    while changed:
+        changed = False
+        for suffix in _HONORIFIC_SUFFIXES + _TITLE_SUFFIXES:
+            if text.endswith(suffix) and len(text) > len(suffix):
+                text = text[: -len(suffix)].strip()
+                changed = True
+    return text
+
+
+def _alias_key(name: str) -> str:
+    return re.sub(r"\s+", "", _strip_suffixes(name)).lower()
+
+
+def _parenthetical_aliases(name: str) -> list[str]:
+    aliases: list[str] = []
+    for raw in re.findall(r"\(([^)]*)\)", name or ""):
+        alias = raw.strip()
+        if alias and alias not in _GENERIC_REFERENCES:
+            aliases.append(alias)
+    return aliases
+
+
+def _is_generic_reference(name: str) -> bool:
+    return _strip_suffixes(name) in _GENERIC_REFERENCES
+
+
+def _is_narrator_reference(name: str) -> bool:
+    text = _normalize_alias_text(name)
+    stripped = _strip_suffixes(name)
+    return stripped in _GENERIC_REFERENCES or any(ref in text for ref in ("나(", "화자"))
+
+
+def _has_family_or_role_word(name: str) -> bool:
+    stripped = _strip_suffixes(name)
+    return any(word in stripped for word in _FAMILY_OR_ROLE_WORDS)
+
+
+def _canonical_score(name: str) -> tuple[int, int, int]:
+    stripped = _without_parentheses(_normalize_alias_text(name))
+    return (
+        0 if _is_generic_reference(name) else 1,
+        0 if "홈스" in name else 1,
+        1 if " " in stripped else 0,
+        len(stripped),
+    )
+
+
+def _preferred_canonical(names: list[str]) -> str:
+    return max(names, key=_canonical_score)
+
+
+def _normalize_canonical_display(name: str) -> str:
+    text = (name or "").strip()
+    text = text.replace("홈스", "홈즈")
+    return text
+
+
+def _deduplicate_relations(relations: list[dict]) -> list[dict]:
+    seen = set()
+    result = []
+
+    for relation in relations:
+        key = (
+            relation.get("source", ""),
+            relation.get("target", ""),
+            relation.get("relation", ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(relation)
+
+    return result
+
+
+def _deduplicate_events(events: list[dict]) -> list[dict]:
+    seen = set()
+    result = []
+
+    for event in events:
+        key = (
+            event.get("summary", ""),
+            tuple(event.get("participants", [])),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(event)
+
+    return result
+
+
+def _apply_transitive_map(name_map: dict[str, str]) -> dict[str, str]:
+    resolved: dict[str, str] = {}
+
+    for name in name_map:
+        current = name
+        visited = set()
+        while current in name_map and name_map[current] != current and current not in visited:
+            visited.add(current)
+            current = name_map[current]
+        resolved[name] = current
+
+    return resolved
+
+
+def _find_watson_canonical(name_map: dict[str, str]) -> str | None:
+    candidates = [
+        canonical
+        for canonical in set(name_map.values())
+        if "왓슨" in _normalize_alias_text(canonical)
+    ]
+    if not candidates:
+        return None
+    return _preferred_canonical(candidates)
+
+
+def _looks_like_watson_narrator(character: dict) -> bool:
+    name = character.get("name", "")
+    if not _is_narrator_reference(name):
+        return False
+
+    text = " ".join(
+        [
+            name,
+            character.get("description", ""),
+            character.get("evidence", ""),
+        ]
+    )
+    return any(
+        hint in text
+        for hint in ("왓슨", "의사", "군의관", "홈즈의 동료", "홈즈와 동행", "베이커 가")
+    )
+
+
+def _augment_identity_map_with_alias_rules(
+    characters: list[dict],
+    identity_map: dict[str, str],
+) -> dict[str, str]:
+    """
+    LLM이 놓치기 쉬운 안전한 표기 차이를 보정한다.
+    예: 셜록 홈스/셜록 홈즈, 홈즈/셜록 홈즈, 홈즈 씨/셜록 홈즈.
+    """
+    names = [c.get("name", "").strip() for c in characters if c.get("name")]
+    if len(names) < 2:
+        return identity_map
+
+    result = dict(identity_map)
+    alias_to_names: dict[str, list[str]] = {}
+
+    for name in names:
+        keys = {_alias_key(name)}
+        keys.update(_alias_key(alias) for alias in _parenthetical_aliases(name))
+        for key in keys:
+            if key:
+                alias_to_names.setdefault(key, []).append(name)
+
+    for grouped_names in alias_to_names.values():
+        unique_names = list(dict.fromkeys(grouped_names))
+        if len(unique_names) < 2:
+            continue
+        canonical = _preferred_canonical([result.get(name, name) for name in unique_names])
+        canonical = _normalize_canonical_display(canonical)
+        for name in unique_names:
+            result[name] = canonical
+
+    for name, canonical in list(result.items()):
+        normalized = _normalize_canonical_display(canonical)
+        result[name] = normalized
+        if normalized != canonical and canonical in result:
+            result[canonical] = normalized
+
+    canonical_names = sorted(set(result.values()), key=len, reverse=True)
+    short_alias_to_canonical: dict[str, str | None] = {}
+
+    for canonical in canonical_names:
+        base = _strip_suffixes(canonical)
+        parts = [part for part in base.split(" ") if part]
+        if len(parts) < 2 or _has_family_or_role_word(canonical):
+            continue
+
+        aliases = {parts[-1]}
+        if parts[0] in _SAFE_FIRST_NAME_ALIASES:
+            aliases.add(parts[0])
+
+        for alias in aliases:
+            key = _alias_key(alias)
+            existing = short_alias_to_canonical.get(key)
+            if existing is None and key in short_alias_to_canonical:
+                continue
+            if existing and existing != canonical:
+                short_alias_to_canonical[key] = None
+            else:
+                short_alias_to_canonical[key] = canonical
+
+    for name in names:
+        if result.get(name, name) != name:
+            continue
+        key = _alias_key(name)
+        canonical = short_alias_to_canonical.get(key)
+        if canonical and canonical != name:
+            result[name] = canonical
+
+    # "화자(왓슨)"처럼 괄호 안 별칭이 기존 인물명과 맞으면 연결한다.
+    alias_key_to_canonical = {
+        _alias_key(name): result.get(canonical, canonical)
+        for name, canonical in result.items()
+    }
+    for name in names:
+        if result.get(name, name) != name:
+            continue
+        for alias in _parenthetical_aliases(name):
+            canonical = alias_key_to_canonical.get(_alias_key(alias))
+            if canonical:
+                result[name] = canonical
+                break
+
+    watson_canonical = _find_watson_canonical(result)
+    if watson_canonical:
+        by_name = {c.get("name", ""): c for c in characters if c.get("name")}
+        for name in names:
+            if result.get(name, name) != name:
+                continue
+            if _looks_like_watson_narrator(by_name.get(name, {})):
+                result[name] = watson_canonical
+
+    return _apply_transitive_map(result)
+
+
 def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
     """
     characters(name/description/evidence 포함)를 LLM에게 보여주고, 표기만 다른
@@ -128,8 +408,11 @@ def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
     )
 
     result = extract_json_from_text(response.content)
+    if not isinstance(result, dict):
+        return _augment_identity_map_with_alias_rules(characters, identity_map)
+
     if result.get("parse_error"):
-        return identity_map
+        return _augment_identity_map_with_alias_rules(characters, identity_map)
 
     for group in result.get("groups", []):
         canonical = group.get("canonical_name")
@@ -139,7 +422,128 @@ def canonicalize_character_names(characters: list[dict]) -> dict[str, str]:
             if name in identity_map:
                 identity_map[name] = canonical
 
-    return identity_map
+    return _augment_identity_map_with_alias_rules(characters, identity_map)
+
+
+def _names_from_build_result(build_result: dict) -> list[dict]:
+    seen = set()
+    result: list[dict] = []
+
+    def add(name: str, description: str = "", evidence: str = "") -> None:
+        name = (name or "").strip()
+        if not name or name in seen:
+            return
+        seen.add(name)
+        result.append({"name": name, "description": description, "evidence": evidence})
+
+    for character in build_result.get("characters", []):
+        add(
+            character.get("name", ""),
+            character.get("description", ""),
+            character.get("evidence", ""),
+        )
+
+    for relation in build_result.get("relations", []):
+        evidence = relation.get("evidence", "")
+        add(relation.get("source", ""), evidence=evidence)
+        add(relation.get("target", ""), evidence=evidence)
+
+    for event in build_result.get("events", []):
+        evidence = event.get("evidence", "")
+        for participant in event.get("participants", []):
+            add(participant, evidence=evidence)
+
+    return result
+
+
+def _build_name_lookup(name_map: dict[str, str]) -> dict[str, str]:
+    lookup: dict[str, str] = {}
+
+    for name, canonical in name_map.items():
+        canonical = _normalize_canonical_display(canonical)
+        keys = {_alias_key(name), _alias_key(canonical)}
+        base = _strip_suffixes(canonical)
+        parts = [part for part in base.split(" ") if part]
+        if len(parts) >= 2 and not _has_family_or_role_word(canonical):
+            keys.add(_alias_key(parts[-1]))
+            if parts[0] in _SAFE_FIRST_NAME_ALIASES:
+                keys.add(_alias_key(parts[0]))
+        for key in keys:
+            if key and key not in lookup:
+                lookup[key] = canonical
+
+    return lookup
+
+
+def _resolve_name(name: str, name_map: dict[str, str], lookup: dict[str, str]) -> str:
+    if not name:
+        return name
+    if name in name_map:
+        return _normalize_canonical_display(name_map[name])
+    direct = lookup.get(_alias_key(name))
+    if direct:
+        return direct
+    for alias in _parenthetical_aliases(name):
+        canonical = lookup.get(_alias_key(alias))
+        if canonical:
+            return canonical
+    return _normalize_canonical_display(name)
+
+
+def _apply_character_name_map(
+    build_result: dict,
+    name_map: dict[str, str],
+) -> tuple[dict, list[dict], list[dict], list[dict]]:
+    characters = build_result.get("characters", [])
+    relations = build_result.get("relations", [])
+    events = build_result.get("events", [])
+    lookup = _build_name_lookup(name_map)
+
+    merged_characters: dict[str, dict] = {}
+    for character in characters:
+        name = character.get("name", "")
+        canonical = _resolve_name(name, name_map, lookup)
+        if canonical not in merged_characters:
+            merged_characters[canonical] = {**character, "name": canonical}
+            continue
+
+        existing = merged_characters[canonical]
+        if not existing.get("description") and character.get("description"):
+            existing["description"] = character.get("description")
+        if not existing.get("evidence") and character.get("evidence"):
+            existing["evidence"] = character.get("evidence")
+
+    characters = list(merged_characters.values())
+    relations = _deduplicate_relations(
+        [
+            {
+                **relation,
+                "source": _resolve_name(relation.get("source", ""), name_map, lookup),
+                "target": _resolve_name(relation.get("target", ""), name_map, lookup),
+            }
+            for relation in relations
+        ]
+    )
+    events = _deduplicate_events(
+        [
+            {
+                **event,
+                "participants": [
+                    _resolve_name(participant, name_map, lookup)
+                    for participant in event.get("participants", [])
+                ],
+            }
+            for event in events
+        ]
+    )
+
+    build_result = {
+        **build_result,
+        "characters": characters,
+        "relations": relations,
+        "events": events,
+    }
+    return build_result, characters, relations, events
 
 
 def verify_build_result(build_result: dict) -> dict:
@@ -157,26 +561,15 @@ def verify_build_result(build_result: dict) -> dict:
 
     # 인물 이름 정규화 (LLM 판단) — characters/relations/events 전부에 적용
     name_map = canonicalize_character_names(characters)
+    name_map = _augment_identity_map_with_alias_rules(
+        _names_from_build_result(build_result),
+        name_map,
+    )
     if name_map:
-        merged_characters: dict[str, dict] = {}
-        for c in characters:
-            canon = name_map.get(c.get("name", ""), c.get("name", ""))
-            if canon not in merged_characters:
-                merged_characters[canon] = {**c, "name": canon}
-        characters = list(merged_characters.values())
-        relations = [
-            {
-                **r,
-                "source": name_map.get(r.get("source", ""), r.get("source", "")),
-                "target": name_map.get(r.get("target", ""), r.get("target", "")),
-            }
-            for r in relations
-        ]
-        events = [
-            {**e, "participants": [name_map.get(p, p) for p in e.get("participants", [])]}
-            for e in events
-        ]
-        build_result = {**build_result, "characters": characters}
+        build_result, characters, relations, events = _apply_character_name_map(
+            build_result,
+            name_map,
+        )
 
     if not relations and not events:
         return {**build_result, "relations": relations, "events": events, "verifier_raw_response": None}
@@ -216,6 +609,9 @@ def verify_build_result(build_result: dict) -> dict:
     )
 
     result = extract_json_from_text(response.content)
+    if not isinstance(result, dict):
+        return {**build_result, "verifier_raw_response": response.content}
+
     valid_keys = set(result.get("valid_relation_keys", []))
     valid_summaries = set(result.get("valid_event_summaries", []))
 

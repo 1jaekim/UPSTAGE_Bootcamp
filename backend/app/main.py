@@ -54,7 +54,7 @@ content_source: ContentSource = _make_source()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
-    db.seed_demo_progress()  # 데모 기본 offset=380
+    db.seed_demo_progress()  # 데모 기본 reading_offset/spoiler_boundary(global_index)=380
     yield
 
 
@@ -121,7 +121,10 @@ def get_graph(
     reveal_all: bool = Query(False),
 ) -> GraphJson:
     _require_book(book_id)
-    return content_source.get_graph(book_id, offset, reveal_all)
+    # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
+    # book_cfi_index 기준 spoiler boundary global_index다.
+    boundary_global_index = offset
+    return content_source.get_graph(book_id, boundary_global_index, reveal_all)
 
 
 @app.get("/api/books/{book_id}/reminders", response_model=Reminders)
@@ -131,30 +134,62 @@ def get_reminders(
     entity_id: str | None = Query(None),
 ) -> Reminders:
     _require_book(book_id)
-    return content_source.get_reminders(book_id, offset, entity_id)
+    # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
+    # book_cfi_index 기준 spoiler boundary global_index다.
+    boundary_global_index = offset
+    return content_source.get_reminders(book_id, boundary_global_index, entity_id)
 
 
 @app.get("/api/books/{book_id}/progress", response_model=Progress)
 def get_progress(book_id: str, user_id: str = "local") -> Progress:
     _require_book(book_id)
     row = db.get_progress(user_id, book_id)
-    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
-    return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
+    reading_global_index = row.reading_offset
+    spoiler_boundary_global_index = row.spoiler_boundary
+    cfi = (
+        cfi_db.cfi_for_global_index(book_id, reading_global_index)
+        if reading_global_index
+        else None
+    )
+    return Progress(
+        user_id=row.user_id,
+        book_id=row.book_id,
+        # 응답 필드명은 기존 계약을 유지하지만 둘 다 book_cfi_index global_index다.
+        reading_offset=reading_global_index,
+        spoiler_boundary=spoiler_boundary_global_index,
+        cfi=cfi,
+    )
 
 
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
 def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     _require_book(book_id)
-    offset = (
+    reading_global_index = (
         cfi_db.find_global_index_by_cfi(book_id, body.cfi)
         if body.cfi
         else body.reading_offset
     )
-    row = db.put_progress(body.user_id, book_id, offset, force=body.force)
-    cfi = cfi_db.cfi_for_global_index(book_id, row.reading_offset) if row.reading_offset else None
-    return Progress(user_id=row.user_id, book_id=row.book_id,
-                    reading_offset=row.reading_offset, spoiler_boundary=row.spoiler_boundary, cfi=cfi)
+    row = db.put_progress(
+        body.user_id,
+        book_id,
+        reading_global_index,
+        force=body.force,
+    )
+    stored_reading_global_index = row.reading_offset
+    stored_spoiler_boundary_global_index = row.spoiler_boundary
+    cfi = (
+        cfi_db.cfi_for_global_index(book_id, stored_reading_global_index)
+        if stored_reading_global_index
+        else None
+    )
+    return Progress(
+        user_id=row.user_id,
+        book_id=row.book_id,
+        # 응답 필드명은 기존 계약을 유지하지만 둘 다 book_cfi_index global_index다.
+        reading_offset=stored_reading_global_index,
+        spoiler_boundary=stored_spoiler_boundary_global_index,
+        cfi=cfi,
+    )
 
 
 def _run_full_analysis(book_id: str) -> None:

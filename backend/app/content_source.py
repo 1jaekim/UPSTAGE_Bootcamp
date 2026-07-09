@@ -13,53 +13,74 @@ from pathlib import Path
 from . import fixtures as fx
 from .schemas import GraphJson, ReminderLine, Reminders
 
-# 청크 경계 (strict_chunk_end): 해당 청크를 '끝까지' 읽어야 fact 공개
-CHUNK_C1_END = 215
-CHUNK_C2_END = 320
-CHUNK_C3_END = 380
-CHUNK_C4_END = 430
-
 
 class ContentSource(ABC):
     """graph_json / reminders 공급자."""
 
     @abstractmethod
-    def get_graph(self, book_id: str, boundary: int, reveal_all: bool) -> GraphJson: ...
+    def get_graph(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        reveal_all: bool,
+    ) -> GraphJson: ...
 
     @abstractmethod
-    def get_reminders(self, book_id: str, boundary: int, entity_id: str | None) -> Reminders: ...
+    def get_reminders(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        entity_id: str | None,
+    ) -> Reminders: ...
 
 
 class FixtureSource(ContentSource):
     """정적 시드 픽스처 소스 (초기). 경계선 기준 strict_chunk_end 게이팅."""
 
-    def get_graph(self, book_id: str, boundary: int, reveal_all: bool) -> GraphJson:
-        if reveal_all:
-            # 안심 모드 OFF: 데모에선 c4가 없으므로 c3(전체)와 동일.
-            graph = fx.GRAPH_C3
-        elif boundary >= CHUNK_C3_END:
-            graph = fx.GRAPH_C3
-        elif boundary >= CHUNK_C2_END:
-            graph = fx.GRAPH_C2
-        elif boundary >= CHUNK_C1_END:
-            graph = fx.GRAPH_C1
-        else:
-            graph = fx.GRAPH_EMPTY
-        # 계약 offset 은 요청 경계선을 반영
-        return graph.model_copy(update={"offset": boundary})
+    def _fixture_graphs(self) -> list[GraphJson]:
+        return [fx.GRAPH_C1, fx.GRAPH_C2, fx.GRAPH_C3]
 
-    def get_reminders(self, book_id: str, boundary: int, entity_id: str | None) -> Reminders:
-        if boundary >= CHUNK_C3_END:
-            lines = fx.REMINDERS_C3
-        elif boundary >= CHUNK_C2_END:
-            lines = fx.REMINDERS_C2
-        elif boundary >= CHUNK_C1_END:
-            lines = fx.REMINDERS_C1
-        else:
-            lines = []
+    def _fixture_reminders(self) -> list[tuple[int, list[ReminderLine]]]:
+        return [
+            (fx.GRAPH_C1.offset, fx.REMINDERS_C1),
+            (fx.GRAPH_C2.offset, fx.REMINDERS_C2),
+            (fx.GRAPH_C3.offset, fx.REMINDERS_C3),
+        ]
+
+    def get_graph(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        reveal_all: bool,
+    ) -> GraphJson:
+        if reveal_all:
+            graph = max(self._fixture_graphs(), key=lambda g: g.offset)
+            return graph.model_copy(update={"offset": boundary_global_index})
+
+        visible_graphs = [
+            graph
+            for graph in self._fixture_graphs()
+            if graph.offset <= boundary_global_index
+        ]
+        graph = max(visible_graphs, key=lambda g: g.offset) if visible_graphs else fx.GRAPH_EMPTY
+        # 계약 offset 은 요청 경계선을 반영
+        return graph.model_copy(update={"offset": boundary_global_index})
+
+    def get_reminders(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        entity_id: str | None,
+    ) -> Reminders:
+        visible_reminders = [
+            (boundary, lines)
+            for boundary, lines in self._fixture_reminders()
+            if boundary <= boundary_global_index
+        ]
+        lines = max(visible_reminders, key=lambda item: item[0])[1] if visible_reminders else []
         if entity_id:
             lines = [ln for ln in lines if entity_id in ln.entity_ids]
-        return Reminders(offset=boundary, lines=list(lines))
+        return Reminders(offset=boundary_global_index, lines=list(lines))
 
 
 class AgentResultSource(ContentSource):
@@ -122,21 +143,59 @@ class AgentResultSource(ContentSource):
             }
         return cls(store)
 
-    def _lookup(self, book_id: str, boundary: int):
+    def _lookup(self, book_id: str, boundary_global_index: int):
         # 경계선 이하 중 가장 큰 precompute 지점을 사용 (없으면 빈 결과)
-        keys = sorted(b for (bk, b) in self._store if bk == book_id and b <= boundary)
+        keys = sorted(
+            boundary
+            for (bk, boundary) in self._store
+            if bk == book_id and boundary <= boundary_global_index
+        )
         return self._store.get((book_id, keys[-1])) if keys else None
 
-    def get_graph(self, book_id: str, boundary: int, reveal_all: bool) -> GraphJson:
-        entry = self._lookup(book_id, CHUNK_C4_END if reveal_all else boundary)
-        if not entry:
-            return fx.GRAPH_EMPTY.model_copy(update={"offset": boundary})
-        graph: GraphJson = entry["graph"]
-        return graph.model_copy(update={"offset": boundary})
+    def _max_snapshot_boundary_global_index(self, book_id: str) -> int | None:
+        boundaries = [boundary for (bk, boundary) in self._store if bk == book_id]
+        return max(boundaries) if boundaries else None
 
-    def get_reminders(self, book_id: str, boundary: int, entity_id: str | None) -> Reminders:
-        entry = self._lookup(book_id, boundary)
+    def _book_last_global_index(self, book_id: str) -> int:
+        from . import cfi_db
+
+        try:
+            total = cfi_db.total_paragraphs(book_id)
+        except Exception:
+            return 0
+        return max(0, total - 1)
+
+    def _reveal_all_boundary_global_index(self, book_id: str) -> int:
+        snapshot_boundary_global_index = self._max_snapshot_boundary_global_index(book_id)
+        if snapshot_boundary_global_index is not None:
+            return snapshot_boundary_global_index
+        return self._book_last_global_index(book_id)
+
+    def get_graph(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        reveal_all: bool,
+    ) -> GraphJson:
+        spoiler_boundary_global_index = (
+            self._reveal_all_boundary_global_index(book_id)
+            if reveal_all
+            else boundary_global_index
+        )
+        entry = self._lookup(book_id, spoiler_boundary_global_index)
+        if not entry:
+            return fx.GRAPH_EMPTY.model_copy(update={"offset": boundary_global_index})
+        graph: GraphJson = entry["graph"]
+        return graph.model_copy(update={"offset": boundary_global_index})
+
+    def get_reminders(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        entity_id: str | None,
+    ) -> Reminders:
+        entry = self._lookup(book_id, boundary_global_index)
         lines: list[ReminderLine] = entry["reminders"] if entry else []
         if entity_id:
             lines = [ln for ln in lines if entity_id in ln.entity_ids]
-        return Reminders(offset=boundary, lines=list(lines))
+        return Reminders(offset=boundary_global_index, lines=list(lines))

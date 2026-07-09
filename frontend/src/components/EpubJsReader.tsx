@@ -1,7 +1,8 @@
 // ── epub.js 기반 실제 리더 ──────────────────────────────────────
 // 화면(뷰포트) 크기에 맞춰 실제로 페이지를 나눠서 보여주고, epub.js가 주는 진짜 CFI를
-// 그대로 백엔드에 보낸다. 페이지 표시는 매번 즉시 갱신하되, 분석 갱신(서버 반영)은
-// 10페이지마다 한 번씩만 트리거한다. 새로고침 시엔 마지막으로 읽던 위치부터 이어서 연다.
+// 그대로 백엔드에 보낸다. 백엔드는 CFI를 book_cfi_index global_index로 변환한다.
+// 페이지 표시는 매번 즉시 갱신하되, 분석 갱신(서버 반영)은 10페이지마다 한 번씩만
+// 트리거한다. 새로고침 시엔 마지막으로 읽던 위치부터 이어서 연다.
 //
 // 페이지 번호는 챕터(spine 섹션)마다 따로 매겨지는 epub.js의 기본 displayed.page가 아니라,
 // book.locations(책 전체를 미리 스캔해 만드는 절대 위치 인덱스)를 써서 챕터와 무관하게
@@ -14,6 +15,11 @@ import { useSpoStore } from '../store';
 
 const PAGES_PER_UPDATE = 10;
 const CHARS_PER_LOCATION = 1000; // book.locations 생성 단위 (작을수록 촘촘하지만 생성이 느려짐)
+
+type LocationsWithTotal = {
+  locationFromCfi: (cfi: string) => number;
+  total: number;
+};
 
 export function EpubJsReader() {
   const bookId = useSpoStore((s) => s.selectedBookId);
@@ -54,10 +60,11 @@ export function EpubJsReader() {
     let cancelled = false;
 
     const reportPage = (cfi: string) => {
-      const loc = book.locations.locationFromCfi(cfi);
-      const total = book.locations.total;
-      if (typeof loc === 'number' && total > 0) {
-        setPage(loc + 1, total + 1); // locationFromCfi는 0-based
+      const locations = book.locations as unknown as LocationsWithTotal;
+      const locationIndex = locations.locationFromCfi(cfi);
+      const totalLocationCount = locations.total;
+      if (typeof locationIndex === 'number' && totalLocationCount > 0) {
+        setPage(locationIndex + 1, totalLocationCount + 1); // locationFromCfi는 0-based
       }
     };
 
@@ -88,7 +95,13 @@ export function EpubJsReader() {
       if (pageCountRef.current % PAGES_PER_UPDATE === 0) {
         putProgress.mutate(
           { cfi: location.start.cfi },
-          { onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary) },
+          {
+            onSuccess: (progressByGlobalIndex) =>
+              setProgress(
+                progressByGlobalIndex.reading_offset,
+                progressByGlobalIndex.spoiler_boundary,
+              ),
+          },
         );
       }
     });
