@@ -3,6 +3,7 @@ from langchain_upstage import ChatUpstage
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from agents.config import UPSTAGE_API_KEY
+from agents.character_entity_filter import filter_generic_role_entities
 
 
 BUILD_AGENT_SYSTEM_PROMPT = """
@@ -32,6 +33,8 @@ characters에 포함할지 판단하는 기준 (매우 중요, 반드시 지키�
   "characters": [
     {
       "name": "인물명",
+      "entity_kind": "named_character | generic_role | important_unknown",
+      "keep_as_character": true,
       "description": "현재 본문에서 확인된 설명",
       "evidence": "근거 문장"
     }
@@ -137,7 +140,7 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
 
     result = extract_json_from_text(response.content)
 
-    return {
+    build_result = {
         "current_offset": current_offset,
         "used_chunk_count": len(readable_chunks),
         "characters": result.get("characters", []),
@@ -146,6 +149,7 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
         "parse_error": result.get("parse_error", False),
         "raw_response": response.content,
     }
+    return filter_generic_role_entities(build_result)
 
 def incremental_build_agent(
     chunks: list[dict],
@@ -219,11 +223,11 @@ def merge_build_results(previous_results: dict, new_result: dict) -> dict:
         key="summary",
     )
 
-    return {
+    return filter_generic_role_entities({
         "characters": characters,
         "relations": relations,
         "events": events,
-    }
+    })
 
 
 def deduplicate_by_key(items: list[dict], key: str) -> list[dict]:

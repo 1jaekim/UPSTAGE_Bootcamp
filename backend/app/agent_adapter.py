@@ -21,6 +21,8 @@ from __future__ import annotations
 import hashlib
 from typing import Iterable
 
+from agents.character_entity_filter import filter_generic_role_entities
+
 from .schemas import Entity, GraphJson, Relationship, ReminderLine
 
 # 관계 라벨 → tone 약한 휴리스틱 (근거 없는 강한 추측은 하지 않음)
@@ -65,6 +67,7 @@ def to_graph_json(
 
     revision_offsets: 관계 id → 최초 등장 경계선. 없으면 boundary 로 채운다.
     """
+    build_result = filter_generic_role_entities(build_result)
     revision_offsets = revision_offsets or {}
     entities: dict[str, Entity] = {}
 
@@ -115,6 +118,7 @@ def to_graph_json(
 
 def to_reminder_lines(build_result: dict) -> list[ReminderLine]:
     """events → reminders. 각 사건 요약을 한 줄로, participants 를 entity id 로 매핑."""
+    build_result = filter_generic_role_entities(build_result)
     lines: list[ReminderLine] = []
     for ev in build_result.get("events", []):
         text = (ev.get("summary") or "").strip()

@@ -44,6 +44,9 @@ def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None 
     entries: list[dict] = []
 
     for chunk_boundary, result in ordered:
+        from agents.character_entity_filter import filter_generic_role_entities
+
+        result = filter_generic_role_entities(result, book_id=book_id)
         # 1차 가드: 근거 없는 relations/events 제거
         verified = verify_build_result(result, book_id=book_id)
 

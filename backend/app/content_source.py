@@ -7,11 +7,18 @@
 from __future__ import annotations
 
 import json
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from . import fixtures as fx
-from .schemas import GraphJson, ReminderLine, Reminders
+from agents.character_aliases import load_character_alias_map
+from agents.character_entity_filter import should_keep_character_entity
+
+from .schemas import Entity, GraphJson, Relationship, ReminderLine, Reminders
+
+
+def _empty_graph() -> GraphJson:
+    return GraphJson(offset=0, spoiler_safe=True, entities=[], relationships=[])
 
 
 class ContentSource(ABC):
@@ -38,9 +45,13 @@ class FixtureSource(ContentSource):
     """정적 시드 픽스처 소스 (초기). 경계선 기준 strict_chunk_end 게이팅."""
 
     def _fixture_graphs(self) -> list[GraphJson]:
+        from . import fixtures as fx
+
         return [fx.GRAPH_C1, fx.GRAPH_C2, fx.GRAPH_C3]
 
     def _fixture_reminders(self) -> list[tuple[int, list[ReminderLine]]]:
+        from . import fixtures as fx
+
         return [
             (fx.GRAPH_C1.offset, fx.REMINDERS_C1),
             (fx.GRAPH_C2.offset, fx.REMINDERS_C2),
@@ -62,7 +73,7 @@ class FixtureSource(ContentSource):
             for graph in self._fixture_graphs()
             if graph.offset <= boundary_global_index
         ]
-        graph = max(visible_graphs, key=lambda g: g.offset) if visible_graphs else fx.GRAPH_EMPTY
+        graph = max(visible_graphs, key=lambda g: g.offset) if visible_graphs else _empty_graph()
         # 계약 offset 은 요청 경계선을 반영
         return graph.model_copy(update={"offset": boundary_global_index})
 
@@ -93,6 +104,171 @@ class AgentResultSource(ContentSource):
     def __init__(self, store: dict | None = None):
         # store[(book_id, boundary)] = {"graph": GraphJson, "reminders": list[ReminderLine]}
         self._store = store or {}
+
+    def _canonical_name(self, name: str, alias_map: dict[str, str]) -> str:
+        return alias_map.get(name, name)
+
+    def _looks_like_weak_snapshot_entity(self, name: str, alias_map: dict[str, str]) -> bool:
+        if name in alias_map or name in set(alias_map.values()):
+            return False
+        return name in {"천사 메로나"}
+
+    def _should_return_entity(self, book_id: str, entity: Entity, alias_map: dict[str, str]) -> bool:
+        if self._looks_like_weak_snapshot_entity(entity.name, alias_map):
+            return False
+        return should_keep_character_entity({"name": entity.name, "type": entity.type}, book_id=book_id)
+
+    def _replace_alias_names_in_text(self, text: str, alias_map: dict[str, str]) -> str:
+        aliases = [
+            alias
+            for alias, canonical_name in alias_map.items()
+            if alias and alias != canonical_name
+        ]
+        if not aliases:
+            return text
+
+        pattern = re.compile("|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True)))
+        return pattern.sub(lambda match: alias_map.get(match.group(0), match.group(0)), text)
+
+    def _partial_name_resolution_map(
+        self,
+        names: list[str],
+        alias_map: dict[str, str],
+    ) -> tuple[dict[str, str], set[str]]:
+        canonical_names = [self._canonical_name(name, alias_map) for name in names]
+        full_names = {name for name in canonical_names if " " in name.strip()}
+        resolution_map: dict[str, str] = {}
+        ambiguous_names: set[str] = set()
+
+        for name in canonical_names:
+            stripped = name.strip()
+            if not stripped or " " in stripped:
+                continue
+            if stripped in alias_map or stripped in set(alias_map.values()):
+                continue
+
+            candidates = sorted(
+                candidate
+                for candidate in full_names
+                if candidate.startswith(f"{stripped} ") or candidate.endswith(f" {stripped}")
+            )
+            if len(candidates) == 1:
+                resolution_map[stripped] = candidates[0]
+            elif len(candidates) > 1:
+                ambiguous_names.add(stripped)
+
+        return resolution_map, ambiguous_names
+
+    def _apply_alias_dictionary_to_graph(
+        self,
+        book_id: str,
+        graph: GraphJson,
+    ) -> tuple[GraphJson, dict[str, str], dict[str, str]]:
+        alias_map = load_character_alias_map(book_id)
+
+        merged_entities: dict[str, Entity] = {}
+        entity_id_map: dict[str, str] = {}
+        response_name_map = dict(alias_map)
+        partial_resolution_map, ambiguous_partial_names = self._partial_name_resolution_map(
+            [entity.name for entity in graph.entities],
+            alias_map,
+        )
+
+        for entity in graph.entities:
+            canonical_name = self._canonical_name(entity.name, alias_map)
+            if canonical_name in ambiguous_partial_names:
+                continue
+            canonical_name = partial_resolution_map.get(canonical_name, canonical_name)
+            if entity.name != canonical_name:
+                response_name_map[entity.name] = canonical_name
+            canonical_entity = entity.model_copy(update={"name": canonical_name})
+            if not self._should_return_entity(book_id, canonical_entity, alias_map):
+                continue
+            existing = merged_entities.get(canonical_name)
+            if existing:
+                entity_id_map[entity.id] = existing.id
+                continue
+
+            merged_entities[canonical_name] = canonical_entity
+            entity_id_map[entity.id] = canonical_entity.id
+
+        relationships: list[Relationship] = []
+        seen_relationships = set()
+        for relationship in graph.relationships:
+            if relationship.source not in entity_id_map or relationship.target not in entity_id_map:
+                continue
+            source = entity_id_map.get(relationship.source, relationship.source)
+            target = entity_id_map.get(relationship.target, relationship.target)
+
+            # Defensive support for legacy snapshots that stored names directly.
+            source = self._canonical_name(source, alias_map)
+            target = self._canonical_name(target, alias_map)
+            if source == target:
+                continue
+
+            key = (
+                source,
+                target,
+                relationship.label,
+                relationship.description,
+                relationship.revision_offset,
+            )
+            if key in seen_relationships:
+                continue
+            seen_relationships.add(key)
+            relationships.append(
+                relationship.model_copy(
+                    update={
+                        "source": source,
+                        "target": target,
+                    }
+                )
+            )
+
+        return (
+            graph.model_copy(
+                update={
+                    "entities": list(merged_entities.values()),
+                    "relationships": relationships,
+                }
+            ),
+            entity_id_map,
+            response_name_map,
+        )
+
+    def _apply_alias_dictionary_to_reminders(
+        self,
+        book_id: str,
+        lines: list[ReminderLine],
+        entity_id_map: dict[str, str],
+        response_name_map: dict[str, str] | None = None,
+    ) -> list[ReminderLine]:
+        alias_map = {**load_character_alias_map(book_id), **(response_name_map or {})}
+        if not alias_map and not entity_id_map:
+            return list(lines)
+
+        result: list[ReminderLine] = []
+        for line in lines:
+            if any(entity_id not in entity_id_map for entity_id in line.entity_ids):
+                continue
+            entity_ids = list(
+                dict.fromkeys(
+                    entity_id_map[entity_id]
+                    for entity_id in line.entity_ids
+                    if entity_id in entity_id_map
+                )
+            )
+            if line.entity_ids and not entity_ids:
+                continue
+            result.append(
+                line.model_copy(
+                    update={
+                        "text": self._replace_alias_names_in_text(line.text, alias_map),
+                        "entity_ids": entity_ids,
+                    }
+                )
+            )
+        return result
 
     @classmethod
     def from_supabase(cls) -> "AgentResultSource":
@@ -184,8 +360,9 @@ class AgentResultSource(ContentSource):
         )
         entry = self._lookup(book_id, spoiler_boundary_global_index)
         if not entry:
-            return fx.GRAPH_EMPTY.model_copy(update={"offset": boundary_global_index})
+            return _empty_graph().model_copy(update={"offset": boundary_global_index})
         graph: GraphJson = entry["graph"]
+        graph, _, _ = self._apply_alias_dictionary_to_graph(book_id, graph)
         return graph.model_copy(update={"offset": boundary_global_index})
 
     def get_reminders(
@@ -196,6 +373,13 @@ class AgentResultSource(ContentSource):
     ) -> Reminders:
         entry = self._lookup(book_id, boundary_global_index)
         lines: list[ReminderLine] = entry["reminders"] if entry else []
+        graph: GraphJson | None = entry["graph"] if entry else None
+        entity_id_map: dict[str, str] = {}
+        response_name_map: dict[str, str] = {}
+        if graph:
+            _, entity_id_map, response_name_map = self._apply_alias_dictionary_to_graph(book_id, graph)
+        lines = self._apply_alias_dictionary_to_reminders(book_id, lines, entity_id_map, response_name_map)
         if entity_id:
-            lines = [ln for ln in lines if entity_id in ln.entity_ids]
+            canonical_entity_id = entity_id_map.get(entity_id, entity_id)
+            lines = [ln for ln in lines if canonical_entity_id in ln.entity_ids]
         return Reminders(offset=boundary_global_index, lines=list(lines))

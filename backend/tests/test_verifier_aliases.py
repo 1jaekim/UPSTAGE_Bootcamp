@@ -11,6 +11,11 @@ def test_load_default_character_alias_map():
     assert alias_map["셜록 홈스"] == "셜록 홈즈"
     assert alias_map["홈즈"] == "셜록 홈즈"
     assert alias_map["왓슨 박사"] == "존 H. 왓슨"
+    assert alias_map["스태퍼드"] == "스탬포드"
+    assert alias_map["그렉슨"] == "토비아스 그레그슨"
+    assert alias_map["그레그슨"] == "토비아스 그레그슨"
+    assert alias_map["요셉 스미스"] == "조셉 스미스"
+    assert "스텐거슨 형제" not in alias_map
 
 
 def test_load_book_character_alias_map_merges_default_and_book_specific_aliases():
@@ -19,6 +24,31 @@ def test_load_book_character_alias_map_merges_default_and_book_specific_aliases(
     assert alias_map["셜록 홈스"] == "셜록 홈즈"
     assert alias_map["나(화자)"] == "존 H. 왓슨"
     assert alias_map["화자(왓슨)"] == "존 H. 왓슨"
+
+
+def test_load_hound_character_aliases_keep_stapleton_and_miss_stapleton_distinct():
+    alias_map = load_character_alias_map("29f8f4f6-1cff-4b13-95e3-5405a19f8b11")
+
+    assert alias_map["스텁블턴"] == "스태플턴"
+    assert alias_map["스태플턴 씨"] == "스태플턴"
+    assert alias_map["스탭틀턴 씨"] == "스태플턴"
+    assert alias_map["스탤프턴"] == "스태플턴"
+    assert alias_map["스테플턴"] == "스태플턴"
+    assert alias_map["스텁블턴의 여동생"] == "스태플턴 양"
+    assert alias_map["스탤튼 양"] == "스태플턴 양"
+    assert alias_map["베릴"] == "스태플턴 양"
+    assert alias_map["스테플턴 부인"] == "스태플턴 양"
+    assert alias_map["선든"] == "셀든"
+    assert alias_map["셀던"] == "셀든"
+    assert alias_map["실덴"] == "셀든"
+    assert alias_map["션든"] == "셀든"
+    assert alias_map["모티머 박사"] == "제임스 모티머"
+    assert alias_map["프랭클랜드 씨"] == "프랭크랜드 씨"
+    assert alias_map["헨리 바스커빌"] == "헨리 배스커빌"
+    assert alias_map["헨리 배스커빌 경"] == "헨리 배스커빌"
+    assert alias_map["라이언스 부인"] == "로라 라이언스 부인"
+    assert alias_map["스태플턴"] == "스태플턴"
+    assert alias_map["스태플턴 양"] == "스태플턴 양"
 
 
 def test_json_alias_map_resolves_names_before_llm_alias_rules():

@@ -8,7 +8,17 @@ from __future__ import annotations
 from backend.app import agent_adapter as ad
 from backend.app.content_source import AgentResultSource
 from backend.app.precompute import build_entries, write_store
+from backend.app.schemas import Entity, GraphJson, ReminderLine, Relationship
 from backend.scripts.make_demo_store import BOOK_ID, DEMO_BUILD_RESULTS
+
+
+def _disable_llm_verifier(monkeypatch):
+    from agents import indirect_leakage_judge, reminder_writer_agent
+    from agents import verifier_agent
+
+    monkeypatch.setattr(verifier_agent, "verify_build_result", lambda result, book_id=None: result)
+    monkeypatch.setattr(reminder_writer_agent, "write_reminders", lambda result: {"lines": []})
+    monkeypatch.setattr(indirect_leakage_judge, "judge_reminders", lambda lines: lines)
 
 
 def test_adapter_maps_names_to_ids():
@@ -36,7 +46,8 @@ def test_reminders_from_events():
     assert all(l.entity_ids for l in lines)
 
 
-def test_revision_offset_is_first_seen():
+def test_revision_offset_is_first_seen(monkeypatch):
+    _disable_llm_verifier(monkeypatch)
     entries = build_entries(DEMO_BUILD_RESULTS)
     # 강 국장 관계(r3)는 320 에서 처음 등장 → 380 에서도 revision_offset=320 유지
     by_boundary = {e["boundary"]: e for e in entries}
@@ -48,7 +59,8 @@ def test_revision_offset_is_first_seen():
     assert rel["revision_offset"] == 320
 
 
-def test_agent_source_gating(tmp_path):
+def test_agent_source_gating(tmp_path, monkeypatch):
+    _disable_llm_verifier(monkeypatch)
     entries = build_entries(DEMO_BUILD_RESULTS)
     write_store(BOOK_ID, entries, store_dir=tmp_path)
     src = AgentResultSource.from_json_file(tmp_path / f"{BOOK_ID}.json")
@@ -62,3 +74,362 @@ def test_agent_source_gating(tmp_path):
     assert ad.entity_id("윤 팀장") not in {e.id for e in g379.entities}
     # 380: 인물 5
     assert len(src.get_graph(BOOK_ID, 380, reveal_all=False).entities) == 5
+
+
+def test_agent_source_applies_character_alias_dictionary_before_returning_snapshots():
+    book_id = "3fb1a332-ae08-450b-8b20-3567a4da4180"
+    graph = GraphJson(
+        offset=10,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_full", name="셜록 홈즈", type="person", color="blue"),
+            Entity(id="e_short", name="홈즈", type="person", color="blue"),
+            Entity(id="e_watson", name="왓슨", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(
+                id="r1",
+                source="e_short",
+                target="e_watson",
+                label="동료",
+                tone="ally",
+                description="홈즈와 왓슨은 함께 조사했다.",
+                revision_offset=10,
+            ),
+            Relationship(
+                id="r2",
+                source="e_full",
+                target="e_watson",
+                label="동료",
+                tone="ally",
+                description="홈즈와 왓슨은 함께 조사했다.",
+                revision_offset=10,
+            ),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 10): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(text="홈즈와 셜록 홈스가 왓슨과 만났다.", entity_ids=["e_short", "e_full", "e_watson"])
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 10, reveal_all=False)
+    names = [entity.name for entity in normalized_graph.entities]
+    sherlock_id = next(entity.id for entity in normalized_graph.entities if entity.name == "셜록 홈즈")
+    watson_id = next(entity.id for entity in normalized_graph.entities if entity.name == "존 H. 왓슨")
+
+    assert names == ["셜록 홈즈", "존 H. 왓슨"]
+    assert len(normalized_graph.relationships) == 1
+    assert normalized_graph.relationships[0].source == sherlock_id
+    assert normalized_graph.relationships[0].target == watson_id
+
+    reminders = src.get_reminders(book_id, 10, entity_id=sherlock_id)
+    assert reminders.lines[0].entity_ids == [sherlock_id, watson_id]
+    assert reminders.lines[0].text == "셜록 홈즈와 셜록 홈즈가 존 H. 왓슨과 만났다."
+
+
+def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_entities():
+    book_id = "3fb1a332-ae08-450b-8b20-3567a4da4180"
+    graph = GraphJson(
+        offset=20,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_stamford_a", name="스탬포드", type="person", color="blue"),
+            Entity(id="e_stamford_b", name="스태퍼드", type="person", color="blue"),
+            Entity(id="e_gregson_a", name="토비아스 그레그슨", type="person", color="blue"),
+            Entity(id="e_gregson_b", name="그렉슨", type="person", color="blue"),
+            Entity(id="e_smith_a", name="조셉 스미스", type="person", color="blue"),
+            Entity(id="e_smith_b", name="요셉 스미스", type="person", color="blue"),
+            Entity(id="e_doctor", name="의사", type="person", color="blue"),
+            Entity(id="e_driver", name="마부", type="person", color="blue"),
+            Entity(id="e_girl", name="여자아이", type="person", color="blue"),
+            Entity(id="e_drunk", name="술에 취한 남자", type="person", color="blue"),
+            Entity(id="e_hallucinated", name="천사 메로나", type="person", color="blue"),
+            Entity(id="e_stangerson_family", name="스텐거슨 형제", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_stamford_b", target="e_gregson_b", label="소개", tone="neutral", description="스태퍼드와 그렉슨", revision_offset=20),
+            Relationship(id="r2", source="e_stamford_a", target="e_gregson_a", label="소개", tone="neutral", description="스탬포드와 토비아스 그레그슨", revision_offset=20),
+            Relationship(id="r3", source="e_smith_b", target="e_doctor", label="대화", tone="neutral", description="요셉 스미스와 의사", revision_offset=20),
+            Relationship(id="r4", source="e_driver", target="e_girl", label="목격", tone="neutral", description="마부와 여자아이", revision_offset=20),
+            Relationship(id="r5", source="e_hallucinated", target="e_gregson_a", label="등장", tone="neutral", description="천사 메로나", revision_offset=20),
+            Relationship(id="r6", source="e_stangerson_family", target="e_gregson_a", label="언급", tone="neutral", description="스텐거슨 형제", revision_offset=20),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 20): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(
+                        text="스태퍼드와 그렉슨, 요셉 스미스가 의사와 마부를 만났다.",
+                        entity_ids=["e_stamford_b", "e_gregson_b", "e_smith_b", "e_doctor", "e_driver"],
+                    ),
+                    ReminderLine(
+                        text="스태퍼드와 그렉슨, 요셉 스미스가 다시 언급됐다.",
+                        entity_ids=["e_stamford_b", "e_gregson_b", "e_smith_b"],
+                    ),
+                    ReminderLine(text="천사 메로나가 나타났다.", entity_ids=["e_hallucinated"]),
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 20, reveal_all=False)
+    names = [entity.name for entity in normalized_graph.entities]
+
+    assert names == [
+        "스탬포드",
+        "토비아스 그레그슨",
+        "조셉 스미스",
+        "스텐거슨 형제",
+    ]
+    assert "조셉 스텐저슨" not in names
+    assert all(name not in names for name in ["의사", "마부", "여자아이", "술에 취한 남자", "천사 메로나"])
+    assert {relationship.label for relationship in normalized_graph.relationships} == {"소개", "언급"}
+
+    reminders = src.get_reminders(book_id, 20, entity_id=None)
+    assert len(reminders.lines) == 1
+    assert reminders.lines[0].text == "스탬포드와 토비아스 그레그슨, 조셉 스미스가 다시 언급됐다."
+    assert len(reminders.lines[0].entity_ids) == 3
+
+
+def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people():
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    graph = GraphJson(
+        offset=30,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_stapleton_a", name="스텁블턴", type="person", color="blue"),
+            Entity(id="e_stapleton_b", name="스태플턴", type="person", color="blue"),
+            Entity(id="e_miss_a", name="스텁블턴의 여동생", type="person", color="blue"),
+            Entity(id="e_miss_b", name="스탤튼 양", type="person", color="blue"),
+            Entity(id="e_barrymore_group_a", name="배리모어 내외", type="person", color="blue"),
+            Entity(id="e_barrymore_group_b", name="배리모어 부부", type="person", color="blue"),
+            Entity(id="e_mr_barrymore", name="배리모어 씨", type="person", color="blue"),
+            Entity(id="e_mrs_barrymore", name="배리모어 부인", type="person", color="blue"),
+            Entity(id="e_drunkards", name="술꾼들", type="person", color="blue"),
+            Entity(id="e_shepherd", name="목동", type="person", color="blue"),
+            Entity(id="e_postmaster", name="우편국장", type="person", color="blue"),
+            Entity(id="e_baskerville", name="배스커빌", type="person", color="blue"),
+            Entity(id="e_baskerville_family", name="배스커빌 가문", type="person", color="blue"),
+            Entity(id="e_charles", name="찰스 배스커빌 경", type="person", color="blue"),
+            Entity(id="e_henry", name="헨리 배스커빌", type="person", color="blue"),
+            Entity(id="e_hugo", name="휴고 배스커빌", type="person", color="blue"),
+            Entity(id="e_roger", name="로저 베스커빌", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_stapleton_a", target="e_miss_a", label="남매", tone="neutral", description="스텁블턴과 여동생", revision_offset=30),
+            Relationship(id="r2", source="e_stapleton_b", target="e_miss_b", label="남매", tone="neutral", description="스태플턴과 스탤튼 양", revision_offset=30),
+            Relationship(id="r3", source="e_barrymore_group_a", target="e_henry", label="고용", tone="neutral", description="배리모어 내외", revision_offset=30),
+            Relationship(id="r4", source="e_mr_barrymore", target="e_mrs_barrymore", label="부부", tone="neutral", description="서로 다른 개인", revision_offset=30),
+            Relationship(id="r5", source="e_drunkards", target="e_shepherd", label="목격", tone="neutral", description="술꾼들과 목동", revision_offset=30),
+            Relationship(id="r6", source="e_baskerville_family", target="e_charles", label="가문", tone="neutral", description="배스커빌 가문", revision_offset=30),
+            Relationship(id="r7", source="e_baskerville", target="e_hugo", label="언급", tone="neutral", description="배스커빌", revision_offset=30),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 30): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(
+                        text="스텁블턴과 스텁블턴의 여동생, 배리모어 내외와 술꾼들이 언급됐다.",
+                        entity_ids=["e_stapleton_a", "e_miss_a", "e_barrymore_group_a", "e_drunkards"],
+                    ),
+                    ReminderLine(
+                        text="스텁블턴과 스탤튼 양이 따로 언급됐다.",
+                        entity_ids=["e_stapleton_a", "e_miss_b"],
+                    )
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 30, reveal_all=False)
+    names = [entity.name for entity in normalized_graph.entities]
+
+    assert names == [
+        "스태플턴",
+        "스태플턴 양",
+        "배리모어 씨",
+        "배리모어 부인",
+        "찰스 배스커빌 경",
+        "헨리 배스커빌",
+        "휴고 배스커빌",
+        "로저 베스커빌",
+    ]
+    assert "배리모어 내외" not in names
+    assert "배리모어 부부" not in names
+    assert "배스커빌" not in names
+    assert "배스커빌 가문" not in names
+    assert "스태플턴" in names and "스태플턴 양" in names
+    assert {relationship.label for relationship in normalized_graph.relationships} == {"남매", "부부"}
+
+    reminders = src.get_reminders(book_id, 30, entity_id=None)
+    assert len(reminders.lines) == 1
+    assert reminders.lines[0].text == "스태플턴과 스태플턴 양이 따로 언급됐다."
+    assert len(reminders.lines[0].entity_ids) == 2
+
+
+def test_agent_source_handles_hound_ambiguous_partial_names_conservatively():
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    graph = GraphJson(
+        offset=40,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_john", name="존", type="person", color="blue"),
+            Entity(id="e_watson", name="존 H. 왓슨", type="person", color="blue"),
+            Entity(id="e_clayton", name="존 클레이턴", type="person", color="blue"),
+            Entity(id="e_roger_short", name="로저", type="person", color="blue"),
+            Entity(id="e_roger_full", name="로저 베스커빌", type="person", color="blue"),
+            Entity(id="e_selden_a", name="선든", type="person", color="blue"),
+            Entity(id="e_selden_b", name="셀던", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_john", target="e_watson", label="언급", tone="neutral", description="존", revision_offset=40),
+            Relationship(id="r2", source="e_roger_short", target="e_selden_a", label="관련", tone="neutral", description="로저와 선든", revision_offset=40),
+            Relationship(id="r3", source="e_roger_full", target="e_selden_b", label="관련", tone="neutral", description="로저 베스커빌과 셀던", revision_offset=40),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 40): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(text="존이 왓슨 또는 클레이턴인지 불명확하다.", entity_ids=["e_john"]),
+                    ReminderLine(text="로저와 선든, 셀던이 언급됐다.", entity_ids=["e_roger_short", "e_selden_a", "e_selden_b"]),
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 40, reveal_all=False)
+    names = [entity.name for entity in normalized_graph.entities]
+
+    assert "존" not in names
+    assert "존 H. 왓슨" in names
+    assert "존 클레이턴" in names
+    assert "로저" not in names
+    assert "로저 베스커빌" in names
+    assert "선든" not in names
+    assert "셀던" not in names
+    assert "셀든" in names
+    assert {relationship.label for relationship in normalized_graph.relationships} == {"관련"}
+
+    reminders = src.get_reminders(book_id, 40, entity_id=None)
+    assert len(reminders.lines) == 1
+    assert reminders.lines[0].text == "로저 베스커빌와 셀든, 셀든이 언급됐다."
+
+
+def test_agent_source_normalizes_hound_final_snapshot_entities():
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    graph = GraphJson(
+        offset=999,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_mortimer_a", name="모티머 박사", type="person", color="blue"),
+            Entity(id="e_mortimer_b", name="제임스 모티머", type="person", color="blue"),
+            Entity(id="e_stapleton_a", name="스태플턴 씨", type="person", color="blue"),
+            Entity(id="e_stapleton_b", name="스탭틀턴 씨", type="person", color="blue"),
+            Entity(id="e_stapleton_c", name="스탤프턴", type="person", color="blue"),
+            Entity(id="e_miss_a", name="베릴", type="person", color="blue"),
+            Entity(id="e_miss_b", name="스테플턴 부인", type="person", color="blue"),
+            Entity(id="e_miss_c", name="스태플턴 양", type="person", color="blue"),
+            Entity(id="e_frankland_a", name="프랭클랜드 씨", type="person", color="blue"),
+            Entity(id="e_frankland_b", name="프랭크랜드 씨", type="person", color="blue"),
+            Entity(id="e_selden_a", name="실덴", type="person", color="blue"),
+            Entity(id="e_selden_b", name="션든", type="person", color="blue"),
+            Entity(id="e_henry_a", name="헨리 바스커빌", type="person", color="blue"),
+            Entity(id="e_henry_b", name="헨리 배스커빌 경", type="person", color="blue"),
+            Entity(id="e_lyons_a", name="라이언스 부인", type="person", color="blue"),
+            Entity(id="e_lyons_b", name="로라 라이언스 부인", type="person", color="blue"),
+            Entity(id="e_barrymore", name="배리모어", type="person", color="blue"),
+            Entity(id="e_mr_barrymore", name="배리모어 씨", type="person", color="blue"),
+            Entity(id="e_mrs_barrymore", name="배리모어 부인", type="person", color="blue"),
+            Entity(id="e_maid", name="처녀", type="person", color="blue"),
+            Entity(id="e_uncle", name="찰스 경의 삼촌", type="person", color="blue"),
+            Entity(id="e_baronet", name="바론넷", type="person", color="blue"),
+            Entity(id="e_prisoner", name="죄수", type="person", color="blue"),
+            Entity(id="e_son", name="헨리 경의 아들", type="person", color="blue"),
+            Entity(id="e_i", name="나", type="person", color="blue"),
+            Entity(id="e_baroness", name="남작부인", type="person", color="blue"),
+            Entity(id="e_convict", name="재소자", type="person", color="blue"),
+            Entity(id="e_cch", name="C.C.H.의 친구들", type="person", color="blue"),
+            Entity(id="e_husband", name="남편", type="person", color="blue"),
+            Entity(id="e_escapee", name="탈주범", type="person", color="blue"),
+            Entity(id="e_unknown_a", name="미확인 인물", type="person", color="blue"),
+            Entity(id="e_unknown_b", name="미지의 인물", type="person", color="blue"),
+            Entity(id="e_investigator", name="수사관", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_mortimer_a", target="e_henry_a", label="의뢰", tone="neutral", description="모티머와 헨리", revision_offset=999),
+            Relationship(id="r2", source="e_stapleton_a", target="e_miss_a", label="관계", tone="neutral", description="스태플턴과 베릴", revision_offset=999),
+            Relationship(id="r3", source="e_stapleton_b", target="e_miss_b", label="관계", tone="neutral", description="스탭틀턴과 부인", revision_offset=999),
+            Relationship(id="r4", source="e_frankland_a", target="e_lyons_a", label="가족", tone="neutral", description="프랭클랜드와 라이언스", revision_offset=999),
+            Relationship(id="r5", source="e_selden_a", target="e_selden_b", label="동일", tone="neutral", description="실덴과 션든", revision_offset=999),
+            Relationship(id="r6", source="e_barrymore", target="e_mr_barrymore", label="애매", tone="neutral", description="배리모어 단독", revision_offset=999),
+            Relationship(id="r7", source="e_maid", target="e_prisoner", label="제거", tone="neutral", description="generic", revision_offset=999),
+            Relationship(id="r8", source="e_mr_barrymore", target="e_mrs_barrymore", label="부부", tone="neutral", description="개별 유지", revision_offset=999),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 999): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(
+                        text="모티머 박사와 헨리 바스커빌, 베릴과 스탭틀턴 씨가 등장했다.",
+                        entity_ids=["e_mortimer_a", "e_henry_a", "e_miss_a", "e_stapleton_b"],
+                    ),
+                    ReminderLine(text="처녀와 죄수가 언급됐다.", entity_ids=["e_maid", "e_prisoner"]),
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 999, reveal_all=False)
+    names = [entity.name for entity in normalized_graph.entities]
+
+    assert names == [
+        "제임스 모티머",
+        "스태플턴",
+        "스태플턴 양",
+        "프랭크랜드 씨",
+        "셀든",
+        "헨리 배스커빌",
+        "로라 라이언스 부인",
+        "배리모어 씨",
+        "배리모어 부인",
+    ]
+    assert "스태플턴" in names and "스태플턴 양" in names
+    assert "배리모어" not in names
+    assert all(
+        name not in names
+        for name in [
+            "처녀",
+            "찰스 경의 삼촌",
+            "바론넷",
+            "죄수",
+            "헨리 경의 아들",
+            "나",
+            "남작부인",
+            "재소자",
+            "C.C.H.의 친구들",
+            "남편",
+            "탈주범",
+            "미확인 인물",
+            "미지의 인물",
+            "수사관",
+        ]
+    )
+    assert {relationship.label for relationship in normalized_graph.relationships} == {"의뢰", "관계", "가족", "부부"}
+
+    reminders = src.get_reminders(book_id, 999, entity_id=None)
+    assert len(reminders.lines) == 1
+    assert reminders.lines[0].text == "제임스 모티머와 헨리 배스커빌, 스태플턴 양과 스태플턴가 등장했다."

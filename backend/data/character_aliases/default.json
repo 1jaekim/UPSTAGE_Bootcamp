@@ -22,6 +22,28 @@
         "닥터 왓슨"
       ],
       "notes": "Common Korean variants for Dr. John H. Watson."
+    },
+    {
+      "canonical_name": "스탬포드",
+      "aliases": [
+        "스태퍼드"
+      ],
+      "notes": "Korean transliteration variants for Stamford."
+    },
+    {
+      "canonical_name": "토비아스 그레그슨",
+      "aliases": [
+        "그렉슨",
+        "그레그슨"
+      ],
+      "notes": "Short and variant Korean spellings for Tobias Gregson."
+    },
+    {
+      "canonical_name": "조셉 스미스",
+      "aliases": [
+        "요셉 스미스"
+      ],
+      "notes": "Joseph transliteration variant. Do not apply to Stangerson."
     }
   ]
 }
