@@ -10,6 +10,8 @@ export interface Entity {
   name: string;
   type: EntityType;
   color: NodeColor;
+  importance_score?: number;
+  importance_level?: 'major' | 'minor';
 }
 
 export interface Relationship {

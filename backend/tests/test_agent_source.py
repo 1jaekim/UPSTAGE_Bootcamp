@@ -433,3 +433,45 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
     reminders = src.get_reminders(book_id, 999, entity_id=None)
     assert len(reminders.lines) == 1
     assert reminders.lines[0].text == "제임스 모티머와 헨리 배스커빌, 스태플턴 양과 스태플턴가 등장했다."
+
+
+def test_agent_source_adds_entity_importance_without_changing_snapshot_contract():
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    graph = GraphJson(
+        offset=50,
+        spoiler_safe=True,
+        entities=[
+            Entity(id="e_holmes", name="셜록 홈즈", type="person", color="blue"),
+            Entity(id="e_watson", name="존 H. 왓슨", type="person", color="blue"),
+            Entity(id="e_henry", name="헨리 배스커빌", type="person", color="blue"),
+            Entity(id="e_minor", name="프레이저", type="person", color="blue"),
+        ],
+        relationships=[
+            Relationship(id="r1", source="e_holmes", target="e_watson", label="동료", tone="ally", description="함께 조사", revision_offset=50),
+            Relationship(id="r2", source="e_holmes", target="e_henry", label="조사", tone="neutral", description="사건 의뢰", revision_offset=50),
+            Relationship(id="r3", source="e_watson", target="e_henry", label="동행", tone="ally", description="동행", revision_offset=50),
+            Relationship(id="r4", source="e_minor", target="e_henry", label="언급", tone="neutral", description="짧은 언급", revision_offset=50),
+        ],
+    )
+    src = AgentResultSource(
+        {
+            (book_id, 50): {
+                "graph": graph,
+                "reminders": [
+                    ReminderLine(text="홈즈와 왓슨이 사건을 정리했다.", entity_ids=["e_holmes", "e_watson"]),
+                    ReminderLine(text="헨리 배스커빌도 사건의 중심에 있었다.", entity_ids=["e_henry"]),
+                ],
+            }
+        }
+    )
+
+    normalized_graph = src.get_graph(book_id, 50, reveal_all=False)
+    by_name = {entity.name: entity for entity in normalized_graph.entities}
+
+    assert by_name["셜록 홈즈"].importance_score == 5
+    assert by_name["셜록 홈즈"].importance_level == "major"
+    assert by_name["존 H. 왓슨"].importance_level == "major"
+    assert by_name["헨리 배스커빌"].importance_level == "major"
+    assert by_name["프레이저"].importance_score < 4
+    assert by_name["프레이저"].importance_level == "minor"
+    assert by_name["프레이저"].id == "e_minor"

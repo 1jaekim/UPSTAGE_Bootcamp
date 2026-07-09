@@ -15,6 +15,8 @@ class Entity(BaseModel):
     name: str
     type: EntityType
     color: NodeColor
+    importance_score: int = 1
+    importance_level: Literal["major", "minor"] = "minor"
 
 
 class Relationship(BaseModel):

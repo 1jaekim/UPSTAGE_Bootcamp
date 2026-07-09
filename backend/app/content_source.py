@@ -14,6 +14,7 @@ from pathlib import Path
 from agents.character_aliases import load_character_alias_map
 from agents.character_entity_filter import should_keep_character_entity
 
+from .entity_importance import apply_entity_importance
 from .schemas import Entity, GraphJson, Relationship, ReminderLine, Reminders
 
 
@@ -362,7 +363,14 @@ class AgentResultSource(ContentSource):
         if not entry:
             return _empty_graph().model_copy(update={"offset": boundary_global_index})
         graph: GraphJson = entry["graph"]
-        graph, _, _ = self._apply_alias_dictionary_to_graph(book_id, graph)
+        graph, entity_id_map, _ = self._apply_alias_dictionary_to_graph(book_id, graph)
+        reminder_entity_ids = [
+            entity_id_map[entity_id]
+            for line in entry.get("reminders", [])
+            for entity_id in line.entity_ids
+            if entity_id in entity_id_map
+        ]
+        graph = apply_entity_importance(book_id, graph, reminder_entity_ids)
         return graph.model_copy(update={"offset": boundary_global_index})
 
     def get_reminders(

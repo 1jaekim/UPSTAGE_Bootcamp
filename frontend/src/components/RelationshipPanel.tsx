@@ -3,6 +3,7 @@ import { BOOK_ID } from '../lib/constants';
 import { useGraph } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { SlideOverPanel } from './SlideOverPanel';
+import { CharacterImportanceList } from './CharacterImportanceList';
 import { RelationshipGraph } from './RelationshipGraph';
 import { RelationshipList } from './RelationshipList';
 
@@ -51,9 +52,15 @@ export function RelationshipPanel() {
           <div>
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                관계 {graph.relationships.length}건 · 인물 {graph.entities.length}
+                인물 {graph.entities.length}명
               </h3>
             </div>
+            <CharacterImportanceList entities={graph.entities} />
+          </div>
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              관계 {graph.relationships.length}건
+            </h3>
             <RelationshipList graph={graph} />
           </div>
         </div>

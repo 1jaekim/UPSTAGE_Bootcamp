@@ -2,9 +2,9 @@
 // '현재 위치까지 분석' → 추출된 인물 / 관계 / 사건(리마인드) / 로그.
 // 데이터는 master의 계약(useGraph·useReminders)을 그대로 사용, 스타일 유지.
 import { useState } from 'react';
-import { TYPE_LABEL } from '../lib/constants';
 import { useGraph, useReminders, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
+import { CharacterImportanceList } from './CharacterImportanceList';
 import { RelationshipGraph } from './RelationshipGraph';
 import { RelationshipList } from './RelationshipList';
 
@@ -104,19 +104,7 @@ export function SpoKeeperPanel() {
             {/* 👤 추출된 인물 */}
             <div>
               <SectionTitle icon="👤">추출된 인물 {graph.entities.length}</SectionTitle>
-              <ul className="flex flex-wrap gap-1.5">
-                {graph.entities.map((e) => (
-                  <li
-                    key={e.id}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
-                  >
-                    {e.name}
-                    <span className="ml-1 text-[10px] text-slate-400">
-                      {TYPE_LABEL[e.type] ?? e.type}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <CharacterImportanceList entities={graph.entities} />
             </div>
 
             {/* 🔗 추출된 관계 */}
