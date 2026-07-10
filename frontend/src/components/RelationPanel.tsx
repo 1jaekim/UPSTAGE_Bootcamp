@@ -20,6 +20,17 @@ function sortByImportance(entities: Entity[]) {
   );
 }
 
+function formatGeneratedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleString('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function RelationPanel() {
   const bookId = useSpoStore((s) => s.selectedBookId);
   const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
@@ -95,6 +106,12 @@ export function RelationPanel() {
         </span>
         {graph && graph.entities.length > 0 && <RelationshipGraph graph={graph} />}
       </div>
+
+      {graph?.generated_at ? (
+        <p className="text-right text-[11px] font-semibold text-slate-400">
+          스냅샷 마지막 갱신: {formatGeneratedAt(graph.generated_at)}
+        </p>
+      ) : null}
 
       {isLoading || syncing ? (
         <div className="space-y-3">

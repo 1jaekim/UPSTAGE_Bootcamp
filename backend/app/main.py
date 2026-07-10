@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -32,7 +33,23 @@ from .source_factory import make_content_source
 # backend/data/precomputed/*.json으로 보충한다.
 # SPO_SOURCE=local: 테스트/개발 검증 전용. Supabase를 전혀 조회하지 않고 로컬
 # precomputed JSON만 사용한다.
-content_source: ContentSource = make_content_source()
+#
+# 분석 파이프라인(precompute_from_epub)은 이 서버의 FastAPI 백그라운드 태스크로도,
+# 완전히 별도 프로세스(CLI 스크립트)로도 실행될 수 있어 이 프로세스가 "새 스냅샷이
+# 생겼다"는 신호를 직접 받을 방법이 없다. 그래서 매번 새로 로드하는 대신, 짧은 TTL마다
+# 자동으로 다시 읽어서 서버를 껐다 켜지 않아도 몇 초 안에 최신 데이터가 반영되게 한다.
+_CONTENT_SOURCE_TTL_SECONDS = 15.0
+_content_source_cache: ContentSource | None = None
+_content_source_loaded_at: float = 0.0
+
+
+def get_content_source() -> ContentSource:
+    global _content_source_cache, _content_source_loaded_at
+    now = time.monotonic()
+    if _content_source_cache is None or now - _content_source_loaded_at > _CONTENT_SOURCE_TTL_SECONDS:
+        _content_source_cache = make_content_source()
+        _content_source_loaded_at = now
+    return _content_source_cache
 
 
 @asynccontextmanager
@@ -108,7 +125,7 @@ def get_graph(
     # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
     # book_cfi_index 기준 spoiler boundary global_index다.
     boundary_global_index = offset
-    return content_source.get_graph(book_id, boundary_global_index, reveal_all)
+    return get_content_source().get_graph(book_id, boundary_global_index, reveal_all)
 
 
 @app.get("/api/books/{book_id}/reminders", response_model=Reminders)
@@ -121,7 +138,7 @@ def get_reminders(
     # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
     # book_cfi_index 기준 spoiler boundary global_index다.
     boundary_global_index = offset
-    return content_source.get_reminders(book_id, boundary_global_index, entity_id)
+    return get_content_source().get_reminders(book_id, boundary_global_index, entity_id)
 
 
 @app.get("/api/books/{book_id}/progress", response_model=Progress)

@@ -1,0 +1,1977 @@
+{
+  "book_id": "196d77d0-da9f-4826-b8e0-1f04ef871f96",
+  "entries": [
+    {
+      "boundary": 19,
+      "graph": {
+        "offset": 19,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_7be6f483",
+            "name": "윤가람",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_93548105",
+            "name": "정세린",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_aeac97cb",
+            "name": "문태경",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_7708759b",
+            "name": "권재필",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_b98db8ae",
+            "name": "최다은",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_563588ff",
+            "name": "장유라",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a0bf7ce3",
+            "name": "배동규",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_50efcb10",
+            "name": "한소정",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_543e8aa4",
+            "name": "이현우",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6989a7de",
+            "name": "서민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_c32428ab",
+            "name": "민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_2e52693f",
+            "source": "e_aeac97cb",
+            "target": "e_7708759b",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "문태경과 권재필은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_0138a8a3",
+            "source": "e_7708759b",
+            "target": "e_b98db8ae",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "권재필은 그 시각에 최다은과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_f13760c5",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "최다은은 그 시각에 장유라과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20f383d7",
+            "source": "e_50efcb10",
+            "target": "e_543e8aa4",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "한소정과 이현우은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_61ce096a",
+            "source": "e_543e8aa4",
+            "target": "e_6989a7de",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "이현우은 그 시각에 서민호과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_46c6eaad",
+            "source": "e_c32428ab",
+            "target": "e_b98db8ae",
+            "label": "고서 거래 상담을 받음",
+            "tone": "neutral",
+            "description": "민호는 다은에게 고서 거래 상담을 받았을 뿐이라고 반박한다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "e1",
+            "event_name": "열쇠 보관함 빈 홈 발견",
+            "event_summary": "윤가람이 열쇠 보관함의 빈 홈을 발견하고 단서를 기록함.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "윤가람은 열쇠 보관함의 빈 홈을 처음 발견했을 때 곧바로 의미를 단정하지 않았다. 물건이 놓인 방향과 주변의 먼지, 마지막으로 누가 그곳을 지났는지를 따로 기록했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e2",
+            "event_name": "복원 흔적 불일치 지적",
+            "event_summary": "정세린이 정상적인 작업과 실제 흔적이 다르다고 지적함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 현장에서 쓰이는 장비와 절차를 설명하며, 정상적인 작업이었다면 남아야 할 흔적과 실제 흔적이 다르다고 지적했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e3",
+            "event_name": "진술 불일치 조사",
+            "event_summary": "배동규가 참석자들의 진술을 받고 윤가람이 기억의 오류와 거짓말을 구분함.",
+            "participants": [
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "배동규은 참석자들을 한 사람씩 분리해 진술을 받았다. ... 윤가람은 기억의 오류와 의도적인 거짓말을 구분하기 위해 각 사람이 확인할 수 있었던 시야와 소리부터 다시 계산했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e4",
+            "event_name": "진술 변경 및 약속 폭로",
+            "event_summary": "최다은, 서민호, 장유라가 진술을 변경하고 개인적인 약속을 밝힘.",
+            "participants": [
+              {
+                "character_name": "최다은",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "서민호",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "장유라",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "조사 중간에 최다은이 이전 진술의 일부를 바꾸었다. ... 조사 중간에 서민호이 이전 진술의 일부를 바꾸었다. ... 조사 중간에 장유라이 이전 진술의 일부를 바꾸었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e5",
+            "event_name": "단서 조작 발견",
+            "event_summary": "정세린이 누군가가 단서를 조작한 흔적을 발견함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 복원실의 희석제 냄새과 현재 단서를 나란히 놓고 비교했다. ... 누군가 일부러 두 단서를 같은 원인에서 나온 것처럼 보이게 만든 흔적이었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e6",
+            "event_name": "시간표 검증 필요성 제기",
+            "event_summary": "윤가람과 정세린이 시간표의 정확성을 확인할 필요성을 강조함.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "다음 단계의 핵심은 범행 수단보다도 모든 사람이 당연하다고 받아들인 시간표가 실제로 맞는지 확인하는 일이었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          }
+        ],
+        "generated_at": "2026-07-10T08:39:22.504165+00:00"
+      },
+      "reminders": [
+        {
+          "text": "윤가람은 열쇠 보관함의 빈 홈을 발견하고 단서를 기록하며 조사관 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "정세린은 복원 흔적이 정상적이지 않다고 지적하며 조사관 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_93548105"
+          ]
+        },
+        {
+          "text": "배동규는 참석자들의 진술을 받았고, 윤가람은 기억의 오류와 거짓말을 구분하며 조사관 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_a0bf7ce3",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "최다은, 서민호, 장유라는 추가 정보를 제공했고 배동규는 이를 확인하는 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_b98db8ae",
+            "e_6989a7de",
+            "e_563588ff",
+            "e_a0bf7ce3"
+          ]
+        },
+        {
+          "text": "정세린은 단서 분석에 이상 징후를 발견했고, 윤가람과 함께 조사관 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_93548105",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "윤가람과 정세린은 시간표의 정확성을 확인할 필요성을 강조하며 조사관 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_7be6f483",
+            "e_93548105"
+          ]
+        },
+        {
+          "text": "권재필은 특정 시각에 최다은과 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_7708759b",
+            "e_b98db8ae"
+          ]
+        },
+        {
+          "text": "최다은은 특정 시각에 장유라와 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_b98db8ae",
+            "e_563588ff"
+          ]
+        },
+        {
+          "text": "이현우는 특정 시각에 서민호와 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_543e8aa4",
+            "e_6989a7de"
+          ]
+        },
+        {
+          "text": "민호는 최다은에게 고서 거래 상담을 받았을 뿐이라고 반박했습니다.",
+          "entity_ids": [
+            "e_c32428ab",
+            "e_b98db8ae"
+          ]
+        }
+      ]
+    },
+    {
+      "boundary": 34,
+      "graph": {
+        "offset": 34,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_7be6f483",
+            "name": "윤가람",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_93548105",
+            "name": "정세린",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_aeac97cb",
+            "name": "문태경",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_7708759b",
+            "name": "권재필",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_b98db8ae",
+            "name": "최다은",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_563588ff",
+            "name": "장유라",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a0bf7ce3",
+            "name": "배동규",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_50efcb10",
+            "name": "한소정",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_543e8aa4",
+            "name": "이현우",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6989a7de",
+            "name": "서민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_c32428ab",
+            "name": "민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_2e52693f",
+            "source": "e_aeac97cb",
+            "target": "e_7708759b",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "문태경과 권재필은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_0138a8a3",
+            "source": "e_7708759b",
+            "target": "e_b98db8ae",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "권재필은 그 시각에 최다은과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_f13760c5",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "최다은은 그 시각에 장유라과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20f383d7",
+            "source": "e_50efcb10",
+            "target": "e_543e8aa4",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "한소정과 이현우은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_61ce096a",
+            "source": "e_543e8aa4",
+            "target": "e_6989a7de",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "이현우은 그 시각에 서민호과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_d4f887c1",
+            "source": "e_543e8aa4",
+            "target": "e_6989a7de",
+            "label": "과거 사건 공유 및 알리바이 충돌",
+            "tone": "neutral",
+            "description": "이현우과 서민호은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다. 이현우은 사건 직전 서민호을 보았다고 했지만, 서민호은 그 시각에 윤가람과 함께 있었다고 주장했다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_8d3bb317",
+            "source": "e_6989a7de",
+            "target": "e_7be6f483",
+            "label": "알리바이 공유 및 진술 조정",
+            "tone": "neutral",
+            "description": "서민호은 그 시각에 윤가람과 함께 있었다고 주장했다. 반대로 갈등하는 것처럼 보였던 서민호과 윤가람은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_9b1945fc",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "과거 사건 공유 및 알리바이 충돌",
+            "tone": "neutral",
+            "description": "최다은과 장유라은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다. 최다은은 사건 직전 장유라을 보았다고 했지만, 장유라은 그 시각에 정세린과 함께 있었다고 주장했다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_76477e5b",
+            "source": "e_563588ff",
+            "target": "e_93548105",
+            "label": "알리바이 공유 및 진술 조정",
+            "tone": "neutral",
+            "description": "장유라은 그 시각에 정세린과 함께 있었다고 주장했다. 반대로 갈등하는 것처럼 보였던 장유라과 정세린은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_1a603133",
+            "source": "e_7be6f483",
+            "target": "e_93548105",
+            "label": "공동 조사 및 단서 분석",
+            "tone": "neutral",
+            "description": "윤가람과 정세린은 지금까지 확인된 사실, 가능성이 높은 추론, 아직 근거 없는 의심을 세 칸으로 나누어 적었다. 두 사람은 같은 단서를 보면서도 서로 다른 질문을 던졌고, 그 차이가 조사 범위를 넓혔다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "e1",
+            "event_name": "열쇠 보관함 빈 홈 발견",
+            "event_summary": "윤가람이 열쇠 보관함의 빈 홈을 발견하고 단서를 기록함.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "윤가람은 열쇠 보관함의 빈 홈을 처음 발견했을 때 곧바로 의미를 단정하지 않았다. 물건이 놓인 방향과 주변의 먼지, 마지막으로 누가 그곳을 지났는지를 따로 기록했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e2",
+            "event_name": "복원 흔적 불일치 지적",
+            "event_summary": "정세린이 정상적인 작업과 실제 흔적이 다르다고 지적함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 현장에서 쓰이는 장비와 절차를 설명하며, 정상적인 작업이었다면 남아야 할 흔적과 실제 흔적이 다르다고 지적했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e3",
+            "event_name": "진술 불일치 조사",
+            "event_summary": "배동규가 참석자들의 진술을 받고 윤가람이 기억의 오류와 거짓말을 구분함.",
+            "participants": [
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "배동규은 참석자들을 한 사람씩 분리해 진술을 받았다. ... 윤가람은 기억의 오류와 의도적인 거짓말을 구분하기 위해 각 사람이 확인할 수 있었던 시야와 소리부터 다시 계산했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e5",
+            "event_name": "단서 조작 발견",
+            "event_summary": "정세린이 누군가가 단서를 조작한 흔적을 발견함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 복원실의 희석제 냄새과 현재 단서를 나란히 놓고 비교했다. ... 누군가 일부러 두 단서를 같은 원인에서 나온 것처럼 보이게 만든 흔적이었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "단서 조작 의심",
+            "event_summary": "정세린과 윤가람이 현장에서 비정상적인 흔적을 발견하고 조작 가능성을 제기함",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 현장에서 쓰이는 장비와 절차를 설명하며, 정상적인 작업이었다면 남아야 할 흔적과 실제 흔적이 다르다고 지적했다. 정세린은 서로 다른 금속으로 만든 두 열쇠과 현재 단서를 나란히 놓고 비교했다. 재질과 시간 기록은 비슷했지만 사용 목적은 달랐다. 누군가 일부러 두 단서를 같은 원인에서 나온 것처럼 보이게 만든 흔적이었다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "기증 계약 분쟁",
+            "event_summary": "재필과 태경 사이에 기증 계약을 둔 분쟁이 발생함",
+            "participants": [
+              {
+                "character_name": "권재필",
+                "role": "suspect",
+                "confidence": 0.6
+              },
+              {
+                "character_name": "문태경",
+                "role": "suspect",
+                "confidence": 0.6
+              },
+              {
+                "character_name": "장유라",
+                "role": "informant",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "유라는 재필과 태경이 기증 계약을 두고 크게 다퉜다고 알려준다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "열쇠 보관함 이상 흔적 발견",
+            "event_summary": "소정이 열쇠 보관함의 번호 없는 홈을 발견했으나, 황동 가루가 묻어 있음",
+            "participants": [
+              {
+                "character_name": "한소정",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "소정은 그런 홈을 처음 본다고 하지만 손끝에 황동 가루가 묻어 있다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          }
+        ],
+        "generated_at": "2026-07-10T08:39:22.504165+00:00"
+      },
+      "reminders": [
+        {
+          "text": "윤가람이 열쇠 보관함의 빈 홈을 발견하고 단서를 기록하며 조사자로서 활동했습니다.",
+          "entity_ids": [
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "정세린이 복원 현장의 흔적이 정상적이지 않다고 지적하며 조사자로서 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_93548105"
+          ]
+        },
+        {
+          "text": "배동규가 참석자들의 진술을 수집하고 윤가람이 기억의 오류와 거짓말을 구분하는 작업을 진행했습니다.",
+          "entity_ids": [
+            "e_a0bf7ce3",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "정세린이 현장에서 비정상적인 흔적을 발견했고, 윤가람과 함께 추가 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_93548105",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "정세린과 윤가람이 현장에서 비정상적인 흔적을 발견하고 추가 분석이 필요하다고 판단했습니다.",
+          "entity_ids": [
+            "e_93548105",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "권재필과 문태경 사이에 기증 계약을 둔 분쟁이 발생했으며, 장유라가 정보를 제공했습니다.",
+          "entity_ids": [
+            "e_7708759b",
+            "e_aeac97cb",
+            "e_563588ff"
+          ]
+        },
+        {
+          "text": "한소정이 열쇠 보관함의 번호 없는 홈을 발견했으나 황동 가루가 묻어 있는 이상 흔적을 확인했습니다.",
+          "entity_ids": [
+            "e_50efcb10"
+          ]
+        },
+        {
+          "text": "권재필은 사건 당시 최다은과 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_7708759b",
+            "e_b98db8ae"
+          ]
+        },
+        {
+          "text": "최다은은 사건 당시 장유라와 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_b98db8ae",
+            "e_563588ff"
+          ]
+        },
+        {
+          "text": "이현우는 사건 당시 서민호와 함께 있었다고 주장했지만, 서민호는 윤가람과 함께 있었다고 주장했습니다.",
+          "entity_ids": [
+            "e_543e8aa4",
+            "e_6989a7de",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "윤가람과 정세린은 공동 조사를 진행하며 단서 분석 시 서로 다른 질문을 던져 조사 범위를 확장했습니다.",
+          "entity_ids": [
+            "e_7be6f483",
+            "e_93548105"
+          ]
+        }
+      ]
+    },
+    {
+      "boundary": 54,
+      "graph": {
+        "offset": 54,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_7be6f483",
+            "name": "윤가람",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_93548105",
+            "name": "정세린",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_aeac97cb",
+            "name": "문태경",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_7708759b",
+            "name": "권재필",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_b98db8ae",
+            "name": "최다은",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_563588ff",
+            "name": "장유라",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a0bf7ce3",
+            "name": "배동규",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_50efcb10",
+            "name": "한소정",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_543e8aa4",
+            "name": "이현우",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6989a7de",
+            "name": "서민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_c32428ab",
+            "name": "민호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_2e52693f",
+            "source": "e_aeac97cb",
+            "target": "e_7708759b",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "문태경과 권재필은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_0138a8a3",
+            "source": "e_7708759b",
+            "target": "e_b98db8ae",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "권재필은 그 시각에 최다은과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_f13760c5",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "최다은은 그 시각에 장유라과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20f383d7",
+            "source": "e_50efcb10",
+            "target": "e_543e8aa4",
+            "label": "같은 과거 사건을 알고 있음",
+            "tone": "neutral",
+            "description": "한소정과 이현우은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_61ce096a",
+            "source": "e_543e8aa4",
+            "target": "e_6989a7de",
+            "label": "함께 있었다고 주장함",
+            "tone": "neutral",
+            "description": "이현우은 그 시각에 서민호과 함께 있었다고 주장했다.",
+            "revision_offset": 19,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_d4f887c1",
+            "source": "e_543e8aa4",
+            "target": "e_6989a7de",
+            "label": "과거 사건 공유 및 알리바이 충돌",
+            "tone": "neutral",
+            "description": "이현우과 서민호은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다. 이현우은 사건 직전 서민호을 보았다고 했지만, 서민호은 그 시각에 윤가람과 함께 있었다고 주장했다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_8d3bb317",
+            "source": "e_6989a7de",
+            "target": "e_7be6f483",
+            "label": "알리바이 공유 및 진술 조정",
+            "tone": "neutral",
+            "description": "서민호은 그 시각에 윤가람과 함께 있었다고 주장했다. 반대로 갈등하는 것처럼 보였던 서민호과 윤가람은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_9b1945fc",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "과거 사건 공유 및 알리바이 충돌",
+            "tone": "neutral",
+            "description": "최다은과 장유라은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다. 최다은은 사건 직전 장유라을 보았다고 했지만, 장유라은 그 시각에 정세린과 함께 있었다고 주장했다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_76477e5b",
+            "source": "e_563588ff",
+            "target": "e_93548105",
+            "label": "알리바이 공유 및 진술 조정",
+            "tone": "neutral",
+            "description": "장유라은 그 시각에 정세린과 함께 있었다고 주장했다. 반대로 갈등하는 것처럼 보였던 장유라과 정세린은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 34,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_5986e643",
+            "source": "e_7be6f483",
+            "target": "e_93548105",
+            "label": "협력 관계",
+            "tone": "ally",
+            "description": "두 사람은 같은 단서를 보면서도 서로 다른 질문을 던졌고, 그 차이가 조사 범위를 넓혔다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_cddc5d9b",
+            "source": "e_7be6f483",
+            "target": "e_6989a7de",
+            "label": "과거 사건 공유",
+            "tone": "neutral",
+            "description": "서민호과 윤가람은 서로 모르는 척했지만 대화 중 같은 과거 사건을 알고 있음이 드러났다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_19e6d9e2",
+            "source": "e_7be6f483",
+            "target": "e_a0bf7ce3",
+            "label": "알리바이 보호",
+            "tone": "neutral",
+            "description": "반대로 갈등하는 것처럼 보였던 윤가람과 배동규은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_5f782875",
+            "source": "e_b98db8ae",
+            "target": "e_563588ff",
+            "label": "보호 관계",
+            "tone": "neutral",
+            "description": "유라는 다은을 보호하려 했다고 인정한다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3e10cd11",
+            "source": "e_93548105",
+            "target": "e_aeac97cb",
+            "label": "알리바이 보호",
+            "tone": "neutral",
+            "description": "반대로 갈등하는 것처럼 보였던 정세린과 문태경은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_fe47af0c",
+            "source": "e_a0bf7ce3",
+            "target": "e_50efcb10",
+            "label": "알리바이 보호",
+            "tone": "neutral",
+            "description": "반대로 갈등하는 것처럼 보였던 배동규과 한소정은 한쪽의 실수를 숨겨 주기 위해 진술을 맞춘 정황이 있었다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_e1251a86",
+            "source": "e_543e8aa4",
+            "target": "e_aeac97cb",
+            "label": "부탁 관계",
+            "tone": "neutral",
+            "description": "현우는 태경의 부탁으로 기록을 지웠으며, 태경이 필사본을 안전한 곳으로 옮기려 했다고 말한다.",
+            "revision_offset": 54,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "e1",
+            "event_name": "열쇠 보관함 빈 홈 발견",
+            "event_summary": "윤가람이 열쇠 보관함의 빈 홈을 발견하고 단서를 기록함.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "윤가람은 열쇠 보관함의 빈 홈을 처음 발견했을 때 곧바로 의미를 단정하지 않았다. 물건이 놓인 방향과 주변의 먼지, 마지막으로 누가 그곳을 지났는지를 따로 기록했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e2",
+            "event_name": "복원 흔적 불일치 지적",
+            "event_summary": "정세린이 정상적인 작업과 실제 흔적이 다르다고 지적함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 현장에서 쓰이는 장비와 절차를 설명하며, 정상적인 작업이었다면 남아야 할 흔적과 실제 흔적이 다르다고 지적했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e3",
+            "event_name": "진술 불일치 조사",
+            "event_summary": "배동규가 참석자들의 진술을 받고 윤가람이 기억의 오류와 거짓말을 구분함.",
+            "participants": [
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "배동규은 참석자들을 한 사람씩 분리해 진술을 받았다. ... 윤가람은 기억의 오류와 의도적인 거짓말을 구분하기 위해 각 사람이 확인할 수 있었던 시야와 소리부터 다시 계산했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e4",
+            "event_name": "진술 변경 및 약속 폭로",
+            "event_summary": "최다은, 서민호, 장유라가 진술을 변경하고 개인적인 약속을 밝힘.",
+            "participants": [
+              {
+                "character_name": "최다은",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "서민호",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "장유라",
+                "role": "deceiver",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "조사 중간에 최다은이 이전 진술의 일부를 바꾸었다. ... 조사 중간에 서민호이 이전 진술의 일부를 바꾸었다. ... 조사 중간에 장유라이 이전 진술의 일부를 바꾸었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e5",
+            "event_name": "단서 조작 발견",
+            "event_summary": "정세린이 누군가가 단서를 조작한 흔적을 발견함.",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 복원실의 희석제 냄새과 현재 단서를 나란히 놓고 비교했다. ... 누군가 일부러 두 단서를 같은 원인에서 나온 것처럼 보이게 만든 흔적이었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e6",
+            "event_name": "시간표 검증 필요성 제기",
+            "event_summary": "윤가람과 정세린이 시간표의 정확성을 확인할 필요성을 강조함.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "다음 단계의 핵심은 범행 수단보다도 모든 사람이 당연하다고 받아들인 시간표가 실제로 맞는지 확인하는 일이었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 19,
+            "last_seen_global_index": 19,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "단서 조작 의심",
+            "event_summary": "정세린과 윤가람이 현장에서 비정상적인 흔적을 발견하고 조작 가능성을 제기함",
+            "participants": [
+              {
+                "character_name": "정세린",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "정세린은 현장에서 쓰이는 장비와 절차를 설명하며, 정상적인 작업이었다면 남아야 할 흔적과 실제 흔적이 다르다고 지적했다. 정세린은 서로 다른 금속으로 만든 두 열쇠과 현재 단서를 나란히 놓고 비교했다. 재질과 시간 기록은 비슷했지만 사용 목적은 달랐다. 누군가 일부러 두 단서를 같은 원인에서 나온 것처럼 보이게 만든 흔적이었다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "기증 계약 분쟁",
+            "event_summary": "재필과 태경 사이에 기증 계약을 둔 분쟁이 발생함",
+            "participants": [
+              {
+                "character_name": "권재필",
+                "role": "suspect",
+                "confidence": 0.6
+              },
+              {
+                "character_name": "문태경",
+                "role": "suspect",
+                "confidence": 0.6
+              },
+              {
+                "character_name": "장유라",
+                "role": "informant",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "유라는 재필과 태경이 기증 계약을 두고 크게 다퉜다고 알려준다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "열쇠 보관함 이상 흔적 발견",
+            "event_summary": "소정이 열쇠 보관함의 번호 없는 홈을 발견했으나, 황동 가루가 묻어 있음",
+            "participants": [
+              {
+                "character_name": "한소정",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "소정은 그런 홈을 처음 본다고 하지만 손끝에 황동 가루가 묻어 있다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 34,
+            "last_seen_global_index": 34,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E001",
+            "event_name": "편지 발견 및 조사 시작",
+            "event_summary": "세린의 복원실에서 태경이 남긴 편지가 발견되며, 필사본 출처 조작과 압박 사실이 밝혀짐. 가람과 동규는 위조 은폐 사건으로 판단.",
+            "participants": [
+              {
+                "character_name": "윤가람",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "배동규",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "문태경",
+                "role": "perpetrator",
+                "confidence": 0.6
+              }
+            ],
+            "evidence": "세린의 복원실에서 태경이 남긴 편지가 발견된다. 편지에는 필사본의 출처가 조작되었으며 누군가 이를 공개하지 못하게 압박한다는 내용이 적혀 있다. 가람과 동규는 사건이 단순한 도난이 아니라 과거 위조를 감추려는 일이라고 본다.",
+            "first_seen_chunk_offset": 14,
+            "last_seen_chunk_offset": 14,
+            "first_seen_global_index": 54,
+            "last_seen_global_index": 54,
+            "confidence": 0.7
+          }
+        ],
+        "generated_at": "2026-07-10T08:39:22.504165+00:00"
+      },
+      "reminders": [
+        {
+          "text": "윤가람이 열쇠 보관함의 빈 홈을 발견하고 단서를 기록하며 조사자로서의 역할을 수행했습니다.",
+          "entity_ids": [
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "정세린이 복원 현장의 흔적이 정상적이지 않다고 지적하며 조사자로서 의혹을 제기했습니다.",
+          "entity_ids": [
+            "e_93548105"
+          ]
+        },
+        {
+          "text": "배동규가 참석자들의 진술을 받는 과정에서 윤가람이 기억의 오류와 거짓말을 구분하는 역할을 했습니다.",
+          "entity_ids": [
+            "e_a0bf7ce3",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "최다은, 서민호, 장유라의 진술 변경과 개인적 약속에 대한 추가 조사가 진행되었습니다.",
+          "entity_ids": [
+            "e_b98db8ae",
+            "e_6989a7de",
+            "e_563588ff"
+          ]
+        },
+        {
+          "text": "정세린이 현장에서 특이한 흔적을 발견했고, 윤가람과 함께 추가 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_93548105",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "윤가람과 정세린이 시간표의 정확성을 확인할 필요성을 강조하며 협력 관계를 보였습니다.",
+          "entity_ids": [
+            "e_7be6f483",
+            "e_93548105"
+          ]
+        },
+        {
+          "text": "정세린과 윤가람이 현장에서 특이한 흔적을 발견하고 추가 분석을 진행했습니다.",
+          "entity_ids": [
+            "e_93548105",
+            "e_7be6f483"
+          ]
+        },
+        {
+          "text": "권재필과 문태경 사이에 기증 계약을 둔 분쟁이 발생했고, 장유라가 정보를 제공했습니다.",
+          "entity_ids": [
+            "e_7708759b",
+            "e_aeac97cb",
+            "e_563588ff"
+          ]
+        },
+        {
+          "text": "한소정이 열쇠 보관함의 번호 없는 홈을 발견했으나 황동 가루가 묻어 있는 이상 흔적을 확인했습니다.",
+          "entity_ids": [
+            "e_50efcb10"
+          ]
+        }
+      ]
+    }
+  ]
+}

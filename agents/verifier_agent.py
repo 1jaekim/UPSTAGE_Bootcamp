@@ -189,6 +189,35 @@ def _has_family_or_role_word(name: str) -> bool:
     return any(word in stripped for word in _FAMILY_OR_ROLE_WORDS)
 
 
+_HANGUL_RE = re.compile(r"^[가-힣]+$")
+
+
+def _short_alias_candidates(canonical: str) -> set[str]:
+    """짧은 표기(성 생략 등)로 흔히 불리는 별칭 후보를 결정론적으로 계산한다.
+    LLM 판단 없이 항상 동일하게 적용되므로, 실행마다 결과가 흔들리지 않는다.
+
+    - 서양식 "성 이름"(공백 구분) 표기: 마지막 토큰(성)을 별칭으로 본다
+      (예: "Sherlock Holmes" -> "Holmes").
+    - 한국식 3글자 이름(성 1자 + 이름 2자, 붙여 쓰기) 표기: 이름 2글자를
+      별칭으로 본다(예: "윤가람" -> "가람"). 특정 작품의 이름을 하드코딩한 게
+      아니라 이름 길이·한글 여부만으로 판단하는 일반 규칙이라 어떤 소설에도
+      동일하게 적용된다.
+    """
+    if _has_family_or_role_word(canonical):
+        return set()
+
+    base = _strip_suffixes(canonical)
+    parts = [part for part in base.split(" ") if part]
+
+    if len(parts) >= 2:
+        return {parts[-1]}
+
+    if len(parts) == 1 and len(parts[0]) == 3 and _HANGUL_RE.match(parts[0]):
+        return {parts[0][1:]}
+
+    return set()
+
+
 def _canonical_score(name: str) -> tuple[int, int, int]:
     stripped = _without_parentheses(_normalize_alias_text(name))
     return (
@@ -307,12 +336,9 @@ def _augment_identity_map_with_alias_rules(
     short_alias_to_canonical: dict[str, str | None] = {}
 
     for canonical in canonical_names:
-        base = _strip_suffixes(canonical)
-        parts = [part for part in base.split(" ") if part]
-        if len(parts) < 2 or _has_family_or_role_word(canonical):
+        aliases = _short_alias_candidates(canonical)
+        if not aliases:
             continue
-
-        aliases = {parts[-1]}
 
         for alias in aliases:
             key = _alias_key(alias)
@@ -552,10 +578,7 @@ def _build_name_lookup(name_map: dict[str, str]) -> dict[str, str]:
     for name, canonical in name_map.items():
         canonical = _normalize_canonical_display(canonical)
         keys = {_alias_key(name), _alias_key(canonical)}
-        base = _strip_suffixes(canonical)
-        parts = [part for part in base.split(" ") if part]
-        if len(parts) >= 2 and not _has_family_or_role_word(canonical):
-            keys.add(_alias_key(parts[-1]))
+        keys.update(_alias_key(alias) for alias in _short_alias_candidates(canonical))
         for key in keys:
             if key and key not in lookup:
                 lookup[key] = canonical

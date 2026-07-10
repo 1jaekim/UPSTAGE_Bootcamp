@@ -62,6 +62,8 @@ export interface GraphJson {
   entities: Entity[];
   relationships: Relationship[];
   events?: Array<Record<string, unknown>>;
+  /** 이 스냅샷을 마지막으로 만든/갱신한 시각(ISO 8601, UTC). 없으면 예전 데이터. */
+  generated_at?: string | null;
 }
 
 export interface ReminderLine {

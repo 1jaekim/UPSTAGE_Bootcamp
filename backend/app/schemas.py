@@ -110,6 +110,7 @@ class GraphJson(BaseModel):
     entities: list[Entity]
     relationships: list[Relationship]
     events: list[StoryEvent] = Field(default_factory=list)
+    generated_at: str | None = None  # 이 스냅샷을 마지막으로 만든/갱신한 시각(ISO 8601, UTC)
 
 
 class ReminderLine(BaseModel):

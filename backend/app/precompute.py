@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import agent_adapter as ad
@@ -409,6 +410,10 @@ def precompute_from_epub(
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
 
+    # 이번 실행 전체에 걸쳐 동일한 시각을 쓴다 — 프론트에서 "이 책 데이터가 언제
+    # 마지막으로 갱신됐는지"를 볼 때, 경계선마다 시각이 제각각이면 오히려 혼란스럽다.
+    run_started_at = datetime.now(timezone.utc).isoformat()
+
     entries: list[dict] = []
     first_seen: dict[str, int] = {}
     previous: dict = {"characters": [], "relations": [], "events": []}
@@ -418,6 +423,31 @@ def precompute_from_epub(
     canonical_registry: list[dict] = []
     global_name_map: dict[str, str] = {}
     prev_raw_names: set[str] = set()
+    last_consolidated_at = 0
+
+    def _run_consolidation() -> None:
+        nonlocal last_consolidated_at
+        consolidation = consolidate_registry(canonical_registry)
+        merge_map = consolidation["merge_map"]
+        remove_names = consolidation["remove_names"]
+        last_consolidated_at = len(entries)
+
+        if not merge_map and not remove_names:
+            return
+
+        canonical_registry[:] = [
+            c
+            for c in canonical_registry
+            if c.get("name", "") not in merge_map and c.get("name", "") not in remove_names
+        ]
+
+        # 이후 새로 등장하는 원본 이름들이 최종 대표 이름으로 이어지도록 체이닝.
+        for raw_name, mapped_name in list(global_name_map.items()):
+            if mapped_name in merge_map:
+                global_name_map[raw_name] = merge_map[mapped_name]
+        global_name_map.update(merge_map)
+
+        entries[:] = _apply_consolidation_to_entries(entries, merge_map, remove_names)
 
     for chunk_boundary in sorted(boundaries):
         result = incremental_build_agent(
@@ -443,29 +473,26 @@ def precompute_from_epub(
 
         # 주기적 전체 정리: canonical_registry가 자란 만큼 사각지대도 커지므로,
         # 몇 스냅샷마다 한 번씩 전체를 다시 훑어서 놓친 병합/비인물 항목을 잡는다.
-        if len(entries) % CONSOLIDATION_INTERVAL == 0:
-            consolidation = consolidate_registry(canonical_registry)
-            merge_map = consolidation["merge_map"]
-            remove_names = consolidation["remove_names"]
-
-            if merge_map or remove_names:
-                canonical_registry[:] = [
-                    c
-                    for c in canonical_registry
-                    if c.get("name", "") not in merge_map and c.get("name", "") not in remove_names
-                ]
-
-                # 이후 새로 등장하는 원본 이름들이 최종 대표 이름으로 이어지도록 체이닝.
-                for raw_name, mapped_name in list(global_name_map.items()):
-                    if mapped_name in merge_map:
-                        global_name_map[raw_name] = merge_map[mapped_name]
-                global_name_map.update(merge_map)
-
-                entries[:] = _apply_consolidation_to_entries(entries, merge_map, remove_names)
+        if len(entries) - last_consolidated_at >= CONSOLIDATION_INTERVAL:
+            _run_consolidation()
 
         # 경계선 하나 끝날 때마다 즉시 저장(체크포인팅). 중간에 rate limit(429) 등으로
         # 실패해도 여기까지 처리한 경계선은 Supabase/로컬 파일에 이미 반영되어 있다.
         remapped_so_far = remap_entries_to_global_index(book_id, epub_path, entries)
+        for entry in remapped_so_far:
+            entry["graph"]["generated_at"] = run_started_at
+        write_store(book_id, remapped_so_far, store_dir)
+        if upload_to_supabase:
+            upload_snapshots_to_supabase(book_id, remapped_so_far)
+
+    # 짧은 책은 CONSOLIDATION_INTERVAL 배수를 한 번도 못 채우고 끝날 수 있어(예: 전체
+    # 스냅샷이 4개뿐), 마지막에 정리가 한 번도 안 도는 경우가 실제로 있었다. 남은
+    # entries가 있으면 반드시 최소 한 번은 마지막에 전체 정리를 돌린다.
+    if entries and last_consolidated_at != len(entries):
+        _run_consolidation()
+        remapped_so_far = remap_entries_to_global_index(book_id, epub_path, entries)
+        for entry in remapped_so_far:
+            entry["graph"]["generated_at"] = run_started_at
         write_store(book_id, remapped_so_far, store_dir)
         if upload_to_supabase:
             upload_snapshots_to_supabase(book_id, remapped_so_far)
