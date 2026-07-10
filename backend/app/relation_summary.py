@@ -34,6 +34,28 @@ _CATEGORY_PRIORITY = (
 _DIRECTED_HINTS = ("의뢰", "고용", "추적", "살해", "위협", "공격", "고발", "조사", "도움", "보냄", "지시", "속임", "보호")
 _STORY_CATEGORIES = {"crime", "investigation", "deception", "protection"}
 
+# 상호적(대칭) 관계 — 두 사람을 서로 바꿔 불러도 같은 말인 경우만 undirected로 둔다.
+# "아버지/어머니/아들/딸/삼촌/변호사/관리인/수사관"처럼 한쪽에서 다른 쪽으로 향하는
+# 대부분의 관계 단어는 방향이 있는 게 정상이라, 화이트리스트(대칭)만 undirected로
+# 판정하고 나머지는 기본값을 directed로 둔다 — "누가 누구의 X인지" 화살표 없이는
+# 헷갈리는 관계(부모/자식, 직함 등)가 undirected로 잘못 표시되는 문제를 막기 위함.
+_SYMMETRIC_LABEL_HINTS = (
+    "부부",
+    "형제",
+    "자매",
+    "남매",
+    "친구",
+    "동료",
+    "연인",
+    "동업자",
+    "공모자",
+    "동창",
+    "동기",
+    "라이벌",
+    "맞수",
+    "부모자식",
+)
+
 
 def _relation_text(relationship: Relationship) -> str:
     return " ".join(
@@ -49,6 +71,18 @@ def _relation_text(relationship: Relationship) -> str:
 
 
 def _category_for(relationships: list[Relationship]) -> str:
+    # 라벨과 마찬가지로, 원본(비-합성) 관계의 텍스트를 우선 근거로 카테고리를
+    # 판단한다 — 합성 관계의 category는 이벤트 공동 참여만으로 자동 매겨진
+    # 값이라, 같은 쌍에 원본 관계가 있으면 그쪽 문맥이 더 정확하다.
+    non_story = [relationship for relationship in relationships if not relationship.is_story_relation]
+    text = " ".join(_relation_text(relationship) for relationship in (non_story or relationships))
+    counts = {
+        category: sum(1 for hint in hints if hint in text)
+        for category, hints in _CATEGORY_HINTS.items()
+    }
+    if any(counts.values()):
+        return max(_CATEGORY_PRIORITY, key=lambda category: (counts.get(category, 0), -_CATEGORY_PRIORITY.index(category)))
+
     story_categories = [
         relationship.relation_category
         for relationship in relationships
@@ -60,20 +94,26 @@ def _category_for(relationships: list[Relationship]) -> str:
             key=lambda category: (story_categories.count(category), -_CATEGORY_PRIORITY.index(category)),
         )
 
-    text = " ".join(_relation_text(relationship) for relationship in relationships)
-    counts = {
-        category: sum(1 for hint in hints if hint in text)
-        for category, hints in _CATEGORY_HINTS.items()
-    }
-    if not any(counts.values()):
-        return "neutral"
-    return max(_CATEGORY_PRIORITY, key=lambda category: (counts.get(category, 0), -_CATEGORY_PRIORITY.index(category)))
+    return "neutral"
 
 
 def _directionality_for(relationships: list[Relationship], category: str) -> str:
-    text = " ".join(_relation_text(relationship) for relationship in relationships)
     if category in {"crime", "investigation", "deception", "protection"}:
         return "directed"
+
+    labels = [
+        (relationship.display_label or relationship.label or "").strip()
+        for relationship in relationships
+        if (relationship.display_label or relationship.label or "").strip()
+    ]
+    if labels and any(hint in label for label in labels for hint in _SYMMETRIC_LABEL_HINTS):
+        return "undirected"
+    if labels:
+        # 라벨이 있는데 위 대칭 목록에 없으면(예: "아버지", "관리인", "고문 변호사")
+        # 기본적으로 방향이 있는 관계로 본다.
+        return "directed"
+
+    text = " ".join(_relation_text(relationship) for relationship in relationships)
     if category in {"family", "romance", "ally"}:
         return "undirected"
     if any(hint in text for hint in _DIRECTED_HINTS):
@@ -82,6 +122,19 @@ def _directionality_for(relationships: list[Relationship], category: str) -> str
 
 
 def _display_label_for(relationships: list[Relationship], category: str) -> str:
+    # BuildAgent가 근거 기반으로 뽑은 원본 라벨(예: "협박자")이 있으면 항상 그걸
+    # 우선한다 — 합성(story) 관계는 이벤트 공동 참여 등에서 자동 생성된 제네릭
+    # 라벨(조사/보호 등)이라 정보량이 적다. 같은 인물 쌍에 합성 관계가 같이 있다는
+    # 이유로 더 구체적인 원본 라벨이 가려지면 안 된다.
+    labels = [
+        relationship.label.strip()
+        for relationship in relationships
+        if not relationship.is_story_relation and relationship.label.strip()
+    ]
+    if labels:
+        label, _ = Counter(labels).most_common(1)[0]
+        return label[:12]
+
     story_labels = [
         (relationship.display_label or relationship.label).strip()
         for relationship in relationships
@@ -89,11 +142,6 @@ def _display_label_for(relationships: list[Relationship], category: str) -> str:
     ]
     if story_labels:
         label, _ = Counter(story_labels).most_common(1)[0]
-        return label[:12]
-
-    labels = [relationship.label.strip() for relationship in relationships if relationship.label.strip()]
-    if labels:
-        label, _ = Counter(labels).most_common(1)[0]
         return label[:12]
     return {
         "ally": "협력",
@@ -159,6 +207,20 @@ def summarize_relationships(
     summarized: list[Relationship] = []
 
     for relationships in grouped.values():
+        # 원본(BuildAgent) 관계도 없고, 구조화된 사건(역할이 명확히 배정된 event)의
+        # 뒷받침도 없이 "같은 문장에 같이 언급됐다"는 것만으로 만들어진 약한 추측성
+        # 쌍은 표시하지 않는다. 다만 사건에서 역할(가해자/피해자, 기만자/피기만자 등)
+        # 까지 구체적으로 뽑힌 경우는 원본 relations 배열에 없어도 근거가 있는
+        # 정보이므로 숨기지 않는다 — related_events에 event_id가 있으면 구조화된
+        # 사건에서 왔다는 뜻이다(리마인드 조합으로 만든 것은 event_id가 없다).
+        has_real_signal = any(
+            not relationship.is_story_relation
+            or any(event.get("event_id") for event in relationship.related_events)
+            for relationship in relationships
+        )
+        if not has_real_signal:
+            continue
+
         relationships = sorted(
             relationships,
             key=lambda relationship: (
@@ -215,6 +277,15 @@ def summarize_relationships(
                     "relation_role": story_relation.relation_role if story_relation else first.relation_role,
                     "confidence": max((relationship.confidence or 0.5) for relationship in relationships),
                     "is_story_relation": any(relationship.is_story_relation for relationship in relationships),
+                    # display_label이 실제로 원본(비-합성) 라벨에서 왔는지 여부. 원본
+                    # 라벨이 있으면 그게 display_label로 채택되므로 False가 되고,
+                    # apply_relationship_presentation이 이후 제네릭 role_pair_label로
+                    # 덮어쓰지 않는다. (is_story_relation은 "그룹에 합성 관계가 하나라도
+                    # 있었는지"라는 다른 의미로 계속 쓰이므로 별도 필드로 둔다.)
+                    "label_is_generic": not any(
+                        not relationship.is_story_relation and relationship.label.strip() == display_label
+                        for relationship in relationships
+                    ),
                     "last_seen_global_index": last_seen,
                     "related_events": related_events,
                 }

@@ -36,7 +36,12 @@ def _source(graph: GraphJson, reminders: list[ReminderLine], boundary: int = 100
     return AgentResultSource({(BOOK_ID, boundary): {"graph": graph, "reminders": reminders}})
 
 
-def test_story_relation_from_reminder_gets_major_importance():
+def test_reminder_only_pairs_without_original_relation_are_hidden():
+    """"같은 문장에 같이 언급됐다"는 것만으로 만든 약한 추측성 관계(리마인드
+    조합)는 원본 relations도, 구조화된 사건도 없으면 화면에서 숨긴다. 반면
+    원본 relations에 실제로 있는 쌍(홈즈-왓슨)은 계속 노출되고, 리마인드에서
+    나온 부가 정보로 importance 등이 보강된다.
+    """
     graph = GraphJson(
         offset=100,
         spoiler_safe=True,
@@ -57,14 +62,17 @@ def test_story_relation_from_reminder_gets_major_importance():
     ]
 
     normalized_graph = _source(graph, reminders).get_graph(BOOK_ID, 100, reveal_all=False)
-    story_relationships = [
-        relationship for relationship in normalized_graph.relationships if relationship.is_story_relation
-    ]
+    pairs = {frozenset((r.source, r.target)) for r in normalized_graph.relationships}
 
-    assert story_relationships
-    assert any(relationship.relation_category == "investigation" for relationship in story_relationships)
-    assert all(relationship.relation_importance_score >= 4 for relationship in story_relationships)
-    assert all(relationship.relation_importance_level == "major" for relationship in story_relationships)
+    # 홈즈-스태플턴, 왓슨-스태플턴은 원본 관계도 사건도 없는 순수 추측성 쌍이라 숨겨진다.
+    assert frozenset(("e_holmes", "e_stapleton")) not in pairs
+    assert frozenset(("e_watson", "e_stapleton")) not in pairs
+    # 홈즈-왓슨은 원본 관계가 있으므로 그대로 노출되고, 라벨도 원본("동료")을 유지한다.
+    assert frozenset(("e_holmes", "e_watson")) in pairs
+    holmes_watson = next(
+        r for r in normalized_graph.relationships if frozenset((r.source, r.target)) == frozenset(("e_holmes", "e_watson"))
+    )
+    assert holmes_watson.display_label == "동료"
 
 
 def test_summary_preserves_multiple_relations_in_detail_and_related_events():
@@ -126,7 +134,11 @@ def test_future_story_relationship_is_not_exposed_before_boundary():
     assert normalized_graph.relationships == []
 
 
-def test_story_relation_is_created_after_alias_and_generic_filter():
+def test_alias_and_generic_filter_apply_even_when_relations_are_hidden():
+    """별칭 정규화("홈즈"→"셜록 홈즈")와 일반명사 필터("의사" 제외)는 관계 유무와
+    무관하게 인물(entity) 목록에 그대로 적용된다. 이 케이스는 원본 관계도, 구조화된
+    사건도 없는 순수 리마인드 조합뿐이라 관계 자체는 전부 숨겨진다.
+    """
     graph = GraphJson(
         offset=100,
         spoiler_safe=True,
@@ -147,14 +159,11 @@ def test_story_relation_is_created_after_alias_and_generic_filter():
 
     normalized_graph = _source(graph, reminders).get_graph(BOOK_ID, 100, reveal_all=False)
     names = {entity.name for entity in normalized_graph.entities}
-    entity_ids = {entity.id for entity in normalized_graph.entities}
 
     assert "셜록 홈즈" in names
     assert "존 H. 왓슨" in names
     assert "의사" not in names
-    assert normalized_graph.relationships
-    assert all(relationship.source in entity_ids for relationship in normalized_graph.relationships)
-    assert all(relationship.target in entity_ids for relationship in normalized_graph.relationships)
+    assert normalized_graph.relationships == []
 
 
 def test_structured_event_creates_perpetrator_victim_relation():

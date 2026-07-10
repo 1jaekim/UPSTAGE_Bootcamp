@@ -72,7 +72,9 @@ def to_graph_json(
     revision_offsets = revision_offsets or {}
     entities: dict[str, Entity] = {}
 
-    def ensure_entity(name: str, *, type_: str | None = None, color: str | None = None) -> str:
+    def ensure_entity(
+        name: str, *, type_: str | None = None, color: str | None = None, description: str | None = None
+    ) -> str:
         name = (name or "").strip()
         if not name:
             return ""
@@ -83,11 +85,19 @@ def to_graph_json(
                 name=name,
                 type=type_ if type_ in _VALID_TYPES else "person",
                 color=color if color in _VALID_COLORS else "blue",
+                description=(description or "").strip() or None,
             )
+        elif description and not entities[eid].description:
+            entities[eid] = entities[eid].model_copy(update={"description": description.strip()})
         return eid
 
     for ch in build_result.get("characters", []):
-        ensure_entity(ch.get("name", ""), type_=ch.get("type"), color=ch.get("color"))
+        ensure_entity(
+            ch.get("name", ""),
+            type_=ch.get("type"),
+            color=ch.get("color"),
+            description=ch.get("description"),
+        )
 
     relationships: list[Relationship] = []
     for rel in build_result.get("relations", []):

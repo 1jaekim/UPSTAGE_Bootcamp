@@ -193,6 +193,12 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     )
 
 
+# book_id별 분석 진행 상태 — 프로세스 메모리에만 두는 가벼운 진행률 표시용이라
+# (Supabase에 넣을 만큼 중요한 데이터는 아님) 서버 재시작하면 사라진다. 그래도
+# 업로드 직후 프론트에서 "지금 몇 번째 구간까지 됐는지" 보여주기엔 충분하다.
+_analysis_progress: dict[str, dict] = {}
+
+
 def _run_full_analysis(book_id: str) -> None:
     """BuildAgent~IndirectLeakageJudge 4단계 파이프라인을 백그라운드에서 실행.
 
@@ -212,11 +218,23 @@ def _run_full_analysis(book_id: str) -> None:
     last = len(chunks) - 1
     boundaries = list(range(4, last, 5)) + [last]
 
+    _analysis_progress[book_id] = {
+        "status": "running",
+        "completed": 0,
+        "total": len(boundaries),
+        "error": None,
+    }
+
+    def _on_progress(completed: int, total: int) -> None:
+        _analysis_progress[book_id].update(completed=completed, total=total)
+
     reset_usage()
     try:
-        precompute_from_epub(epub_path, book_id, boundaries)
+        precompute_from_epub(epub_path, book_id, boundaries, on_progress=_on_progress)
+        _analysis_progress[book_id]["status"] = "done"
     except Exception as e:  # pragma: no cover - 백그라운드 작업 실패는 로그만
         print(f"[분석 실패] book_id={book_id}: {e}")
+        _analysis_progress[book_id].update(status="failed", error=str(e))
     finally:
         usage = get_usage_summary()
         print(
@@ -241,8 +259,21 @@ async def upload_book(file: UploadFile, background_tasks: BackgroundTasks) -> di
 
     if not result["reused"]:
         background_tasks.add_task(_run_full_analysis, result["book_id"])
+    else:
+        # 이미 분석까지 끝난 책을 재사용하는 경우, 프론트가 진행률 폴링을 시작해도
+        # "running" 상태가 없어 헷갈리지 않도록 곧바로 done으로 표시한다.
+        _analysis_progress.setdefault(
+            result["book_id"], {"status": "done", "completed": 0, "total": 0, "error": None}
+        )
 
     return result
+
+
+@app.get("/api/books/{book_id}/analysis-status")
+def get_analysis_status(book_id: str) -> dict:
+    return _analysis_progress.get(
+        book_id, {"status": "unknown", "completed": 0, "total": 0, "error": None}
+    )
 
 
 @app.get("/api/health")

@@ -503,24 +503,23 @@ def test_agent_source_summarizes_relationships_for_story_graph():
 
     normalized_graph = src.get_graph(book_id, 70, reveal_all=False)
 
-    assert len(normalized_graph.relationships) == 3
+    # 왓슨-헨리는 원본 relations도, 구조화된 사건도 없는 순수 리마인드 조합 쌍이라
+    # 숨겨진다 — 홈즈-왓슨, 홈즈-헨리(둘 다 원본 relations가 있음)만 남는다.
+    assert len(normalized_graph.relationships) == 2
+    assert not any(
+        {relationship.source, relationship.target} == {"e_watson", "e_henry"}
+        for relationship in normalized_graph.relationships
+    )
     holmes_henry = next(
         relationship
         for relationship in normalized_graph.relationships
         if {relationship.source, relationship.target} == {"e_holmes", "e_henry"}
     )
-    watson_henry = next(
-        relationship
-        for relationship in normalized_graph.relationships
-        if {relationship.source, relationship.target} == {"e_watson", "e_henry"}
-    )
-    assert holmes_henry.display_label == "조사자 → 용의자"
-    assert holmes_henry.role_pair_label == "조사자 → 용의자"
+    # 원본 relations("의뢰"/"조사")가 있으므로 제네릭 role_pair_label로 덮이지 않고
+    # 원본 라벨 중 하나가 그대로 노출된다.
+    assert holmes_henry.display_label in {"의뢰", "조사"}
     assert holmes_henry.relationship_summary
-    assert holmes_henry.relation_category == "investigation"
     assert holmes_henry.directionality == "directed"
     assert holmes_henry.relation_importance_level == "major"
     assert holmes_henry.is_new_at_current_position
     assert "헨리의 사건" in holmes_henry.detail
-    assert watson_henry.is_story_relation
-    assert watson_henry.related_events

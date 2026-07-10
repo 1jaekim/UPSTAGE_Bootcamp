@@ -12,6 +12,8 @@ export interface Entity {
   color: NodeColor;
   importance_score?: number;
   importance_level?: 'major' | 'minor';
+  /** 본문에서 확인된 인물 설명(직업/역할 등). 근거 없으면 비어있을 수 있음. */
+  description?: string | null;
 }
 
 export interface Relationship {
@@ -124,4 +126,11 @@ export interface UploadResult {
   book_id: string;
   reused: boolean;
   paragraph_count: number;
+}
+
+export interface AnalysisStatus {
+  status: 'unknown' | 'running' | 'done' | 'failed';
+  completed: number;
+  total: number;
+  error: string | null;
 }

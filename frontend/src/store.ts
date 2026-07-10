@@ -2,6 +2,20 @@
 import { create } from 'zustand';
 import { BOOK_ID } from './lib/constants';
 
+// 읽기 위치(offset)는 이미 서버(progress API)에 저장돼 새로고침해도 유지되지만,
+// "어떤 책을 보고 있었는지" 자체는 순수 클라이언트 상태라 브라우저에 직접 저장해둔다.
+const LAST_BOOK_ID_KEY = 'spokeeper:lastBookId';
+
+function loadInitialBookId(): string {
+  if (typeof window === 'undefined') return BOOK_ID;
+  return window.localStorage.getItem(LAST_BOOK_ID_KEY) || BOOK_ID;
+}
+
+function saveLastBookId(bookId: string): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LAST_BOOK_ID_KEY, bookId);
+}
+
 export type PanelKind = 'closed' | 'relationship' | 'reminder' | 'settings';
 
 interface SpoState {
@@ -33,7 +47,7 @@ interface SpoState {
 }
 
 export const useSpoStore = create<SpoState>((set) => ({
-  selectedBookId: BOOK_ID,
+  selectedBookId: loadInitialBookId(),
   spoilerSafe: true,
   panel: 'closed',
   readingOffset: 0,
@@ -46,7 +60,8 @@ export const useSpoStore = create<SpoState>((set) => ({
   analyzed: false,
 
   // 책이 바뀌면 이전 책의 읽기 위치/분석 상태를 그대로 들고 있으면 안 되므로 초기화한다.
-  setSelectedBookId: (selectedBookId) =>
+  setSelectedBookId: (selectedBookId) => {
+    saveLastBookId(selectedBookId);
     set({
       selectedBookId,
       readingOffset: 0,
@@ -55,7 +70,8 @@ export const useSpoStore = create<SpoState>((set) => ({
       totalPages: 0,
       latestCfi: null,
       analyzed: false,
-    }),
+    });
+  },
   setSpoilerSafe: (v) => set({ spoilerSafe: v }),
   setPanel: (panel) => set({ panel }),
   togglePanel: (p) => set((s) => ({ panel: s.panel === p ? 'closed' : p })),

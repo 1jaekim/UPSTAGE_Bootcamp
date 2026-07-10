@@ -8,7 +8,7 @@ import {
 } from './RelationshipGraph/grouping/deriveCharacterGroup';
 import { FIT_PADDING, runFullscreenLayout } from './RelationshipGraph/layout/fullscreen';
 import { CATEGORY_COLOR, edgeStyles } from './RelationshipGraph/styles/edgeStyles';
-import { nodeBorderWidth, nodeSize, nodeStyles, shortNodeName } from './RelationshipGraph/styles/nodeStyles';
+import { nodeBorderWidth, nodeSize, nodeStyles } from './RelationshipGraph/styles/nodeStyles';
 
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.8;
@@ -29,15 +29,6 @@ function relationLabel(relationship: Relationship) {
 
 function relationDetail(relationship: Relationship) {
   return relationship.relationship_summary || relationship.event_summary || relationship.description || relationLabel(relationship);
-}
-
-function svgInitialIcon(initials: string, color: string) {
-  const safeInitials = initials.replace(/[&<>"']/g, (char) => {
-    const escaped: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-    return escaped[char] ?? char;
-  });
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="40" fill="${color}"/><text x="48" y="51" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="900" fill="white">${safeInitials}</text></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function makeElements(entities: Entity[], relationships: Relationship[]) {
@@ -61,7 +52,6 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
       data: {
         id,
         label,
-        shortLabel: shortNodeName(label),
         score,
         size,
         hoverSize: size + 8,
@@ -71,7 +61,6 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
         borderColor: group?.borderColor ?? '#475569',
         groupId: group?.id ?? 'other',
         groupLabel: group?.label ?? '기타',
-        icon: svgInitialIcon(shortNodeName(label), color),
       },
     });
   });

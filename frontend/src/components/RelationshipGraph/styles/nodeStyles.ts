@@ -13,19 +13,6 @@ export function nodeBorderWidth(score: number) {
   return 3;
 }
 
-export function shortNodeName(name: string) {
-  const cleaned = name.trim();
-  if (!cleaned) return '';
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  if (/[가-힣]/.test(cleaned)) return cleaned.slice(0, 2);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-}
-
 export const nodeStyles = [
   {
     selector: 'node',
@@ -41,19 +28,18 @@ export const nodeStyles = [
       'border-width': 'data(borderWidth)',
       'bounds-expansion': 16,
       label: 'data(label)',
-      color: '#ffffff',
-      'font-size': 11,
+      color: '#0f172a',
+      'font-size': 13,
       'font-weight': 900,
       'text-valign': 'bottom',
       'text-halign': 'center',
       'text-margin-y': 8,
+      'text-wrap': 'wrap',
+      'text-max-width': 90,
       'text-background-color': '#ffffff',
       'text-background-opacity': 0.9,
-      'text-background-padding': 2,
+      'text-background-padding': 3,
       'text-background-shape': 'roundrectangle',
-      'background-image': 'data(icon)',
-      'background-fit': 'contain',
-      'background-clip': 'none',
       'overlay-opacity': 0,
       'shadow-blur': 14,
       'shadow-color': '#0f172a',

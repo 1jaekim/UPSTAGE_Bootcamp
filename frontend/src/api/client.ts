@@ -1,7 +1,16 @@
 // ── API 클라이언트: mock ↔ 실서버 스위치 (SPEC §2 API 레이어) ──
 // VITE_USE_MOCK=true 면 MOCKS.md 픽스처 반환, false 면 실서버(/api) fetch.
 
-import type { Book, BookSummary, Chapter, GraphJson, Progress, Reminders, UploadResult } from './types';
+import type {
+  AnalysisStatus,
+  Book,
+  BookSummary,
+  Chapter,
+  GraphJson,
+  Progress,
+  Reminders,
+  UploadResult,
+} from './types';
 import {
   BOOK_MIST,
   CHAPTERS_BY_INDEX,
@@ -57,6 +66,14 @@ export const api = {
     const res = await fetch(`${BASE}/api/books/upload`, { method: 'POST', body: form });
     if (!res.ok) throw new Error(`${res.status} ${res.statusText} — /api/books/upload`);
     return res.json() as Promise<UploadResult>;
+  },
+
+  async getAnalysisStatus(bookId: string): Promise<AnalysisStatus> {
+    if (USE_MOCK) {
+      await sleep(100);
+      return { status: 'done', completed: 0, total: 0, error: null };
+    }
+    return http<AnalysisStatus>(`/api/books/${bookId}/analysis-status`);
   },
 
   async getBook(bookId: string): Promise<Book> {

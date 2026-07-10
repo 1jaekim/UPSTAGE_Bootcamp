@@ -17,6 +17,9 @@ class Entity(BaseModel):
     color: NodeColor
     importance_score: int = 1
     importance_level: Literal["major", "minor"] = "minor"
+    # BuildAgent가 본문에서 뽑은 인물 설명(직업/역할 등, 예: "슈퍼 주인"). 근거가
+    # 없으면 비워둔다(추측 금지 원칙과 동일).
+    description: str | None = None
 
 
 class Relationship(BaseModel):
@@ -57,6 +60,11 @@ class Relationship(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     confidence: float = 0.5
     is_story_relation: bool = False
+    # label(=display_label)이 실제 근거 기반 원본 라벨인지, 아니면 카테고리
+    # 기본값("조사"/"보호" 등)으로 채워진 제네릭 라벨인지. is_story_relation은
+    # "이 관계 그룹 안에 합성 관계가 하나라도 있었는지"라는 다른 의미로 이미
+    # 쓰이고 있어(중요도 계산 등), 라벨 표시 판단에는 이 필드를 따로 쓴다.
+    label_is_generic: bool = False
     last_seen_global_index: int | None = None
     related_events: list[dict[str, Any]] = Field(default_factory=list)
 

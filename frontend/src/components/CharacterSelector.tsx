@@ -56,7 +56,12 @@ export function CharacterSelector({
       >
         <span className="block text-[10px] font-black leading-none tracking-wide text-amber-500">{stars(value)}</span>
         <span className="mt-1 block text-xs font-extrabold">{entity.name}</span>
-        <span className="mt-0.5 block text-[10px] font-bold text-slate-400">{tierLabel(value)}</span>
+        <span
+          className="mt-0.5 block max-w-[110px] truncate text-[10px] font-bold text-slate-400"
+          title={entity.description ?? undefined}
+        >
+          {entity.description || tierLabel(value)}
+        </span>
       </button>
     );
   };

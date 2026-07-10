@@ -19,6 +19,17 @@ export function useUploadBook() {
   });
 }
 
+/** 업로드 직후 분석 진행률을 폴링한다. status가 running일 때만 2초마다 다시 불러오고,
+ *  done/failed가 되면 폴링을 멈춘다. enabled=false면 아예 요청하지 않는다. */
+export function useAnalysisStatus(bookId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['analysisStatus', bookId],
+    queryFn: () => api.getAnalysisStatus(bookId as string),
+    enabled: enabled && !!bookId,
+    refetchInterval: (query) => (query.state.data?.status === 'running' ? 2000 : false),
+  });
+}
+
 export function useBook(bookId: string) {
   return useQuery({
     queryKey: ['book', bookId],

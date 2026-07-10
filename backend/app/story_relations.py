@@ -388,16 +388,10 @@ def _relationships_from_structured_events(
             category="protection",
             relation_role="protection",
         )
-        _add_role_pairs(
-            relationships,
-            seen_story_ids,
-            event,
-            names_to_ids,
-            ("helper",),
-            ("beneficiary",),
-            category="protection",
-            relation_role="help",
-        )
+        # helper/beneficiary는 BuildAgent가 "뚜렷한 관계로 못 박기 애매할 때" 쓰는
+        # 약한 기본 역할이라, 이걸로 그래프에 "조력자→수혜자" 엣지까지 만들면 정보량
+        # 없이 반복적으로만 보인다. 사건 설명(리마인드)에는 이미 그대로 남으니,
+        # 관계 그래프 엣지로는 만들지 않는다.
         _add_role_pairs(
             relationships,
             seen_story_ids,
@@ -483,7 +477,14 @@ def _enrich_existing_relationship(
         "event_summary": relationship.event_summary or event_summary,
         "relation_role": relationship.relation_role or STORY_ROLES.get(category, "사건 관련"),
         "confidence": max(relationship.confidence or 0.5, 0.75 if is_story else 0.6),
-        "is_story_relation": relationship.is_story_relation or is_story,
+        # BuildAgent가 이미 구체적 라벨(예: "협박자")을 붙인 관계는, 설명 문장에
+        # 조사/보호 계열 키워드가 우연히 섞여 있다는 이유만으로 "조사자→용의자" 같은
+        # 제네릭 역할 라벨로 화면 표시가 강제 교체되면 안 된다(apply_relationship_
+        # presentation이 is_story_relation=True인 관계는 display_label을 role_pair_label로
+        # 덮어쓴다). 그래서 여기서는 원래 is_story_relation 값을 그대로 유지하고 — 이미
+        # 저장된 관계는 애초에 False이므로 원래 라벨이 보존된다 — 실제로 라벨이 없는
+        # 새로 생성된 관계(구조화 이벤트/리마인드 조합)에만 role_pair_label을 쓰게 한다.
+        "is_story_relation": relationship.is_story_relation,
         "first_seen_global_index": relationship.first_seen_global_index or relationship.revision_offset,
         "first_seen_boundary": relationship.first_seen_boundary or relationship.revision_offset,
         "last_seen_global_index": relationship.last_seen_global_index or relationship.revision_offset,
@@ -520,6 +521,13 @@ def expand_story_relationships(
     for line in reminders:
         participant_ids = [entity_id for entity_id in dict.fromkeys(line.entity_ids) if entity_id in valid_ids]
         if len(participant_ids) < 2:
+            continue
+        # 인원이 많은 집단 장면(예: "일곱 명이 함께 목격했다")은 그 안의 모든 쌍이 서로
+        # 관계가 있다는 뜻이 아니라 단순 공동 등장일 뿐이다. 참여자 수만큼 조합이
+        # 제곱으로 늘어나(7명이면 21개) 실제 의미 있는 관계(가족·연인 등)를 같은
+        # 제네릭 카테고리 라벨(조사/속임 등)이 압도해버리는 문제가 있어, 소규모
+        # 장면(4명 이하)에서만 쌍 관계를 만든다. 특정 작품과 무관한 구조적 제한이다.
+        if len(participant_ids) > 4:
             continue
         category = _category_for_text(line.text)
         if category not in CORE_STORY_CATEGORIES:

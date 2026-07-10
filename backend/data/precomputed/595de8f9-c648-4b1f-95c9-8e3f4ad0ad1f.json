@@ -1,0 +1,17 @@
+{
+  "book_id": "595de8f9-c648-4b1f-95c9-8e3f4ad0ad1f",
+  "entries": [
+    {
+      "boundary": -1,
+      "graph": {
+        "offset": -1,
+        "spoiler_safe": true,
+        "entities": [],
+        "relationships": [],
+        "events": [],
+        "generated_at": "2026-07-10T10:06:26.866390+00:00"
+      },
+      "reminders": []
+    }
+  ]
+}

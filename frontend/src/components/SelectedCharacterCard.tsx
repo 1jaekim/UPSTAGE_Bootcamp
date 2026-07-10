@@ -19,6 +19,9 @@ export function SelectedCharacterCard({ entity }: { entity: Entity }) {
         {TYPE_LABEL[entity.type] ?? entity.type}
         {entity.importance_level === 'major' ? ' · 핵심 인물' : ' · 등장인물'}
       </p>
+      {entity.description && (
+        <p className="mt-1 text-xs font-medium leading-snug text-slate-400">{entity.description}</p>
+      )}
     </section>
   );
 }

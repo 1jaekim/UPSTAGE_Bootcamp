@@ -26,6 +26,7 @@ def test_presenter_builds_korean_role_pair_from_structured_story_relation():
                 relation_category="crime",
                 relation_role="crime",
                 is_story_relation=True,
+                label_is_generic=True,
                 event_name="찰스 배스커빌 사망 사건",
                 event_summary="스태플턴은 찰스 경의 죽음에 관여했다.",
                 related_events=[
@@ -109,32 +110,35 @@ def test_presenter_creates_short_legacy_summary():
     assert len(relationship.relationship_summary) < 180
 
 
-def test_presenter_uses_specific_doctor_patient_context():
+def test_presenter_falls_back_to_category_label_without_hardcoded_names():
+    """특정 작품의 인물명을 하드코딩해서 "주치의/환자" 같은 세부 역할을 판단하지
+    않는다 — 다른 소설에도 그대로 적용되도록, 이름과 무관하게 relation_category
+    기준의 일반 역할 라벨(CATEGORY_LABELS)로 귀결되는지 확인한다.
+    """
     graph = GraphJson(
         offset=100,
         spoiler_safe=True,
-        entities=[_entity("e_mortimer", "제임스 모티머"), _entity("e_charles", "찰스 배스커빌 경")],
+        entities=[_entity("e_a", "김민준"), _entity("e_b", "이서연")],
         relationships=[
             Relationship(
                 id="r1",
-                source="e_mortimer",
-                target="e_charles",
+                source="e_a",
+                target="e_b",
                 label="증언",
                 tone="neutral",
-                description="모티머 박사는 찰스 경의 주치의였고 그의 죽음을 이상하게 여겼다.",
+                description="민준은 서연의 주치의였고 그의 죽음을 이상하게 여겼다.",
                 revision_offset=100,
                 relation_category="mystery",
-                event_name="찰스 배스커빌 사망 사건",
-                event_summary="모티머 박사는 찰스 경의 주치의였고 그의 죽음을 이상하게 여겼다.",
+                event_name="사망 사건",
+                event_summary="민준은 서연의 주치의였고 그의 죽음을 이상하게 여겼다.",
             )
         ],
     )
 
     relationship = apply_relationship_presentation(graph).relationships[0]
 
-    assert relationship.role_pair_label == "주치의 → 환자"
-    assert "주치의" in relationship.relationship_summary
-    assert "조사 대상" not in relationship.role_pair_label
+    assert relationship.role_pair_label == "단서 제공자 → 관련 인물"
+    assert relationship.relationship_summary
 
 
 def test_presenter_uses_specific_client_investigator_context():
@@ -164,30 +168,32 @@ def test_presenter_uses_specific_client_investigator_context():
     assert "홈즈에게" in relationship.relationship_summary
 
 
-def test_presenter_uses_specific_inheritance_context():
+def test_presenter_falls_back_to_family_category_without_hardcoded_names():
+    """마찬가지로 "삼촌/상속인" 같은 세부 역할도 이름 하드코딩 없이, category
+    기준 일반 라벨(가족/가족)로 귀결되는지 확인한다."""
     graph = GraphJson(
         offset=100,
         spoiler_safe=True,
-        entities=[_entity("e_charles", "찰스 배스커빌 경"), _entity("e_henry", "헨리 배스커빌")],
+        entities=[_entity("e_a", "김민준"), _entity("e_b", "이서연")],
         relationships=[
             Relationship(
                 id="r1",
-                source="e_charles",
-                target="e_henry",
+                source="e_a",
+                target="e_b",
                 label="상속",
                 tone="neutral",
-                description="찰스 경이 사망한 뒤 헨리가 재산과 작위를 상속했다.",
+                description="민준이 사망한 뒤 서연이 재산과 작위를 상속했다.",
                 revision_offset=100,
                 relation_category="family",
-                event_name="배스커빌 상속",
-                event_summary="찰스 경이 사망한 뒤 헨리가 재산과 작위를 상속했다.",
+                event_name="상속",
+                event_summary="민준이 사망한 뒤 서연이 재산과 작위를 상속했다.",
             )
         ],
     )
 
     relationship = apply_relationship_presentation(graph).relationships[0]
 
-    assert relationship.role_pair_label == "삼촌 → 상속인"
+    assert relationship.role_pair_label == "가족 → 가족"
     assert "재산과 작위" in relationship.relationship_summary
 
 

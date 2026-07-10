@@ -60,9 +60,6 @@ def _clean_text(text: str | None, *, limit: int = 180) -> str:
 
 
 def _short_name(name: str) -> str:
-    for suffix in (" 배스커빌 경", " 배스커빌", " 홈즈", " H. 왓슨", " 모티머"):
-        if name.endswith(suffix):
-            return name.replace("제임스 모티머", "모티머").replace("셜록 홈즈", "홈즈").replace("존 H. 왓슨", "왓슨").replace("찰스 배스커빌 경", "찰스 경").replace("헨리 배스커빌", "헨리")
     return name
 
 
@@ -99,21 +96,6 @@ def _role_pair(relationship: Relationship) -> tuple[str, str]:
 
 
 def _contextual_role_pair(relationship: Relationship, source_name: str, target_name: str) -> tuple[str, str]:
-    text = _context_text(relationship)
-    source = source_name
-    target = target_name
-
-    if "모티머" in source and "찰스" in target and any(hint in text for hint in ("주치의", "의사", "사망", "죽음")):
-        return "주치의", "환자"
-    if "모티머" in source and "홈즈" in target:
-        return "의뢰인", "조사자"
-    if "찰스" in source and "헨리" in target and any(hint in text for hint in ("상속", "후계", "재산", "작위")):
-        return "삼촌", "상속인"
-    if "배리모어" in source and any(name in target for name in ("셀든", "셀던", "선든")):
-        return "은닉자", "탈주범"
-    if "라이언스" in source and "스태플턴" in target:
-        return "기만당한 인물", "기만자"
-
     return _role_pair(relationship)
 
 
@@ -206,9 +188,8 @@ def apply_relationship_presentation(graph: GraphJson) -> GraphJson:
         source_role, target_role = _contextual_role_pair(relationship, source_name, target_name)
         role_pair_label = f"{source_role} → {target_role}"
         event_name = _event_name(relationship)
-        display_label = role_pair_label if relationship.is_story_relation else (
-            relationship.display_label or relationship.label or role_pair_label
-        )
+        existing_label = (relationship.display_label or relationship.label or "").strip()
+        display_label = role_pair_label if (relationship.label_is_generic or not existing_label) else existing_label
         summary = _summary_for(relationship, source_name, target_name, role_pair_label, event_name)
         evidence = _evidence_items(relationship)
 

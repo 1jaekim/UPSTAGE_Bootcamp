@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -392,6 +393,7 @@ def precompute_from_epub(
     boundaries: list[int],
     store_dir: Path = STORE_DIR,
     upload_to_supabase: bool = True,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> Path:
     """EPUB → chunk → 경계선별 incremental build → 계약 JSON 저장 + Supabase 적재.
 
@@ -401,6 +403,9 @@ def precompute_from_epub(
     경계선 하나가 끝날 때마다 즉시 로컬 파일/Supabase에 체크포인팅한다. 책 한 권
     분석은 LLM 호출이 수백 번에 달해 중간에 rate limit/타임아웃으로 실패할 수 있는데,
     체크포인팅해두면 여기까지 처리한 경계선은 이미 반영되어 있어 재시도 비용이 줄어든다.
+
+    on_progress(완료된 경계선 수, 전체 경계선 수)는 경계선 하나가 끝날 때마다 호출된다
+    (선택). 업로드 API가 진행률을 보여줄 때 쓴다 — 없어도 동작에는 영향 없다.
     """
     from agents.build_agent import incremental_build_agent  # 지연 import
     from agents.consolidation_agent import consolidate_registry
@@ -484,6 +489,9 @@ def precompute_from_epub(
         write_store(book_id, remapped_so_far, store_dir)
         if upload_to_supabase:
             upload_snapshots_to_supabase(book_id, remapped_so_far)
+
+        if on_progress:
+            on_progress(len(entries), len(boundaries))
 
     # 짧은 책은 CONSOLIDATION_INTERVAL 배수를 한 번도 못 채우고 끝날 수 있어(예: 전체
     # 스냅샷이 4개뿐), 마지막에 정리가 한 번도 안 도는 경우가 실제로 있었다. 남은
