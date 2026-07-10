@@ -23,7 +23,18 @@ export interface Relationship {
   description: string;
   revision_offset: number;
   display_label?: string | null;
-  relation_category?: 'ally' | 'family' | 'conflict' | 'romance' | 'work' | 'mystery' | 'neutral';
+  relation_category?:
+    | 'ally'
+    | 'family'
+    | 'conflict'
+    | 'crime'
+    | 'investigation'
+    | 'deception'
+    | 'protection'
+    | 'romance'
+    | 'work'
+    | 'mystery'
+    | 'neutral';
   directionality?: 'directed' | 'undirected';
   relation_importance_score?: number;
   relation_importance_level?: 'major' | 'minor';
@@ -31,6 +42,17 @@ export interface Relationship {
   first_seen_boundary?: number | null;
   is_new_at_current_position?: boolean;
   detail?: string | null;
+  event_name?: string | null;
+  event_summary?: string | null;
+  relation_role?: string | null;
+  role_label?: string | null;
+  role_pair_label?: string | null;
+  relationship_summary?: string | null;
+  evidence?: string[];
+  confidence?: number;
+  is_story_relation?: boolean;
+  last_seen_global_index?: number | null;
+  related_events?: Array<Record<string, unknown>>;
 }
 
 /** 계약 graph_json */
@@ -39,6 +61,7 @@ export interface GraphJson {
   spoiler_safe: boolean;
   entities: Entity[];
   relationships: Relationship[];
+  events?: Array<Record<string, unknown>>;
 }
 
 export interface ReminderLine {
