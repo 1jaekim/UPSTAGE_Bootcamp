@@ -20,7 +20,7 @@ def _disable_llm_verifier(monkeypatch):
     monkeypatch.setattr(
         verifier_agent,
         "canonicalize_new_characters",
-        lambda new_characters, canonical_registry, book_id=None: {},
+        lambda new_characters, canonical_registry, book_id=None: ({}, {}),
     )
     monkeypatch.setattr(reminder_writer_agent, "write_reminders", lambda result: {"lines": []})
     monkeypatch.setattr(indirect_leakage_judge, "judge_reminders", lambda lines: lines)

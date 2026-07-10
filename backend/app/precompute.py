@@ -39,7 +39,7 @@ def _build_single_entry(
     canonical_registry: list[dict],
     global_name_map: dict[str, str],
     prev_raw_names: set[str],
-) -> dict:
+) -> tuple[dict, dict[str, str]]:
     """경계선 하나에 대해 인물 병합 → VerifierAgent → ReminderWriterAgent →
     IndirectLeakageJudge를 체이닝해서 계약 entry 하나를 만든다.
 
@@ -50,6 +50,12 @@ def _build_single_entry(
 
     주의: 이 함수가 반환하는 entry의 boundary/offset은 아직 내부 분석용 chunk
     offset이다. 저장 직전 `remap_entries_to_global_index()`에서 global_index로 통일한다.
+
+    반환값은 (entry, rename_map) — canonicalize_new_characters가 이번 호출에서
+    기존 인물의 대표 이름을 더 명확한 표기로 바꾼 경우(preferred_display_name),
+    rename_map({이전 대표 이름: 새 대표 이름})이 채워진다. 호출자는 이미 만들어둔
+    과거 entries에도 이 rename을 소급 적용해야 한다(그러지 않으면 같은 인물이
+    경계선 전후로 다른 이름을 갖게 된다).
     """
     from agents.character_entity_filter import filter_generic_role_entities
     from agents.indirect_leakage_judge import judge_reminders
@@ -62,8 +68,16 @@ def _build_single_entry(
     new_characters = [c for c in raw_characters if c.get("name", "") not in prev_raw_names]
     prev_raw_names.update(c.get("name", "") for c in raw_characters)
 
-    new_map = canonicalize_new_characters(new_characters, canonical_registry, book_id=book_id)
+    new_map, rename_map = canonicalize_new_characters(new_characters, canonical_registry, book_id=book_id)
     global_name_map.update(new_map)
+
+    if rename_map:
+        # ConsolidationAgent의 merge_map 소급 적용과 같은 패턴 — 이미 누적된
+        # global_name_map 값이 옛 대표 이름을 가리키고 있으면 새 이름으로 체이닝.
+        for raw_name, mapped_name in list(global_name_map.items()):
+            if mapped_name in rename_map:
+                global_name_map[raw_name] = rename_map[mapped_name]
+        global_name_map.update(rename_map)
 
     if global_name_map:
         result, _, _, _ = _apply_character_name_map(result, global_name_map)
@@ -98,7 +112,7 @@ def _build_single_entry(
         "boundary": chunk_boundary,
         "graph": graph.model_dump(),
         "reminders": reminders,
-    }
+    }, rename_map
 
 
 def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None = None) -> list[dict]:
@@ -117,17 +131,18 @@ def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None 
 
     entries: list[dict] = []
     for chunk_boundary, result in ordered:
-        entries.append(
-            _build_single_entry(
-                chunk_boundary,
-                result,
-                first_seen,
-                book_id,
-                canonical_registry,
-                global_name_map,
-                prev_raw_names,
-            )
+        entry, rename_map = _build_single_entry(
+            chunk_boundary,
+            result,
+            first_seen,
+            book_id,
+            canonical_registry,
+            global_name_map,
+            prev_raw_names,
         )
+        entries.append(entry)
+        if rename_map:
+            entries[:] = _apply_consolidation_to_entries(entries, rename_map, set())
     return entries
 
 
@@ -464,17 +479,18 @@ def precompute_from_epub(
         previous = result
         last_built_chunk_boundary = chunk_boundary
 
-        entries.append(
-            _build_single_entry(
-                chunk_boundary,
-                result,
-                first_seen,
-                book_id,
-                canonical_registry,
-                global_name_map,
-                prev_raw_names,
-            )
+        entry, rename_map = _build_single_entry(
+            chunk_boundary,
+            result,
+            first_seen,
+            book_id,
+            canonical_registry,
+            global_name_map,
+            prev_raw_names,
         )
+        entries.append(entry)
+        if rename_map:
+            entries[:] = _apply_consolidation_to_entries(entries, rename_map, set())
 
         # 주기적 전체 정리: canonical_registry가 자란 만큼 사각지대도 커지므로,
         # 몇 스냅샷마다 한 번씩 전체를 다시 훑어서 놓친 병합/비인물 항목을 잡는다.
