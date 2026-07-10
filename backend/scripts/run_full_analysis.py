@@ -8,7 +8,10 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+BACKEND_DIR = Path(__file__).resolve().parent.parent  # backend/
+REPO_ROOT = BACKEND_DIR.parent  # UPSTAGE_Bootcamp/ (agents 패키지가 여기 있음)
+sys.path.insert(0, str(BACKEND_DIR))
+sys.path.insert(0, str(REPO_ROOT))
 
 from app.main import _run_full_analysis  # noqa: E402
 

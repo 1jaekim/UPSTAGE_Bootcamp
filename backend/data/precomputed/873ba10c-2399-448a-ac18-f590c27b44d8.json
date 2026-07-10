@@ -1,0 +1,2740 @@
+{
+  "book_id": "873ba10c-2399-448a-ac18-f590c27b44d8",
+  "entries": [
+    {
+      "boundary": 20,
+      "graph": {
+        "offset": 20,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_4d4d567a",
+            "name": "김도현",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a70a457b",
+            "name": "한지훈",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_92e556a4",
+            "name": "정우진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2a8caef0",
+            "name": "서유진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6d30041d",
+            "name": "오미란",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_84ed6ed4",
+            "name": "최성호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_db39c252",
+            "name": "이나영",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_0529e7c8",
+            "name": "강민석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_f992c0ce",
+            "name": "윤소희",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_243d9c76",
+            "name": "박 형사",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_d3da5606",
+            "name": "장세아",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2269a36b",
+            "name": "김준석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_19b74aed",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "대학 동기",
+            "tone": "neutral",
+            "description": "거실에는 도현의 대학 동기 서유진이 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3ab1d205",
+            "source": "e_a70a457b",
+            "target": "e_d3da5606",
+            "label": "캠프 진행 책임자 가족",
+            "tone": "ally",
+            "description": "지훈은 자신의 아버지가 캠프 진행 책임자였다는 사실을 털어놓았다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_7aa4985b",
+            "source": "e_6d30041d",
+            "target": "e_84ed6ed4",
+            "label": "부부",
+            "tone": "neutral",
+            "description": "벽난로 맞은편에는 중년 부부 오미란과 최성호가 나란히 앉아 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_29ef27a8",
+            "source": "e_0529e7c8",
+            "target": "e_f992c0ce",
+            "label": "연인",
+            "tone": "ally",
+            "description": "젊은 연인 강민석과 윤소희는 서로에게 기대어 눈보라를 걱정하고 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_a831dbb4",
+            "source": "e_2a8caef0",
+            "target": "e_a70a457b",
+            "label": "직장 동료",
+            "tone": "ally",
+            "description": "유진 기자는 지훈과 함께 산장 서재를 살폈다. 두 사람은 같은 신문사 소속이었지만, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_4bb7b944",
+            "source": "e_6d30041d",
+            "target": "e_d3da5606",
+            "label": "갈등",
+            "tone": "neutral",
+            "description": "미란은 일기장의 내용을 부정했다. 그녀는 장세아가 돈 문제로 자신을 협박했다고 주장했고, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "E001",
+            "event_name": "초대장 수신 및 산장 도착",
+            "event_summary": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모임.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "target",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "한지훈",
+                "role": "target",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "김도현(김 씨)은 첫눈이 내리던 금요일 오후, 오래된 갈색 봉투 하나를 받았다. [...] 마지막으로 도착한 사람은 박 형사였다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "사진 및 녹음테이프 발견",
+            "event_summary": "정우진이 산장 식탁 위에 오래된 사진과 녹음테이프가 든 상자를 공개함.",
+            "participants": [
+              {
+                "character_name": "정우진",
+                "role": "witness",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "저녁 일곱 시, 우진이 식탁 위에 낡은 금속 상자를 올려놓았다. 상자 안에는 열 장의 오래된 사진과 녹음테이프 하나가 들어 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "정전 및 테이프 분실",
+            "event_summary": "정전 발생 후 녹음테이프가 사라지고, 눈사태로 진입로가 막힘.",
+            "participants": [
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "그 순간 전등이 꺼졌다. [...] 박 형사는 사람들에게 거실을 떠나지 말라고 지시했다. [...] 불이 다시 들어왔을 때 녹음테이프는 사라져 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "테이프 조각 발견",
+            "event_summary": "보일러실 벽 틈에서 녹음테이프 조각이 발견됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 유진 기자는 지하실에서 찢어진 테이프 케이스를 발견했다. [...] 도현이 자국을 따라가려 하자 민석이 합류했다. [...] 자국은 보일러실 앞에서 끊겼다. [...] 박 형사는 이것이 우발적인 장난이 아니라 증거 훼손이라고 판단했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "미란의 방 위협",
+            "event_summary": "미란의 방문에 '네가 시작했다'는 붉은 글씨가 나타남.",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "victim",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "새벽 한 시 무렵 복도에서 비명이 들렸다. 도현이 뛰쳐나가 보니 미란이 계단 아래에 주저앉아 있었다. 그녀의 방문에는 붉은 글씨로 “네가 시작했다”라고 적혀 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E006",
+            "event_name": "사진 속 김준석 발견",
+            "event_summary": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격받음.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "서유진",
+                "role": "helper",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현과 유진 기자는 훼손된 단체사진을 확대해 보다가 뒷줄에 서 있는 장세아 옆에 도현의 아버지 김준석이 있다는 사실을 발견했다. 도현(김 씨)은 충격을 받았다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E007",
+            "event_name": "일기장 발견 및 갈등",
+            "event_summary": "한지훈이 장세아의 일기장을 숨기려다 들키고, 오미란과 최성호가 연루됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "지훈은 서재에서 발견된 장세아의 일기장을 몰래 감추려다 도현에게 들켰다. [...] 미란은 일기장의 내용을 부정했다. 그녀는 장세아가 돈 문제로 자신을 협박했다고 주장했고, [...]",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E008",
+            "event_name": "녹음 파일 분석",
+            "event_summary": "이나영이 녹음한 파일에서 '그 이름이 나오면 끝이야'라는 목소리 발견.",
+            "participants": [
+              {
+                "character_name": "이나영",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "나영이 녹음기 하나를 가져왔다. [...] 파일에는 누군가 금속 상자 가까이에서 “그 이름이 나오면 끝이야”라고 속삭이는 목소리가 담겨 있었다. [...] 도현(김 씨)은 미란의 음성과 비슷하다고 느꼈다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          }
+        ]
+      },
+      "reminders": [
+        {
+          "text": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모였습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_a70a457b"
+          ]
+        },
+        {
+          "text": "정우진이 산장 식탁 위에 오래된 사진과 녹음테이프가 든 상자를 공개했습니다.",
+          "entity_ids": [
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정전 발생 후 일부 증거가 사라졌고, 눈사태로 진입로가 막혔습니다. 박 형사가 상황을 조사했습니다.",
+          "entity_ids": [
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "보일러실 벽 틈에서 녹음테이프 조각이 발견되었으며, 김도현과 박 형사가 조사했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "미란의 방문에 정체불명의 글씨가 발견되었으며, 오미란과 박 형사가 확인했습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "김도현이 사진 속에서 중요한 인물을 발견하고 반응을 보였으며, 서유진과 박 형사가 함께 있었습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2a8caef0",
+            "e_243d9c76",
+            "e_2269a36b"
+          ]
+        },
+        {
+          "text": "한지훈이 장세아의 개인 물품을 소지한 것이 발견되었으며, 오미란과 최성호가 관련 조사 대상이 되었습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_d3da5606",
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "김도현과 서유진은 대학 동기 관계입니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2a8caef0"
+          ]
+        },
+        {
+          "text": "한지훈은 캠프 진행 책임자 장세아의 가족입니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "오미란과 최성호는 부부 관계입니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "강민석과 윤소희는 연인 관계입니다.",
+          "entity_ids": [
+            "e_0529e7c8",
+            "e_f992c0ce"
+          ]
+        },
+        {
+          "text": "서유진과 한지훈은 직장 동료 관계입니다.",
+          "entity_ids": [
+            "e_2a8caef0",
+            "e_a70a457b"
+          ]
+        },
+        {
+          "text": "오미란과 장세아는 의견 차이가 있는 관계입니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_d3da5606"
+          ]
+        }
+      ]
+    },
+    {
+      "boundary": 38,
+      "graph": {
+        "offset": 38,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_4d4d567a",
+            "name": "김도현",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a70a457b",
+            "name": "한지훈",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_92e556a4",
+            "name": "정우진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2a8caef0",
+            "name": "서유진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6d30041d",
+            "name": "오미란",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_84ed6ed4",
+            "name": "최성호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_db39c252",
+            "name": "이나영",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_0529e7c8",
+            "name": "강민석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_f992c0ce",
+            "name": "윤소희",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_243d9c76",
+            "name": "박 형사",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_d3da5606",
+            "name": "장세아",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2269a36b",
+            "name": "김준석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_9056de0c",
+            "name": "태수",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a32eef81",
+            "name": "지훈의 아버지",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_19b74aed",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "대학 동기",
+            "tone": "neutral",
+            "description": "거실에는 도현의 대학 동기 서유진이 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3ab1d205",
+            "source": "e_a70a457b",
+            "target": "e_d3da5606",
+            "label": "캠프 진행 책임자 가족",
+            "tone": "ally",
+            "description": "지훈은 자신의 아버지가 캠프 진행 책임자였다는 사실을 털어놓았다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_7aa4985b",
+            "source": "e_6d30041d",
+            "target": "e_84ed6ed4",
+            "label": "부부",
+            "tone": "neutral",
+            "description": "벽난로 맞은편에는 중년 부부 오미란과 최성호가 나란히 앉아 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_29ef27a8",
+            "source": "e_0529e7c8",
+            "target": "e_f992c0ce",
+            "label": "연인",
+            "tone": "ally",
+            "description": "젊은 연인 강민석과 윤소희는 서로에게 기대어 눈보라를 걱정하고 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_a831dbb4",
+            "source": "e_2a8caef0",
+            "target": "e_a70a457b",
+            "label": "직장 동료",
+            "tone": "ally",
+            "description": "유진 기자는 지훈과 함께 산장 서재를 살폈다. 두 사람은 같은 신문사 소속이었지만, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20bd56a8",
+            "source": "e_92e556a4",
+            "target": "e_d3da5606",
+            "label": "형제",
+            "tone": "neutral",
+            "description": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_48751e12",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "조사 파트너",
+            "tone": "neutral",
+            "description": "태수도 초대장을 보낸 행위와 증거 훼손은 구분해야 한다며 냉정함을 유지했다. 그는 도현과 유진에게 우진의 자료를 함께 정리하도록 허락했다. ... 유진 기자는 도현에게 사실이 두려워도 끝까지 확인해야 한다며 곁에 남았다. ... 두 사람의 관계는 단순한 대학 동기에서 서로를 믿고 의지하는 조사 파트너로 바뀌고 있었다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_b11929f8",
+            "source": "e_4d4d567a",
+            "target": "e_db39c252",
+            "label": "협력",
+            "tone": "ally",
+            "description": "이나영도 함께했고, 둘은 바닥 아래 숨겨진 필름통을 발견했다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_dc94af74",
+            "source": "e_4d4d567a",
+            "target": "e_2269a36b",
+            "label": "부자",
+            "tone": "neutral",
+            "description": "도현의 아버지 준석은 당시 사진 담당 자원봉사자였으며, 실종 직전 장세아와 이야기하는 모습이 목격되었다. ... 도현(김 씨)은 아버지가 사용하던 장비와 같은 모델임을 알아보았다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "E001",
+            "event_name": "초대장 수신 및 산장 도착",
+            "event_summary": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모임.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "target",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "한지훈",
+                "role": "target",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "김도현(김 씨)은 첫눈이 내리던 금요일 오후, 오래된 갈색 봉투 하나를 받았다. [...] 마지막으로 도착한 사람은 박 형사였다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "정전 및 테이프 분실",
+            "event_summary": "정전 발생 후 녹음테이프가 사라지고, 눈사태로 진입로가 막힘.",
+            "participants": [
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "그 순간 전등이 꺼졌다. [...] 박 형사는 사람들에게 거실을 떠나지 말라고 지시했다. [...] 불이 다시 들어왔을 때 녹음테이프는 사라져 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "테이프 조각 발견",
+            "event_summary": "보일러실 벽 틈에서 녹음테이프 조각이 발견됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 유진 기자는 지하실에서 찢어진 테이프 케이스를 발견했다. [...] 도현이 자국을 따라가려 하자 민석이 합류했다. [...] 자국은 보일러실 앞에서 끊겼다. [...] 박 형사는 이것이 우발적인 장난이 아니라 증거 훼손이라고 판단했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "미란의 방 위협",
+            "event_summary": "미란의 방문에 '네가 시작했다'는 붉은 글씨가 나타남.",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "victim",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "새벽 한 시 무렵 복도에서 비명이 들렸다. 도현이 뛰쳐나가 보니 미란이 계단 아래에 주저앉아 있었다. 그녀의 방문에는 붉은 글씨로 “네가 시작했다”라고 적혀 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E006",
+            "event_name": "사진 속 김준석 발견",
+            "event_summary": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격받음.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "서유진",
+                "role": "helper",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현과 유진 기자는 훼손된 단체사진을 확대해 보다가 뒷줄에 서 있는 장세아 옆에 도현의 아버지 김준석이 있다는 사실을 발견했다. 도현(김 씨)은 충격을 받았다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E007",
+            "event_name": "일기장 발견 및 갈등",
+            "event_summary": "한지훈이 장세아의 일기장을 숨기려다 들키고, 오미란과 최성호가 연루됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "지훈은 서재에서 발견된 장세아의 일기장을 몰래 감추려다 도현에게 들켰다. [...] 미란은 일기장의 내용을 부정했다. 그녀는 장세아가 돈 문제로 자신을 협박했다고 주장했고, [...]",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E008",
+            "event_name": "녹음 파일 분석",
+            "event_summary": "이나영이 녹음한 파일에서 '그 이름이 나오면 끝이야'라는 목소리 발견.",
+            "participants": [
+              {
+                "character_name": "이나영",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "나영이 녹음기 하나를 가져왔다. [...] 파일에는 누군가 금속 상자 가까이에서 “그 이름이 나오면 끝이야”라고 속삭이는 목소리가 담겨 있었다. [...] 도현(김 씨)은 미란의 음성과 비슷하다고 느꼈다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E001",
+            "event_name": "산장 창고 조사",
+            "event_summary": "도현, 민석, 소희가 창고에서 테이프 조각과 우진의 열쇠표 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "강민석",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현과 민석, 소희는 밧줄을 묶고 창고까지 이동했다. 그곳에서 잘려 나간 테이프 조각과 우진의 이름이 적힌 오래된 열쇠표를 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "우진의 고백",
+            "event_summary": "우진이 장세아의 동생이며 산장 초대장 발송 사실 인정",
+            "participants": [
+              {
+                "character_name": "정우진",
+                "role": "informant",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다. 그는 누나의 죽음을 조사하기 위해 산장을 사들였고, 사람들을 부른 초대장 역시 자신이 보냈다고 인정했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "필름통 발견",
+            "event_summary": "도현과 나영이 암실에서 장세아 실종 당시 필름 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "이나영",
+                "role": "helper",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현(김 씨)은 아버지가 찍은 필름을 찾기 위해 산장 암실을 조사했다. 이나영도 함께했고, 둘은 바닥 아래 숨겨진 필름통을 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "성호의 횡령 증거 발견",
+            "event_summary": "미란의 장부 조작 및 성호의 안전 장비 비용 횡령 사실 확인",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "informant",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "최성호",
+                "role": "suspect",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "서유진",
+                "role": "helper",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "미란은 울면서 자신이 장부를 조작한 것은 사실이지만 장세아의 실종에는 관여하지 않았다고 도현에게 말했다. ... 도현(김 씨)은 미란을 완전히 믿지는 않았지만, 그녀가 감추던 사실을 공개한 이상 사건 해결에 필요한 협력자로 받아들였다. ... 유진과 태수도 장부의 계좌번호를 대조했고, 성호 회사로 돈이 흘러간 사실을 확인했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "지훈 공격 사건",
+            "event_summary": "지훈이 전망대에서 공격당해 의식을 잃고 장세아의 수첩 일부 발견",
+            "participants": [
+              {
+                "character_name": "한지훈",
+                "role": "victim",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "그날 저녁, 지훈이 사라졌다. ... 지훈은 누군가 자신에게 아버지의 진실을 알고 싶으면 전망대로 오라는 쪽지를 보냈다고 말했다. ... 그의 주머니에서는 장세아의 수첩 일부가 발견되었다. ... 박 형사는 공격자가 성호의 범죄를 이용해 더 큰 비밀을 숨기고 있다고 판단했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          }
+        ]
+      },
+      "reminders": [
+        {
+          "text": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모였습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_a70a457b"
+          ]
+        },
+        {
+          "text": "정우진이 산장 식탁 위에 오래된 사진과 녹음테이프가 든 상자를 공개했습니다.",
+          "entity_ids": [
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정전 발생 후 일부 증거가 사라졌고, 기상 악화로 진입로가 차단되었으며, 박 형사가 현장 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "보일러실 벽 틈에서 녹음테이프 조각이 발견되었고, 김도현과 박 형사가 조사했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "오미란의 방에서 의심스러운 흔적이 발견되었고, 박 형사가 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격을 받았습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2269a36b"
+          ]
+        },
+        {
+          "text": "한지훈이 특정 문서를 숨기려다 들켰고, 다른 인물들이 관련 조사를 받았습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "김도현과 강민석이 창고에서 테이프 조각과 정우진의 열쇠표를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_0529e7c8",
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정우진이 장세아의 동생이며 산장 초대장 발송 사실을 인정했습니다.",
+          "entity_ids": [
+            "e_92e556a4",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "김도현과 이나영이 암실에서 과거 자료를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_db39c252",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "오미란의 장부 조작과 최성호의 안전 장비 비용 횡령 사실이 김도현과 서유진에 의해 확인되었습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_84ed6ed4",
+            "e_4d4d567a",
+            "e_2a8caef0"
+          ]
+        },
+        {
+          "text": "한지훈이 전망대에서 사고를 당했고, 박 형사가 현장 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_243d9c76"
+          ]
+        }
+      ]
+    },
+    {
+      "boundary": 64,
+      "graph": {
+        "offset": 64,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_4d4d567a",
+            "name": "김도현",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a70a457b",
+            "name": "한지훈",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_92e556a4",
+            "name": "정우진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2a8caef0",
+            "name": "서유진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6d30041d",
+            "name": "오미란",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_84ed6ed4",
+            "name": "최성호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_db39c252",
+            "name": "이나영",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_0529e7c8",
+            "name": "강민석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_f992c0ce",
+            "name": "윤소희",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_243d9c76",
+            "name": "박 형사",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_d3da5606",
+            "name": "장세아",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2269a36b",
+            "name": "김준석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_9056de0c",
+            "name": "태수",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a32eef81",
+            "name": "지훈의 아버지",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_19b74aed",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "대학 동기",
+            "tone": "neutral",
+            "description": "거실에는 도현의 대학 동기 서유진이 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3ab1d205",
+            "source": "e_a70a457b",
+            "target": "e_d3da5606",
+            "label": "캠프 진행 책임자 가족",
+            "tone": "ally",
+            "description": "지훈은 자신의 아버지가 캠프 진행 책임자였다는 사실을 털어놓았다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_7aa4985b",
+            "source": "e_6d30041d",
+            "target": "e_84ed6ed4",
+            "label": "부부",
+            "tone": "neutral",
+            "description": "벽난로 맞은편에는 중년 부부 오미란과 최성호가 나란히 앉아 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_29ef27a8",
+            "source": "e_0529e7c8",
+            "target": "e_f992c0ce",
+            "label": "연인",
+            "tone": "ally",
+            "description": "젊은 연인 강민석과 윤소희는 서로에게 기대어 눈보라를 걱정하고 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_a831dbb4",
+            "source": "e_2a8caef0",
+            "target": "e_a70a457b",
+            "label": "직장 동료",
+            "tone": "ally",
+            "description": "유진 기자는 지훈과 함께 산장 서재를 살폈다. 두 사람은 같은 신문사 소속이었지만, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20bd56a8",
+            "source": "e_92e556a4",
+            "target": "e_d3da5606",
+            "label": "형제",
+            "tone": "neutral",
+            "description": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_48751e12",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "조사 파트너",
+            "tone": "neutral",
+            "description": "태수도 초대장을 보낸 행위와 증거 훼손은 구분해야 한다며 냉정함을 유지했다. 그는 도현과 유진에게 우진의 자료를 함께 정리하도록 허락했다. ... 유진 기자는 도현에게 사실이 두려워도 끝까지 확인해야 한다며 곁에 남았다. ... 두 사람의 관계는 단순한 대학 동기에서 서로를 믿고 의지하는 조사 파트너로 바뀌고 있었다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_b11929f8",
+            "source": "e_4d4d567a",
+            "target": "e_db39c252",
+            "label": "협력",
+            "tone": "ally",
+            "description": "이나영도 함께했고, 둘은 바닥 아래 숨겨진 필름통을 발견했다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_dc94af74",
+            "source": "e_4d4d567a",
+            "target": "e_2269a36b",
+            "label": "부자",
+            "tone": "neutral",
+            "description": "도현의 아버지 준석은 당시 사진 담당 자원봉사자였으며, 실종 직전 장세아와 이야기하는 모습이 목격되었다. ... 도현(김 씨)은 아버지가 사용하던 장비와 같은 모델임을 알아보았다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "E001",
+            "event_name": "초대장 수신 및 산장 도착",
+            "event_summary": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모임.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "target",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "한지훈",
+                "role": "target",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "김도현(김 씨)은 첫눈이 내리던 금요일 오후, 오래된 갈색 봉투 하나를 받았다. [...] 마지막으로 도착한 사람은 박 형사였다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "정전 및 테이프 분실",
+            "event_summary": "정전 발생 후 녹음테이프가 사라지고, 눈사태로 진입로가 막힘.",
+            "participants": [
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "그 순간 전등이 꺼졌다. [...] 박 형사는 사람들에게 거실을 떠나지 말라고 지시했다. [...] 불이 다시 들어왔을 때 녹음테이프는 사라져 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "테이프 조각 발견",
+            "event_summary": "보일러실 벽 틈에서 녹음테이프 조각이 발견됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 유진 기자는 지하실에서 찢어진 테이프 케이스를 발견했다. [...] 도현이 자국을 따라가려 하자 민석이 합류했다. [...] 자국은 보일러실 앞에서 끊겼다. [...] 박 형사는 이것이 우발적인 장난이 아니라 증거 훼손이라고 판단했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "미란의 방 위협",
+            "event_summary": "미란의 방문에 '네가 시작했다'는 붉은 글씨가 나타남.",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "victim",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "새벽 한 시 무렵 복도에서 비명이 들렸다. 도현이 뛰쳐나가 보니 미란이 계단 아래에 주저앉아 있었다. 그녀의 방문에는 붉은 글씨로 “네가 시작했다”라고 적혀 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E006",
+            "event_name": "사진 속 김준석 발견",
+            "event_summary": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격받음.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "서유진",
+                "role": "helper",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현과 유진 기자는 훼손된 단체사진을 확대해 보다가 뒷줄에 서 있는 장세아 옆에 도현의 아버지 김준석이 있다는 사실을 발견했다. 도현(김 씨)은 충격을 받았다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E007",
+            "event_name": "일기장 발견 및 갈등",
+            "event_summary": "한지훈이 장세아의 일기장을 숨기려다 들키고, 오미란과 최성호가 연루됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "지훈은 서재에서 발견된 장세아의 일기장을 몰래 감추려다 도현에게 들켰다. [...] 미란은 일기장의 내용을 부정했다. 그녀는 장세아가 돈 문제로 자신을 협박했다고 주장했고, [...]",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E008",
+            "event_name": "녹음 파일 분석",
+            "event_summary": "이나영이 녹음한 파일에서 '그 이름이 나오면 끝이야'라는 목소리 발견.",
+            "participants": [
+              {
+                "character_name": "이나영",
+                "role": "witness",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "나영이 녹음기 하나를 가져왔다. [...] 파일에는 누군가 금속 상자 가까이에서 “그 이름이 나오면 끝이야”라고 속삭이는 목소리가 담겨 있었다. [...] 도현(김 씨)은 미란의 음성과 비슷하다고 느꼈다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E001",
+            "event_name": "산장 창고 조사",
+            "event_summary": "도현, 민석, 소희가 창고에서 테이프 조각과 우진의 열쇠표 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "강민석",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현과 민석, 소희는 밧줄을 묶고 창고까지 이동했다. 그곳에서 잘려 나간 테이프 조각과 우진의 이름이 적힌 오래된 열쇠표를 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "우진의 고백",
+            "event_summary": "우진이 장세아의 동생이며 산장 초대장 발송 사실 인정",
+            "participants": [
+              {
+                "character_name": "정우진",
+                "role": "informant",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다. 그는 누나의 죽음을 조사하기 위해 산장을 사들였고, 사람들을 부른 초대장 역시 자신이 보냈다고 인정했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "필름통 발견",
+            "event_summary": "도현과 나영이 암실에서 장세아 실종 당시 필름 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "이나영",
+                "role": "helper",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "도현(김 씨)은 아버지가 찍은 필름을 찾기 위해 산장 암실을 조사했다. 이나영도 함께했고, 둘은 바닥 아래 숨겨진 필름통을 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "성호의 횡령 증거 발견",
+            "event_summary": "미란의 장부 조작 및 성호의 안전 장비 비용 횡령 사실 확인",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "informant",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "최성호",
+                "role": "suspect",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "서유진",
+                "role": "helper",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "미란은 울면서 자신이 장부를 조작한 것은 사실이지만 장세아의 실종에는 관여하지 않았다고 도현에게 말했다. ... 도현(김 씨)은 미란을 완전히 믿지는 않았지만, 그녀가 감추던 사실을 공개한 이상 사건 해결에 필요한 협력자로 받아들였다. ... 유진과 태수도 장부의 계좌번호를 대조했고, 성호 회사로 돈이 흘러간 사실을 확인했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "지훈 공격 사건",
+            "event_summary": "지훈이 전망대에서 공격당해 의식을 잃고 장세아의 수첩 일부 발견",
+            "participants": [
+              {
+                "character_name": "한지훈",
+                "role": "victim",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "그날 저녁, 지훈이 사라졌다. ... 지훈은 누군가 자신에게 아버지의 진실을 알고 싶으면 전망대로 오라는 쪽지를 보냈다고 말했다. ... 그의 주머니에서는 장세아의 수첩 일부가 발견되었다. ... 박 형사는 공격자가 성호의 범죄를 이용해 더 큰 비밀을 숨기고 있다고 판단했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          }
+        ]
+      },
+      "reminders": [
+        {
+          "text": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모였습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_a70a457b"
+          ]
+        },
+        {
+          "text": "정우진이 산장 식탁 위에 오래된 사진과 녹음테이프가 든 상자를 공개했습니다.",
+          "entity_ids": [
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정전 발생 후 일부 증거가 소실되고, 기상 악화로 진입로가 차단되었으며, 박 형사가 상황을 파악했습니다.",
+          "entity_ids": [
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "보일러실 벽 틈에서 녹음테이프 조각이 발견되었고, 김도현과 박 형사가 조사했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "오미란의 방문에 정체불명의 글씨가 발견되었고, 박 형사가 조사했습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "김도현이 사진 속에서 중요한 인물을 발견하고 반응을 보였으며, 서유진과 박 형사가 동행했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2269a36b",
+            "e_2a8caef0",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "한지훈이 특정 문서를 숨기려다 들켰으며, 다른 인물들이 관련되었습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_d3da5606",
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "김도현과 강민석이 창고에서 테이프 조각과 정우진의 열쇠표를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_0529e7c8",
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정우진이 장세아와의 관계를 밝히며 초대장 발송과 관련된 사실을 언급했습니다.",
+          "entity_ids": [
+            "e_92e556a4",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "김도현과 이나영이 암실에서 과거 자료를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_db39c252",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "오미란의 장부 조작과 최성호의 안전 장비 비용 횡령 사실이 확인되었으며, 김도현과 서유진이 조사했습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_84ed6ed4",
+            "e_4d4d567a",
+            "e_2a8caef0"
+          ]
+        },
+        {
+          "text": "한지훈이 전망대에서 사고를 당했고, 박 형사가 상황을 확인했습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_243d9c76"
+          ]
+        }
+      ]
+    },
+    {
+      "boundary": 87,
+      "graph": {
+        "offset": 87,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_4d4d567a",
+            "name": "김도현",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a70a457b",
+            "name": "한지훈",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_92e556a4",
+            "name": "정우진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2a8caef0",
+            "name": "서유진",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_6d30041d",
+            "name": "오미란",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_84ed6ed4",
+            "name": "최성호",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_db39c252",
+            "name": "이나영",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_0529e7c8",
+            "name": "강민석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_f992c0ce",
+            "name": "윤소희",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_243d9c76",
+            "name": "박 형사",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_d3da5606",
+            "name": "장세아",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_2269a36b",
+            "name": "김준석",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_9056de0c",
+            "name": "태수",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          },
+          {
+            "id": "e_a32eef81",
+            "name": "지훈의 아버지",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor"
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_19b74aed",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "대학 동기",
+            "tone": "neutral",
+            "description": "거실에는 도현의 대학 동기 서유진이 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3ab1d205",
+            "source": "e_a70a457b",
+            "target": "e_d3da5606",
+            "label": "캠프 진행 책임자 가족",
+            "tone": "ally",
+            "description": "지훈은 자신의 아버지가 캠프 진행 책임자였다는 사실을 털어놓았다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_7aa4985b",
+            "source": "e_6d30041d",
+            "target": "e_84ed6ed4",
+            "label": "부부",
+            "tone": "neutral",
+            "description": "벽난로 맞은편에는 중년 부부 오미란과 최성호가 나란히 앉아 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_29ef27a8",
+            "source": "e_0529e7c8",
+            "target": "e_f992c0ce",
+            "label": "연인",
+            "tone": "ally",
+            "description": "젊은 연인 강민석과 윤소희는 서로에게 기대어 눈보라를 걱정하고 있었다.",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_a831dbb4",
+            "source": "e_2a8caef0",
+            "target": "e_a70a457b",
+            "label": "직장 동료",
+            "tone": "ally",
+            "description": "유진 기자는 지훈과 함께 산장 서재를 살폈다. 두 사람은 같은 신문사 소속이었지만, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_4bb7b944",
+            "source": "e_6d30041d",
+            "target": "e_d3da5606",
+            "label": "갈등",
+            "tone": "neutral",
+            "description": "미란은 일기장의 내용을 부정했다. 그녀는 장세아가 돈 문제로 자신을 협박했다고 주장했고, [...]",
+            "revision_offset": 20,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_20bd56a8",
+            "source": "e_92e556a4",
+            "target": "e_d3da5606",
+            "label": "형제",
+            "tone": "neutral",
+            "description": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_48751e12",
+            "source": "e_4d4d567a",
+            "target": "e_2a8caef0",
+            "label": "조사 파트너",
+            "tone": "neutral",
+            "description": "태수도 초대장을 보낸 행위와 증거 훼손은 구분해야 한다며 냉정함을 유지했다. 그는 도현과 유진에게 우진의 자료를 함께 정리하도록 허락했다. ... 유진 기자는 도현에게 사실이 두려워도 끝까지 확인해야 한다며 곁에 남았다. ... 두 사람의 관계는 단순한 대학 동기에서 서로를 믿고 의지하는 조사 파트너로 바뀌고 있었다.",
+            "revision_offset": 38,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_a1cb5e7a",
+            "source": "e_92e556a4",
+            "target": "e_84ed6ed4",
+            "label": "초대 계획 공유",
+            "tone": "neutral",
+            "description": "우진은 초대 준비 과정에서 성호에게 발전기 상태를 문의했고, 그때 정전 계획을 일부 흘렸다고 말했다.",
+            "revision_offset": 87,
+            "display_label": null,
+            "relation_category": "neutral",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "E001",
+            "event_name": "초대장 수신 및 산장 도착",
+            "event_summary": "김도현과 한지훈을 포함한 여러 인물이 초대장을 받고 백운산장에 모임.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "target",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "한지훈",
+                "role": "target",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "김도현(김 씨)은 첫눈이 내리던 금요일 오후, 오래된 갈색 봉투 하나를 받았다. [...] 마지막으로 도착한 사람은 박 형사였다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "정전 및 테이프 분실",
+            "event_summary": "정전 발생 후 녹음테이프가 사라지고, 눈사태로 진입로가 막힘.",
+            "participants": [
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "그 순간 전등이 꺼졌다. [...] 박 형사는 사람들에게 거실을 떠나지 말라고 지시했다. [...] 불이 다시 들어왔을 때 녹음테이프는 사라져 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E004",
+            "event_name": "테이프 조각 발견",
+            "event_summary": "보일러실 벽 틈에서 녹음테이프 조각이 발견됨.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "박 형사",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 유진 기자는 지하실에서 찢어진 테이프 케이스를 발견했다. [...] 도현이 자국을 따라가려 하자 민석이 합류했다. [...] 자국은 보일러실 앞에서 끊겼다. [...] 박 형사는 이것이 우발적인 장난이 아니라 증거 훼손이라고 판단했다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E005",
+            "event_name": "미란의 방 위협",
+            "event_summary": "미란의 방문에 '네가 시작했다'는 붉은 글씨가 나타남.",
+            "participants": [
+              {
+                "character_name": "오미란",
+                "role": "victim",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "새벽 한 시 무렵 복도에서 비명이 들렸다. 도현이 뛰쳐나가 보니 미란이 계단 아래에 주저앉아 있었다. 그녀의 방문에는 붉은 글씨로 “네가 시작했다”라고 적혀 있었다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E006",
+            "event_name": "사진 속 김준석 발견",
+            "event_summary": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격받음.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "witness",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 유진 기자는 훼손된 단체사진을 확대해 보다가 뒷줄에 서 있는 장세아 옆에 도현의 아버지 김준석이 있다는 사실을 발견했다. 도현(김 씨)은 충격을 받았다.",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 20,
+            "last_seen_global_index": 20,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E001",
+            "event_name": "산장 창고 조사",
+            "event_summary": "도현, 민석, 소희가 창고에서 테이프 조각과 우진의 열쇠표 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현과 민석, 소희는 밧줄을 묶고 창고까지 이동했다. 그곳에서 잘려 나간 테이프 조각과 우진의 이름이 적힌 오래된 열쇠표를 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "우진의 고백",
+            "event_summary": "우진이 장세아의 동생이며 산장 초대장 발송 사실 인정",
+            "participants": [
+              {
+                "character_name": "정우진",
+                "role": "informant",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "우진은 장세아가 자신의 누나였다는 사실을 마침내 밝혔다. 그는 누나의 죽음을 조사하기 위해 산장을 사들였고, 사람들을 부른 초대장 역시 자신이 보냈다고 인정했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "필름통 발견",
+            "event_summary": "도현과 나영이 암실에서 장세아 실종 당시 필름 발견",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "도현(김 씨)은 아버지가 찍은 필름을 찾기 위해 산장 암실을 조사했다. 이나영도 함께했고, 둘은 바닥 아래 숨겨진 필름통을 발견했다.",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 38,
+            "last_seen_global_index": 38,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E001",
+            "event_name": "장세아 살해 및 은폐",
+            "event_summary": "성호와 지훈의 아버지가 장세아를 저장고에 가두고, 준석이 발견한 후 성호가 문을 잠가 장세아가 사망했다. 성호는 배수로 출구를 막아 구조를 방해했다.",
+            "participants": [
+              {
+                "character_name": "최성호",
+                "role": "perpetrator",
+                "confidence": 1.0
+              }
+            ],
+            "evidence": "성호는 안전 장비 비용을 횡령했고, 장세아가 이를 밝히려 하자 지훈의 아버지와 함께 그녀를 저장고에 가뒀다. ... 성호는 문을 다시 잠갔고, 다음 날 배수로 출구를 막았다.",
+            "first_seen_chunk_offset": 19,
+            "last_seen_chunk_offset": 19,
+            "first_seen_global_index": 87,
+            "last_seen_global_index": 87,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E002",
+            "event_name": "증거 인멸 및 구조 방해",
+            "event_summary": "성호가 테이프를 훔치고, 미란의 문에 글씨를 쓰며, 지훈을 전망대로 불러내 불신을 조성했다. 미란은 발전기 선을 잘라 구조를 방해했다.",
+            "participants": [
+              {
+                "character_name": "최성호",
+                "role": "perpetrator",
+                "confidence": 1.0
+              }
+            ],
+            "evidence": "성호는 테이프를 훔치고, 미란의 문에 글씨를 쓰고, 지훈을 전망대로 불러낸 사람이 자신이라고 인정했다. ... 미란은 자신이 선을 잘랐다고 인정했다.",
+            "first_seen_chunk_offset": 19,
+            "last_seen_chunk_offset": 19,
+            "first_seen_global_index": 87,
+            "last_seen_global_index": 87,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "E003",
+            "event_name": "진실 폭로 및 증거 확보",
+            "event_summary": "도현과 유진 기자가 성호의 자백과 장세아의 수첩을 통해 사건을 해결했다. 박 형사는 모든 증거를 확보해 구조대에 넘겼다.",
+            "participants": [
+              {
+                "character_name": "김도현",
+                "role": "investigator",
+                "confidence": 1.0
+              }
+            ],
+            "evidence": "성호는 장세아의 수첩 원본이 산장 현관의 종 장식 안에 있다고 밝혔다. ... 박 형사는 모든 증거를 확보했다.",
+            "first_seen_chunk_offset": 19,
+            "last_seen_chunk_offset": 19,
+            "first_seen_global_index": 87,
+            "last_seen_global_index": 87,
+            "confidence": 0.7
+          }
+        ]
+      },
+      "reminders": [
+        {
+          "text": "김도현과 한지훈을 포함한 여러 인물이 백운산장에 초대되어 모였습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_a70a457b"
+          ]
+        },
+        {
+          "text": "정우진이 산장 식탁 위에 오래된 사진과 녹음테이프가 든 상자를 공개했습니다.",
+          "entity_ids": [
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정전 발생 후 여러 사건이 연쇄적으로 일어났으며, 박 형사가 관련 조사를 진행했습니다.",
+          "entity_ids": [
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "김도현과 박 형사가 보일러실 벽 틈에서 녹음테이프 조각을 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_243d9c76"
+          ]
+        },
+        {
+          "text": "오미란의 방문에 정체불명의 붉은 글씨가 발견되었습니다.",
+          "entity_ids": [
+            "e_6d30041d"
+          ]
+        },
+        {
+          "text": "김도현이 사진 속에서 아버지 김준석을 발견하고 충격을 받았습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2269a36b"
+          ]
+        },
+        {
+          "text": "한지훈이 특정 문서를 숨기려다 들켰으며, 다른 인물들이 관련 의혹을 받고 있습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_d3da5606",
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "이나영이 녹음한 파일에서 의미심장한 목소리가 발견되었습니다.",
+          "entity_ids": [
+            "e_db39c252"
+          ]
+        },
+        {
+          "text": "김도현, 강민석, 윤소희가 창고에서 테이프 조각과 정우진의 열쇠표를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_0529e7c8",
+            "e_f992c0ce",
+            "e_92e556a4"
+          ]
+        },
+        {
+          "text": "정우진이 장세아의 동생이며 산장 초대장을 발송한 사실을 인정했습니다.",
+          "entity_ids": [
+            "e_92e556a4",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "김도현과 이나영이 암실에서 과거 사건과 관련된 자료를 발견했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_db39c252",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "오미란의 장부 조작과 최성호의 안전 장비 비용 횡령 사실이 확인되었습니다.",
+          "entity_ids": [
+            "e_6d30041d",
+            "e_84ed6ed4"
+          ]
+        },
+        {
+          "text": "한지훈이 전망대에서 사고를 당했고, 과거 사건과 관련된 문서가 발견되었습니다.",
+          "entity_ids": [
+            "e_a70a457b",
+            "e_d3da5606"
+          ]
+        },
+        {
+          "text": "김도현과 서유진 기자가 조사를 통해 사건을 해결했으며, 박 형사가 관련 증거를 확보했습니다.",
+          "entity_ids": [
+            "e_4d4d567a",
+            "e_2a8caef0",
+            "e_84ed6ed4",
+            "e_d3da5606",
+            "e_243d9c76"
+          ]
+        }
+      ]
+    }
+  ]
+}

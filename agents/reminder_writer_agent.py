@@ -4,6 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from agents.config import UPSTAGE_API_KEY
 from agents.build_agent import extract_json_from_text
+from agents.llm_utils import invoke_with_retry
 
 
 REMINDER_WRITER_SYSTEM_PROMPT = """
@@ -40,10 +41,11 @@ def write_reminders(build_result: dict) -> dict:
     if not events and not relations:
         return {"lines": [], "raw_response": None}
 
-    llm = ChatUpstage(
+    llm_factory = lambda: ChatUpstage(
         model="solar-pro2",
         api_key=UPSTAGE_API_KEY,
         temperature=0,
+        timeout=120,
     )
 
     def participant_name(participant):
@@ -72,7 +74,8 @@ def write_reminders(build_result: dict) -> dict:
         ],
     }
 
-    response = llm.invoke(
+    response = invoke_with_retry(
+        llm_factory,
         [
             SystemMessage(content=REMINDER_WRITER_SYSTEM_PROMPT),
             HumanMessage(
@@ -82,7 +85,7 @@ def write_reminders(build_result: dict) -> dict:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 """
             ),
-        ]
+        ],
     )
 
     result = extract_json_from_text(response.content)

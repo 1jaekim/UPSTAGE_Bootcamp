@@ -183,6 +183,7 @@ def _run_full_analysis(book_id: str) -> None:
     호출 다수)은 별도로 돌아간다. 완료되면 precompute_from_epub이 알아서
     Supabase build_agent_snapshots에 적재하므로, 다음 요청부터 바로 서빙된다.
     """
+    from agents.llm_utils import get_usage_summary, reset_usage
     from agents.parsers.epub_parser import parse_epub
     from agents.tools.chunk_tool import make_chunks
     from .precompute import precompute_from_epub
@@ -194,10 +195,18 @@ def _run_full_analysis(book_id: str) -> None:
     last = len(chunks) - 1
     boundaries = list(range(4, last, 5)) + [last]
 
+    reset_usage()
     try:
         precompute_from_epub(epub_path, book_id, boundaries)
     except Exception as e:  # pragma: no cover - 백그라운드 작업 실패는 로그만
         print(f"[분석 실패] book_id={book_id}: {e}")
+    finally:
+        usage = get_usage_summary()
+        print(
+            f"[토큰 사용량] book_id={book_id} "
+            f"입력={usage['input_tokens']:,} 출력={usage['output_tokens']:,} "
+            f"호출횟수={usage['call_count']} 예상비용=${usage['estimated_cost_usd']}"
+        )
 
 
 @app.post("/api/books/upload")

@@ -6,6 +6,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from agents.config import UPSTAGE_API_KEY
 from agents.character_entity_filter import filter_generic_role_entities
+from agents.llm_utils import invoke_with_retry
 
 
 BUILD_AGENT_SYSTEM_PROMPT = """
@@ -240,13 +241,15 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
         ]
     )
 
-    llm = ChatUpstage(
+    llm_factory = lambda: ChatUpstage(
         model="solar-pro2",
         api_key=UPSTAGE_API_KEY,
         temperature=0,
+        timeout=120,
     )
 
-    response = llm.invoke(
+    response = invoke_with_retry(
+        llm_factory,
         [
             SystemMessage(content=BUILD_AGENT_SYSTEM_PROMPT),
             HumanMessage(
@@ -261,7 +264,7 @@ def build_agent(chunks: list[dict], current_offset: int) -> dict:
 위 본문에서 확인된 인물, 관계, 사건만 추출하세요.
 """
             ),
-        ]
+        ],
     )
 
     result = extract_json_from_text(response.content)
@@ -333,7 +336,7 @@ def merge_build_results(previous_results: dict, new_result: dict) -> dict:
     기존 인물/관계/사건 결과에 새 결과를 병합한다.
     완전한 동일성 판단은 아직 하지 않고, 단순 중복 제거만 수행한다.
     (표기가 다른 동일 인물 병합은 이름 유사도로는 오탐이 커서, VerifierAgent의
-    LLM 판단으로 옮겼다 — agents/verifier_agent.py의 canonicalize_character_names 참고.)
+    LLM 판단으로 옮겼다 — agents/verifier_agent.py의 canonicalize_new_characters 참고.)
     """
     characters = deduplicate_by_key(
         previous_results.get("characters", []) + new_result.get("characters", []),

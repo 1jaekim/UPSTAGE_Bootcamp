@@ -17,6 +17,11 @@ def _disable_llm_verifier(monkeypatch):
     from agents import verifier_agent
 
     monkeypatch.setattr(verifier_agent, "verify_build_result", lambda result, book_id=None: result)
+    monkeypatch.setattr(
+        verifier_agent,
+        "canonicalize_new_characters",
+        lambda new_characters, canonical_registry, book_id=None: {},
+    )
     monkeypatch.setattr(reminder_writer_agent, "write_reminders", lambda result: {"lines": []})
     monkeypatch.setattr(indirect_leakage_judge, "judge_reminders", lambda lines: lines)
 
@@ -200,6 +205,12 @@ def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_ent
 
 
 def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people():
+    """정적 별칭 테이블로 표기 변형은 병합하되(스텁블턴→스태플턴), 실제로 다른
+    사람(스태플턴 vs 스태플턴 양)은 병합하지 않고, 일반명사(술꾼들/목동/우편국장
+    같이 특정 작품에 한정되지 않는 집단·역할 표현)는 걸러내는지 확인한다.
+    가문/가족 같은 비인물 고유명사 제거는 이 결정론적 계층이 아니라 build 시점의
+    ConsolidationAgent가 담당하므로 여기서는 다루지 않는다.
+    """
     book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
     graph = GraphJson(
         offset=30,
@@ -209,15 +220,9 @@ def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people(
             Entity(id="e_stapleton_b", name="스태플턴", type="person", color="blue"),
             Entity(id="e_miss_a", name="스텁블턴의 여동생", type="person", color="blue"),
             Entity(id="e_miss_b", name="스탤튼 양", type="person", color="blue"),
-            Entity(id="e_barrymore_group_a", name="배리모어 내외", type="person", color="blue"),
-            Entity(id="e_barrymore_group_b", name="배리모어 부부", type="person", color="blue"),
-            Entity(id="e_mr_barrymore", name="배리모어 씨", type="person", color="blue"),
-            Entity(id="e_mrs_barrymore", name="배리모어 부인", type="person", color="blue"),
             Entity(id="e_drunkards", name="술꾼들", type="person", color="blue"),
             Entity(id="e_shepherd", name="목동", type="person", color="blue"),
             Entity(id="e_postmaster", name="우편국장", type="person", color="blue"),
-            Entity(id="e_baskerville", name="배스커빌", type="person", color="blue"),
-            Entity(id="e_baskerville_family", name="배스커빌 가문", type="person", color="blue"),
             Entity(id="e_charles", name="찰스 배스커빌 경", type="person", color="blue"),
             Entity(id="e_henry", name="헨리 배스커빌", type="person", color="blue"),
             Entity(id="e_hugo", name="휴고 배스커빌", type="person", color="blue"),
@@ -226,11 +231,9 @@ def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people(
         relationships=[
             Relationship(id="r1", source="e_stapleton_a", target="e_miss_a", label="남매", tone="neutral", description="스텁블턴과 여동생", revision_offset=30),
             Relationship(id="r2", source="e_stapleton_b", target="e_miss_b", label="남매", tone="neutral", description="스태플턴과 스탤튼 양", revision_offset=30),
-            Relationship(id="r3", source="e_barrymore_group_a", target="e_henry", label="고용", tone="neutral", description="배리모어 내외", revision_offset=30),
-            Relationship(id="r4", source="e_mr_barrymore", target="e_mrs_barrymore", label="부부", tone="neutral", description="서로 다른 개인", revision_offset=30),
             Relationship(id="r5", source="e_drunkards", target="e_shepherd", label="목격", tone="neutral", description="술꾼들과 목동", revision_offset=30),
-            Relationship(id="r6", source="e_baskerville_family", target="e_charles", label="가문", tone="neutral", description="배스커빌 가문", revision_offset=30),
-            Relationship(id="r7", source="e_baskerville", target="e_hugo", label="언급", tone="neutral", description="배스커빌", revision_offset=30),
+            Relationship(id="r6", source="e_charles", target="e_henry", label="가족", tone="neutral", description="찰스 경과 헨리", revision_offset=30),
+            Relationship(id="r7", source="e_hugo", target="e_roger", label="언급", tone="neutral", description="휴고와 로저", revision_offset=30),
         ],
     )
     src = AgentResultSource(
@@ -239,8 +242,8 @@ def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people(
                 "graph": graph,
                 "reminders": [
                     ReminderLine(
-                        text="스텁블턴과 스텁블턴의 여동생, 배리모어 내외와 술꾼들이 언급됐다.",
-                        entity_ids=["e_stapleton_a", "e_miss_a", "e_barrymore_group_a", "e_drunkards"],
+                        text="스텁블턴과 스텁블턴의 여동생, 술꾼들과 목동이 언급됐다.",
+                        entity_ids=["e_stapleton_a", "e_miss_a", "e_drunkards", "e_shepherd"],
                     ),
                     ReminderLine(
                         text="스텁블턴과 스탤튼 양이 따로 언급됐다.",
@@ -257,19 +260,16 @@ def test_agent_source_normalizes_hound_snapshot_without_merging_distinct_people(
     assert names == [
         "스태플턴",
         "스태플턴 양",
-        "배리모어 씨",
-        "배리모어 부인",
         "찰스 배스커빌 경",
         "헨리 배스커빌",
         "휴고 배스커빌",
         "로저 베스커빌",
     ]
-    assert "배리모어 내외" not in names
-    assert "배리모어 부부" not in names
-    assert "배스커빌" not in names
-    assert "배스커빌 가문" not in names
+    assert "술꾼들" not in names
+    assert "목동" not in names
+    assert "우편국장" not in names
     assert "스태플턴" in names and "스태플턴 양" in names
-    assert {relationship.label for relationship in normalized_graph.relationships} == {"남매", "부부"}
+    assert {relationship.label for relationship in normalized_graph.relationships} == {"남매", "가족", "언급"}
 
     reminders = src.get_reminders(book_id, 30, entity_id=None)
     assert len(reminders.lines) == 1
@@ -353,14 +353,11 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
             Entity(id="e_mr_barrymore", name="배리모어 씨", type="person", color="blue"),
             Entity(id="e_mrs_barrymore", name="배리모어 부인", type="person", color="blue"),
             Entity(id="e_maid", name="처녀", type="person", color="blue"),
-            Entity(id="e_uncle", name="찰스 경의 삼촌", type="person", color="blue"),
             Entity(id="e_baronet", name="바론넷", type="person", color="blue"),
             Entity(id="e_prisoner", name="죄수", type="person", color="blue"),
-            Entity(id="e_son", name="헨리 경의 아들", type="person", color="blue"),
             Entity(id="e_i", name="나", type="person", color="blue"),
             Entity(id="e_baroness", name="남작부인", type="person", color="blue"),
             Entity(id="e_convict", name="재소자", type="person", color="blue"),
-            Entity(id="e_cch", name="C.C.H.의 친구들", type="person", color="blue"),
             Entity(id="e_husband", name="남편", type="person", color="blue"),
             Entity(id="e_escapee", name="탈주범", type="person", color="blue"),
             Entity(id="e_unknown_a", name="미확인 인물", type="person", color="blue"),
@@ -413,14 +410,11 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
         name not in names
         for name in [
             "처녀",
-            "찰스 경의 삼촌",
             "바론넷",
             "죄수",
-            "헨리 경의 아들",
             "나",
             "남작부인",
             "재소자",
-            "C.C.H.의 친구들",
             "남편",
             "탈주범",
             "미확인 인물",
@@ -437,20 +431,23 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
 
 def test_agent_source_adds_entity_importance_without_changing_snapshot_contract():
     book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
+    # 특정 인물명을 하드코딩해 가산점을 주지 않는다 — 관계 수/연결도/리마인드 언급
+    # 횟수만으로 중요도를 매기므로, 이름과 무관하게 "중심 인물"이 높은 점수를 받는다.
     graph = GraphJson(
         offset=50,
         spoiler_safe=True,
         entities=[
-            Entity(id="e_holmes", name="셜록 홈즈", type="person", color="blue"),
-            Entity(id="e_watson", name="존 H. 왓슨", type="person", color="blue"),
-            Entity(id="e_henry", name="헨리 배스커빌", type="person", color="blue"),
-            Entity(id="e_minor", name="프레이저", type="person", color="blue"),
+            Entity(id="e_hub", name="중심 인물", type="person", color="blue"),
+            Entity(id="e_a", name="인물A", type="person", color="blue"),
+            Entity(id="e_b", name="인물B", type="person", color="blue"),
+            Entity(id="e_c", name="인물C", type="person", color="blue"),
+            Entity(id="e_minor", name="단역", type="person", color="blue"),
         ],
         relationships=[
-            Relationship(id="r1", source="e_holmes", target="e_watson", label="동료", tone="ally", description="함께 조사", revision_offset=50),
-            Relationship(id="r2", source="e_holmes", target="e_henry", label="조사", tone="neutral", description="사건 의뢰", revision_offset=50),
-            Relationship(id="r3", source="e_watson", target="e_henry", label="동행", tone="ally", description="동행", revision_offset=50),
-            Relationship(id="r4", source="e_minor", target="e_henry", label="언급", tone="neutral", description="짧은 언급", revision_offset=50),
+            Relationship(id="r1", source="e_hub", target="e_a", label="동료", tone="ally", description="함께 조사", revision_offset=50),
+            Relationship(id="r2", source="e_hub", target="e_b", label="조사", tone="neutral", description="사건 의뢰", revision_offset=50),
+            Relationship(id="r3", source="e_hub", target="e_c", label="동행", tone="ally", description="동행", revision_offset=50),
+            Relationship(id="r4", source="e_minor", target="e_a", label="언급", tone="neutral", description="짧은 언급", revision_offset=50),
         ],
     )
     src = AgentResultSource(
@@ -458,8 +455,9 @@ def test_agent_source_adds_entity_importance_without_changing_snapshot_contract(
             (book_id, 50): {
                 "graph": graph,
                 "reminders": [
-                    ReminderLine(text="홈즈와 왓슨이 사건을 정리했다.", entity_ids=["e_holmes", "e_watson"]),
-                    ReminderLine(text="헨리 배스커빌도 사건의 중심에 있었다.", entity_ids=["e_henry"]),
+                    ReminderLine(text="중심 인물이 사건을 정리했다.", entity_ids=["e_hub"]),
+                    ReminderLine(text="중심 인물이 단서를 모았다.", entity_ids=["e_hub"]),
+                    ReminderLine(text="중심 인물이 결론을 내렸다.", entity_ids=["e_hub"]),
                 ],
             }
         }
@@ -468,13 +466,11 @@ def test_agent_source_adds_entity_importance_without_changing_snapshot_contract(
     normalized_graph = src.get_graph(book_id, 50, reveal_all=False)
     by_name = {entity.name: entity for entity in normalized_graph.entities}
 
-    assert by_name["셜록 홈즈"].importance_score == 5
-    assert by_name["셜록 홈즈"].importance_level == "major"
-    assert by_name["존 H. 왓슨"].importance_level == "major"
-    assert by_name["헨리 배스커빌"].importance_level == "major"
-    assert by_name["프레이저"].importance_score < 4
-    assert by_name["프레이저"].importance_level == "minor"
-    assert by_name["프레이저"].id == "e_minor"
+    assert by_name["중심 인물"].importance_score == 5
+    assert by_name["중심 인물"].importance_level == "major"
+    assert by_name["단역"].importance_score < 4
+    assert by_name["단역"].importance_level == "minor"
+    assert by_name["단역"].id == "e_minor"
 
 
 def test_agent_source_summarizes_relationships_for_story_graph():

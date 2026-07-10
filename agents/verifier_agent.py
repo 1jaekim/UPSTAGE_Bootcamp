@@ -6,6 +6,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from agents.config import UPSTAGE_API_KEY
 from agents.build_agent import extract_json_from_text
 from agents.character_aliases import load_character_alias_map
+from agents.llm_utils import invoke_with_retry
 
 
 VERIFIER_SYSTEM_PROMPT = """
@@ -44,58 +45,66 @@ _STRONG_EVENT_ROLES = {
 }
 
 
-CHARACTER_DEDUP_SYSTEM_PROMPT = """
-당신은 SpoKeeper의 VerifierAgent입니다. 여기서 맡은 역할은 "인물 중복 판단"입니다.
+CHARACTER_MATCH_SYSTEM_PROMPT = """
+당신은 SpoKeeper의 VerifierAgent입니다. 여기서 맡은 역할은 "새로 등장한 인물이
+이미 알고 있는 인물 중 하나와 같은 사람인지 판단"하는 것입니다.
 
 배경:
-BuildAgent가 같은 소설을 여러 구간으로 나눠서 반복 분석하다 보니, 같은 인물이
-매번 다른 표기(애칭, 직함 유무, 성만/이름만 등)로 등장해서 그래프에 별개의
-인물로 쪼개지는 문제가 있습니다. 당신의 역할은 이름 목록(설명·근거 포함)을 보고
-실제로 같은 인물을 가리키는 항목들을 찾아 하나의 대표 이름으로 묶는 것입니다.
+이미 여러 구간에 걸쳐 확정된 인물 목록(existing_characters)이 있습니다. 이번에
+새로 추출된 인물(new_characters) 각각에 대해, existing_characters 중 하나와
+표기만 다를 뿐 실제로는 같은 사람인지, 아니면 처음 등장하는 새로운 인물인지
+판단하세요. **전체 목록을 다시 클러스터링하는 게 아니라, 새 인물 각각을 기존
+목록과만 비교**하면 됩니다 — 목록이 커져도 비교 범위는 항상 "새 인물 수" 정도로
+작게 유지됩니다.
 
 절대 규칙:
-- 이름 문자열이 비슷하거나 겹친다는 이유만으로 병합하지 마세요. 반드시 각 이름에
-  붙은 description/evidence 내용을 읽고, 실제로 같은 사람을 가리키는지 확인한
-  뒤에만 병합하세요.
+- 이름 문자열이 비슷하거나 겹친다는 이유만으로 매칭하지 마세요. 반드시 각 인물의
+  description/evidence 내용을 읽고, 실제로 같은 사람을 가리키는지 확인한 뒤에만
+  매칭하세요.
 - 성이나 일부 음절이 겹치는 서로 다른 인물(예: 형제자매, 부부, 우연히 성이 같은
-  타인)은 절대 병합하지 않습니다.
-- 병합이 확실하지 않으면(애매하면) 병합하지 않는 쪽을 선택하세요 — 잘못 합치는
-  것이 안 합치는 것보다 훨씬 나쁩니다.
-- 대표 이름은 그 그룹 안에서 가장 완전하고 격식 있는 표기를 선택하세요
-  (예: 성+이름+직함이 있으면 그것을 우선).
+  타인)은 절대 매칭하지 않습니다.
+- 번역/음역 표기 차이(예: 모음 하나 차이로 갈리는 외래어 이름)는 같은 인물일
+  가능성이 높으니 description/evidence 맥락이 일치하면 매칭하세요.
+- 한국식 이름은 성을 뗀 이름만으로 불리는 경우가 흔합니다(예: "박태수"를 그냥
+  "태수"라고 부름). 이것도 표기 차이일 뿐이니, description/evidence 맥락이
+  일치하면 같은 인물로 매칭하세요 — 다만 그 이름만으로 다른 사람과 혼동될
+  근거가 있으면(예: 흔한 이름이라 여러 인물이 있을 가능성) 매칭하지 마세요.
+- 확실하지 않으면(애매하면) 매칭하지 않고 새 인물로 등록하는 쪽을 선택하세요 —
+  잘못 합치는 것이 안 합치는 것보다 훨씬 나쁩니다.
 
 판단 예시 (참고용이며, 실제 판단은 항상 주어진 description/evidence를 따르세요):
 
 예시 1 — 같은 인물, 직함 유무 차이
-  입력: "제임스 모티머" (description: "지팡이를 두고 간 방문객, 의사"),
-        "제임스 모티머 박사" (description: "M.R.C.S. 자격을 가진 의사, 지팡이 주인")
-  판단: 같은 인물 (둘 다 지팡이 주인이자 의사라는 동일 맥락)
-  결과: {"names": ["제임스 모티머", "제임스 모티머 박사"], "canonical_name": "제임스 모티머 박사"}
+  existing: "제임스 모티머 박사" (description: "M.R.C.S. 자격을 가진 의사, 지팡이 주인")
+  new: "제임스 모티머" (description: "지팡이를 두고 간 방문객, 의사")
+  판단: 같은 인물 → match_to: "제임스 모티머 박사"
 
 예시 2 — 같은 인물, 애칭/축약
-  입력: "홈즈" (description: "추리하는 탐정"),
-        "셜록 홈즈" (description: "베이커가에 사는 탐정, 왓슨의 동료")
-  판단: 같은 인물 (둘 다 탐정이자 왓슨과 연관)
-  결과: {"names": ["홈즈", "셜록 홈즈"], "canonical_name": "셜록 홈즈"}
+  existing: "셜록 홈즈" (description: "베이커가에 사는 탐정, 왓슨의 동료")
+  new: "홈즈" (description: "추리하는 탐정")
+  판단: 같은 인물 → match_to: "셜록 홈즈"
 
-예시 3 — 성만 겹치는 다른 인물 (병합 금지)
-  입력: "존스 형사" (description: "런던 경찰청 소속 수사관"),
-        "톰슨 존스" (description: "피해자의 이웃, 목격자")
-  판단: 다른 인물 (직업과 역할이 전혀 다름, 성만 우연히 겹침)
-  결과: 병합하지 않음 (groups에 포함시키지 않음)
+예시 3 — 성만 겹치는 다른 인물 (매칭 금지)
+  existing: "존스 형사" (description: "런던 경찰청 소속 수사관")
+  new: "톰슨 존스" (description: "피해자의 이웃, 목격자")
+  판단: 다른 인물 → match_to: null
 
-예시 4 — 가족 관계 (병합 금지)
-  입력: "왓슨" (description: "주인공의 동료 의사"),
-        "왓슨 부인" (description: "왓슨의 아내")
-  판단: 다른 인물 (부부 관계일 뿐 동일인이 아님)
-  결과: 병합하지 않음
+예시 4 — 가족 관계 (매칭 금지)
+  existing: "왓슨" (description: "주인공의 동료 의사")
+  new: "왓슨 부인" (description: "왓슨의 아내")
+  판단: 다른 인물 → match_to: null
 
-출력은 반드시 아래 JSON 형식으로만 작성하세요. 병합할 그룹이 없으면 groups를
-빈 배열로 두세요.
+예시 5 — 같은 인물, 한국식 이름의 성 생략
+  existing: "김민준" (description: "주인공의 대학 동기, 회사원")
+  new: "민준" (description: "다른 인물들이 그를 부르는 이름, 같은 회사 동료")
+  판단: 같은 인물 (같은 역할·맥락, 성만 생략된 표기) → match_to: "김민준"
+
+출력은 반드시 아래 JSON 형식으로만 작성하세요. new_characters 전부에 대해 하나씩
+판정하세요 (매칭 안 되면 match_to를 null로).
 
 {
-  "groups": [
-    {"names": ["원본이름1", "원본이름2", ...], "canonical_name": "대표이름"}
+  "matches": [
+    {"new_name": "새 인물 이름", "match_to": "기존 대표 이름 또는 null"}
   ]
 }
 """
@@ -132,7 +141,6 @@ _FAMILY_OR_ROLE_WORDS = (
     "하인",
 )
 _GENERIC_REFERENCES = {"나", "화자", "서술자", "주인공"}
-_SAFE_FIRST_NAME_ALIASES = {"셜록"}
 
 
 def _normalize_alias_text(name: str) -> str:
@@ -140,7 +148,6 @@ def _normalize_alias_text(name: str) -> str:
     text = (name or "").strip()
     text = re.sub(r"[\"'“”‘’.,!?]", "", text)
     text = re.sub(r"\s+", " ", text)
-    text = text.replace("홈스", "홈즈")
     return text.strip()
 
 
@@ -177,12 +184,6 @@ def _is_generic_reference(name: str) -> bool:
     return _strip_suffixes(name) in _GENERIC_REFERENCES
 
 
-def _is_narrator_reference(name: str) -> bool:
-    text = _normalize_alias_text(name)
-    stripped = _strip_suffixes(name)
-    return stripped in _GENERIC_REFERENCES or any(ref in text for ref in ("나(", "화자"))
-
-
 def _has_family_or_role_word(name: str) -> bool:
     stripped = _strip_suffixes(name)
     return any(word in stripped for word in _FAMILY_OR_ROLE_WORDS)
@@ -192,7 +193,6 @@ def _canonical_score(name: str) -> tuple[int, int, int]:
     stripped = _without_parentheses(_normalize_alias_text(name))
     return (
         0 if _is_generic_reference(name) else 1,
-        0 if "홈스" in name else 1,
         1 if " " in stripped else 0,
         len(stripped),
     )
@@ -203,9 +203,7 @@ def _preferred_canonical(names: list[str]) -> str:
 
 
 def _normalize_canonical_display(name: str) -> str:
-    text = (name or "").strip()
-    text = text.replace("홈스", "홈즈")
-    return text
+    return (name or "").strip()
 
 
 def _deduplicate_relations(relations: list[dict]) -> list[dict]:
@@ -267,42 +265,14 @@ def _apply_transitive_map(name_map: dict[str, str]) -> dict[str, str]:
     return resolved
 
 
-def _find_watson_canonical(name_map: dict[str, str]) -> str | None:
-    candidates = [
-        canonical
-        for canonical in set(name_map.values())
-        if "왓슨" in _normalize_alias_text(canonical)
-    ]
-    if not candidates:
-        return None
-    return _preferred_canonical(candidates)
-
-
-def _looks_like_watson_narrator(character: dict) -> bool:
-    name = character.get("name", "")
-    if not _is_narrator_reference(name):
-        return False
-
-    text = " ".join(
-        [
-            name,
-            character.get("description", ""),
-            character.get("evidence", ""),
-        ]
-    )
-    return any(
-        hint in text
-        for hint in ("왓슨", "의사", "군의관", "홈즈의 동료", "홈즈와 동행", "베이커 가")
-    )
-
-
 def _augment_identity_map_with_alias_rules(
     characters: list[dict],
     identity_map: dict[str, str],
 ) -> dict[str, str]:
     """
-    LLM이 놓치기 쉬운 안전한 표기 차이를 보정한다.
-    예: 셜록 홈스/셜록 홈즈, 홈즈/셜록 홈즈, 홈즈 씨/셜록 홈즈.
+    LLM이 놓치기 쉬운 안전한 표기 차이를 보정한다 — 존칭/직함 유무(예: "OO 박사"/"OO"),
+    괄호 안 별칭(예: "화자(이름)") 등 순수 문자열/문법 패턴만으로 판단 가능한 경우만
+    다룬다. 특정 작품의 인물명을 하드코딩하지 않아 어떤 소설에도 그대로 적용된다.
     """
     names = [c.get("name", "").strip() for c in characters if c.get("name")]
     if len(names) < 2:
@@ -343,8 +313,6 @@ def _augment_identity_map_with_alias_rules(
             continue
 
         aliases = {parts[-1]}
-        if parts[0] in _SAFE_FIRST_NAME_ALIASES:
-            aliases.add(parts[0])
 
         for alias in aliases:
             key = _alias_key(alias)
@@ -378,86 +346,170 @@ def _augment_identity_map_with_alias_rules(
                 result[name] = canonical
                 break
 
-    watson_canonical = _find_watson_canonical(result)
-    if watson_canonical:
-        by_name = {c.get("name", ""): c for c in characters if c.get("name")}
-        for name in names:
-            if result.get(name, name) != name:
-                continue
-            if _looks_like_watson_narrator(by_name.get(name, {})):
-                result[name] = watson_canonical
-
     return _apply_transitive_map(result)
 
 
-def canonicalize_character_names(
-    characters: list[dict],
+def _has_common_substring(a: str, b: str, min_len: int = 2) -> bool:
+    """이름 두 개가 min_len자 이상 겹치는 부분 문자열을 공유하는지 확인한다.
+    최종 병합 여부를 이걸로 결정하지는 않는다(그건 항상 LLM 몫) — 단지 LLM에게
+    보여줄 후보를 추리는 용도라서, 오탐 위험 없이 관대하게 잡아도 된다."""
+    a = a.replace(" ", "")
+    b = b.replace(" ", "")
+    if len(a) < min_len or len(b) < min_len:
+        return a != "" and (a in b or b in a)
+    return any(a[i : i + min_len] in b for i in range(len(a) - min_len + 1))
+
+
+def _select_candidates(
+    new_name: str, canonical_registry: list[dict], recent_n: int = 8, max_candidates: int = 15
+) -> list[dict]:
+    """canonical_registry 전체 대신, new_name과 이름이 겹치는 인물 + 최근에 등록된
+    인물만 후보로 추린다. 책 후반부로 갈수록 canonical_registry가 커지면서 LLM이
+    한 번에 봐야 하는 비교 대상이 커져 표기 변형 같은 미묘한 매칭을 놓치는 문제를
+    막기 위함이다(문서·책 종류와 무관하게 항상 적용되는 일반 로직)."""
+    recent = canonical_registry[-recent_n:]
+    similar = [c for c in canonical_registry if _has_common_substring(new_name, c.get("name", ""))]
+
+    combined: list[dict] = []
+    seen_names: set[str] = set()
+    for c in similar + recent:
+        name = c.get("name", "")
+        if name and name not in seen_names:
+            seen_names.add(name)
+            combined.append(c)
+
+    return combined[:max_candidates]
+
+
+def canonicalize_new_characters(
+    new_characters: list[dict],
+    canonical_registry: list[dict],
     book_id: str | None = None,
-    alias_map: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """
-    characters(name/description/evidence 포함)를 LLM에게 보여주고, 표기만 다른
-    동일 인물을 찾아 대표 이름으로 묶은 매핑을 반환한다.
-    반환값: {원본 이름: 대표 이름} — 병합 대상이 없는 이름은 자기 자신에 매핑된다.
-    이름 문자열 유사도만으로는 "존스 형사"와 "톰슨 존스" 같은 다른 인물을
-    잘못 합칠 위험이 커서, description/evidence까지 같이 보여주고 LLM이
-    맥락으로 판단하게 한다 (프롬프트에 판단 예시 다수 포함, CHARACTER_DEDUP_SYSTEM_PROMPT 참고).
+    new_characters(이번 경계선에서 새로 등장한 인물만)를 canonical_registry(지금까지
+    확정된 대표 인물 목록)와 비교해서, 기존 인물과 매칭되면 그 대표 이름으로,
+    아니면 새 인물로 canonical_registry에 등록한다(제자리에서 append).
+
+    매 경계선마다 누적된 전체 인물을 통째로 재판단하지 않고 "새로 나온 몇 명만"
+    비교하므로, 인물 수가 아무리 늘어나도 한 번에 LLM에 보여주는 "새 인물" 쪽은
+    항상 작게 유지된다. "기존 인물" 쪽도 이름 유사도 + 최근 등장 기준으로 후보를
+    추려서(`_select_candidates`) 양쪽 다 작게 유지한다.
+
+    book_id가 주어지면 backend/data/character_aliases의 정적 별칭 테이블(있으면)을
+    먼저 적용해 LLM 호출 없이 확실한 별칭부터 해결한다 — 파일이 없는 새 책은 그냥
+    빈 매핑이라 전부 LLM 판단으로 넘어가므로, 특정 책에 대한 하드코딩 없이 어떤
+    소설에도 그대로 동작한다.
+
+    반환값: {새 인물 원래 이름: 최종 대표 이름}
     """
-    identity_map = {c.get("name", ""): c.get("name", "") for c in characters if c.get("name")}
-    json_alias_map = load_character_alias_map(book_id) if alias_map is None else dict(alias_map)
-    identity_map.update(json_alias_map)
+    if not new_characters:
+        return {}
 
     if not UPSTAGE_API_KEY:
         raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
 
-    if len(characters) < 2:
-        return _apply_transitive_map(identity_map)
+    def _register_as_new(c: dict) -> str:
+        name = c.get("name", "")
+        canonical_registry.append(
+            {"name": name, "description": c.get("description", ""), "evidence": c.get("evidence", "")}
+        )
+        return name
 
-    llm = ChatUpstage(
-        model="solar-pro2",
-        api_key=UPSTAGE_API_KEY,
-        temperature=0,
-    )
+    json_alias_map = load_character_alias_map(book_id)
+    registry_names = {c.get("name", "") for c in canonical_registry}
 
-    payload = [
-        {
-            "name": c.get("name", ""),
-            "description": c.get("description", ""),
-            "evidence": c.get("evidence", ""),
-        }
-        for c in characters
-    ]
+    result_map: dict[str, str] = {}
+    still_new: list[dict] = []
+    for c in new_characters:
+        name = c.get("name", "")
+        alias_target = json_alias_map.get(name)
+        if not alias_target:
+            still_new.append(c)
+            continue
+        if alias_target not in registry_names:
+            canonical_registry.append(
+                {"name": alias_target, "description": c.get("description", ""), "evidence": c.get("evidence", "")}
+            )
+            registry_names.add(alias_target)
+        result_map[name] = alias_target
 
-    response = llm.invoke(
+    new_characters = still_new
+    if not new_characters:
+        return result_map
+
+    if not canonical_registry:
+        # 최초 등장 — 비교 대상이 없으니 전부 새 인물로 등록
+        result_map.update({c.get("name", ""): _register_as_new(c) for c in new_characters if c.get("name")})
+        return result_map
+
+    llm_factory = lambda: ChatUpstage(model="solar-pro2", api_key=UPSTAGE_API_KEY, temperature=0, timeout=120)
+
+    candidates: list[dict] = []
+    seen_candidate_names: set[str] = set()
+    for c in new_characters:
+        for cand in _select_candidates(c.get("name", ""), canonical_registry):
+            name = cand.get("name", "")
+            if name and name not in seen_candidate_names:
+                seen_candidate_names.add(name)
+                candidates.append(cand)
+
+    payload = {
+        "existing_characters": [
+            {"name": c["name"], "description": c.get("description", ""), "evidence": c.get("evidence", "")}
+            for c in candidates
+        ],
+        "new_characters": [
+            {
+                "name": c.get("name", ""),
+                "description": c.get("description", ""),
+                "evidence": c.get("evidence", ""),
+            }
+            for c in new_characters
+        ],
+    }
+
+    response = invoke_with_retry(
+        llm_factory,
         [
-            SystemMessage(content=CHARACTER_DEDUP_SYSTEM_PROMPT),
+            SystemMessage(content=CHARACTER_MATCH_SYSTEM_PROMPT),
             HumanMessage(
                 content=f"""
-다음 인물 목록에서 같은 인물을 가리키는 항목이 있는지 판단하세요.
+new_characters 각각이 existing_characters 중 하나와 같은 인물인지 판단하세요.
 
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 """
             ),
-        ]
+        ],
     )
 
     result = extract_json_from_text(response.content)
-    if not isinstance(result, dict):
-        return _augment_identity_map_with_alias_rules(characters, identity_map)
+    if not isinstance(result, dict) or result.get("parse_error"):
+        # 파싱 실패 시 안전하게(오탐 방지) 전부 새 인물로 등록
+        for c in new_characters:
+            name = c.get("name", "")
+            if name:
+                result_map[name] = _register_as_new(c)
+        return result_map
 
-    if result.get("parse_error"):
-        return _augment_identity_map_with_alias_rules(characters, identity_map)
+    matches = {
+        m.get("new_name"): m.get("match_to")
+        for m in result.get("matches", [])
+        if isinstance(m, dict)
+    }
+    existing_names = {c["name"] for c in canonical_registry}
 
-    for group in result.get("groups", []):
-        canonical = group.get("canonical_name")
-        if not canonical:
+    for c in new_characters:
+        name = c.get("name", "")
+        if not name:
             continue
-        for name in group.get("names", []):
-            if name in identity_map:
-                identity_map[name] = canonical
+        match_to = matches.get(name)
+        if match_to and match_to in existing_names:
+            result_map[name] = match_to
+        else:
+            result_map[name] = _register_as_new(c)
 
-    identity_map.update(json_alias_map)
-    return _augment_identity_map_with_alias_rules(characters, identity_map)
+    return result_map
 
 
 def _names_from_build_result(build_result: dict) -> list[dict]:
@@ -504,8 +556,6 @@ def _build_name_lookup(name_map: dict[str, str]) -> dict[str, str]:
         parts = [part for part in base.split(" ") if part]
         if len(parts) >= 2 and not _has_family_or_role_word(canonical):
             keys.add(_alias_key(parts[-1]))
-            if parts[0] in _SAFE_FIRST_NAME_ALIASES:
-                keys.add(_alias_key(parts[0]))
         for key in keys:
             if key and key not in lookup:
                 lookup[key] = canonical
@@ -595,9 +645,14 @@ def _apply_character_name_map(
 
 def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
     """
-    build_result(누적된 characters/relations/events)를 검증해서,
-    근거가 확인된 relations/events만 남기고, 표기만 다른 동일 인물을
-    canonicalize_character_names로 병합한 결과를 반환한다.
+    build_result(누적된 characters/relations/events)의 relations/events에 붙은
+    evidence가 실제로 내용을 뒷받침하는지 검증해서, 근거가 확인된 것만 남긴다.
+
+    인물 이름 병합은 이 함수의 책임이 아니다 — precompute.py의 경계선 루프에서
+    canonicalize_new_characters(증분 비교) + ConsolidationAgent(주기적 전체
+    재정리)로 별도 처리되고, 이 함수에 들어오는 build_result는 이미 그 결과가
+    적용된 상태다. 다만 `_augment_identity_map_with_alias_rules`가 놓치기 쉬운
+    존칭/직함/괄호 별칭 같은 문법 패턴은 저비용으로 한 번 더 보정한다.
     """
     characters = build_result.get("characters", [])
     relations = build_result.get("relations", [])
@@ -606,17 +661,9 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
     if not UPSTAGE_API_KEY:
         raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
 
-    # 인물 이름 정규화 (LLM 판단) — characters/relations/events 전부에 적용
-    json_alias_map = load_character_alias_map(book_id)
-    name_map = canonicalize_character_names(
-        characters,
-        book_id=book_id,
-        alias_map=json_alias_map,
-    )
-    name_map.update(json_alias_map)
     name_map = _augment_identity_map_with_alias_rules(
         _names_from_build_result(build_result),
-        name_map,
+        {c.get("name", ""): c.get("name", "") for c in characters if c.get("name")},
     )
     if name_map:
         build_result, characters, relations, events = _apply_character_name_map(
@@ -627,10 +674,11 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
     if not relations and not events:
         return {**build_result, "relations": relations, "events": events, "verifier_raw_response": None}
 
-    llm = ChatUpstage(
+    llm_factory = lambda: ChatUpstage(
         model="solar-pro2",
         api_key=UPSTAGE_API_KEY,
         temperature=0,
+        timeout=120,
     )
 
     payload = {
@@ -653,7 +701,8 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
         ],
     }
 
-    response = llm.invoke(
+    response = invoke_with_retry(
+        llm_factory,
         [
             SystemMessage(content=VERIFIER_SYSTEM_PROMPT),
             HumanMessage(
@@ -663,7 +712,7 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 """
             ),
-        ]
+        ],
     )
 
     result = extract_json_from_text(response.content)

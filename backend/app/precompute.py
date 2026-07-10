@@ -29,62 +29,102 @@ _GRAPH_POSITION_FIELDS = {
 }
 
 
+def _build_single_entry(
+    chunk_boundary: int,
+    result: dict,
+    first_seen: dict[str, int],
+    book_id: str | None,
+    canonical_registry: list[dict],
+    global_name_map: dict[str, str],
+    prev_raw_names: set[str],
+) -> dict:
+    """경계선 하나에 대해 인물 병합 → VerifierAgent → ReminderWriterAgent →
+    IndirectLeakageJudge를 체이닝해서 계약 entry 하나를 만든다.
+
+    인물 병합은 "새로 등장한 인물만" canonical_registry와 비교하는 증분 방식
+    (canonicalize_new_characters)이라, 인물 수가 아무리 늘어나도 매 경계선마다
+    LLM에 보여주는 비교 대상은 작게 유지된다. canonical_registry/global_name_map/
+    prev_raw_names는 호출자가 경계선을 넘어 계속 누적/재사용하는 상태다.
+
+    주의: 이 함수가 반환하는 entry의 boundary/offset은 아직 내부 분석용 chunk
+    offset이다. 저장 직전 `remap_entries_to_global_index()`에서 global_index로 통일한다.
+    """
+    from agents.character_entity_filter import filter_generic_role_entities
+    from agents.indirect_leakage_judge import judge_reminders
+    from agents.reminder_writer_agent import write_reminders
+    from agents.verifier_agent import _apply_character_name_map, canonicalize_new_characters, verify_build_result
+
+    result = filter_generic_role_entities(result, book_id=book_id)
+
+    raw_characters = result.get("characters", [])
+    new_characters = [c for c in raw_characters if c.get("name", "") not in prev_raw_names]
+    prev_raw_names.update(c.get("name", "") for c in raw_characters)
+
+    new_map = canonicalize_new_characters(new_characters, canonical_registry, book_id=book_id)
+    global_name_map.update(new_map)
+
+    if global_name_map:
+        result, _, _, _ = _apply_character_name_map(result, global_name_map)
+
+    # 1차 가드: 근거 없는 relations/events 제거
+    verified = verify_build_result(result, book_id=book_id)
+
+    # 이 chunk 경계선에서 처음 보이는 관계의 revision_offset 을 chunk_boundary 로 고정
+    for rid in ad.build_relation_ids(verified):
+        first_seen.setdefault(rid, chunk_boundary)
+
+    graph = ad.to_graph_json(verified, chunk_boundary, revision_offsets=first_seen)
+
+    # 2차 가드: 서술형으로 재작성 → 3차 가드: 암시/복선 판정 후 최종 확정
+    written = write_reminders(verified)
+    entity_name_to_id = {e.name: e.id for e in graph.entities}
+    judged_lines = judge_reminders(written.get("lines", []))
+    reminders = [
+        {
+            "text": line.get("text", ""),
+            "entity_ids": [
+                entity_name_to_id[n]
+                for n in line.get("entity_names", [])
+                if n in entity_name_to_id
+            ],
+        }
+        for line in judged_lines
+        if line.get("text")
+    ]
+
+    return {
+        "boundary": chunk_boundary,
+        "graph": graph.model_dump(),
+        "reminders": reminders,
+    }
+
+
 def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None = None) -> list[dict]:
     """(chunk_boundary, accumulated_build_result) 시퀀스 → 계약 entries.
 
     boundary_results 는 chunk 경계선 오름차순. build_result 는 해당 chunk 경계선까지
     '누적된' characters/relations/events (incremental_build_agent 반환 형태).
-
-    각 경계선마다 VerifierAgent → ReminderWriterAgent → IndirectLeakageJudge 순으로
-    체이닝한다 (BuildAgent는 이미 incremental_build_agent 단계에서 끝난 상태로 들어옴).
-
-    주의: 이 함수의 boundary/offset 값은 아직 내부 분석용 chunk offset이다.
-    저장 직전 `remap_entries_to_global_index()` 에서 global_index로 통일한다.
+    중간 체크포인팅이 필요하면(예: 대량 EPUB) 이 함수 대신 `precompute_from_epub`처럼
+    `_build_single_entry`를 직접 루프에서 호출하는 쪽을 쓴다.
     """
-    from agents.indirect_leakage_judge import judge_reminders
-    from agents.reminder_writer_agent import write_reminders
-    from agents.verifier_agent import verify_build_result
-
     ordered = sorted(boundary_results, key=lambda x: x[0])
     first_seen: dict[str, int] = {}
+    canonical_registry: list[dict] = []
+    global_name_map: dict[str, str] = {}
+    prev_raw_names: set[str] = set()
+
     entries: list[dict] = []
-
     for chunk_boundary, result in ordered:
-        from agents.character_entity_filter import filter_generic_role_entities
-
-        result = filter_generic_role_entities(result, book_id=book_id)
-        # 1차 가드: 근거 없는 relations/events 제거
-        verified = verify_build_result(result, book_id=book_id)
-
-        # 이 chunk 경계선에서 처음 보이는 관계의 revision_offset 을 chunk_boundary 로 고정
-        for rid in ad.build_relation_ids(verified):
-            first_seen.setdefault(rid, chunk_boundary)
-
-        graph = ad.to_graph_json(verified, chunk_boundary, revision_offsets=first_seen)
-
-        # 2차 가드: 서술형으로 재작성 → 3차 가드: 암시/복선 판정 후 최종 확정
-        written = write_reminders(verified)
-        entity_name_to_id = {e.name: e.id for e in graph.entities}
-        judged_lines = judge_reminders(written.get("lines", []))
-        reminders = [
-            {
-                "text": line.get("text", ""),
-                "entity_ids": [
-                    entity_name_to_id[n]
-                    for n in line.get("entity_names", [])
-                    if n in entity_name_to_id
-                ],
-            }
-            for line in judged_lines
-            if line.get("text")
-        ]
-
         entries.append(
-            {
-                "boundary": chunk_boundary,
-                "graph": graph.model_dump(),
-                "reminders": reminders,
-            }
+            _build_single_entry(
+                chunk_boundary,
+                result,
+                first_seen,
+                book_id,
+                canonical_registry,
+                global_name_map,
+                prev_raw_names,
+            )
         )
     return entries
 
@@ -275,6 +315,76 @@ def store_path(book_id: str, store_dir: Path = STORE_DIR) -> Path:
     return store_dir / f"{book_id}.json"
 
 
+def _apply_consolidation_to_entries(
+    entries: list[dict], merge_map: dict[str, str], remove_names: set[str]
+) -> list[dict]:
+    """ConsolidationAgent가 뒤늦게 찾아낸 병합/제거를 이미 체크포인팅된 과거 entries에도
+    소급 적용한다. LLM을 다시 부르지 않고 이미 만들어진 graph(entities/relationships)와
+    reminders를 id 기준으로 직접 고쳐 쓰는 순수 데이터 변환이라 비용이 들지 않는다.
+    """
+    if not merge_map and not remove_names:
+        return entries
+
+    id_to_canonical_id: dict[str, str] = {
+        ad.entity_id(alias): ad.entity_id(canon) for alias, canon in merge_map.items()
+    }
+    removed_ids = {ad.entity_id(name) for name in remove_names}
+
+    patched: list[dict] = []
+    for entry in entries:
+        graph = entry["graph"]
+
+        kept_entities: dict[str, dict] = {}
+        for e in graph.get("entities", []):
+            eid = e["id"]
+            if eid in removed_ids:
+                continue
+            new_id = id_to_canonical_id.get(eid, eid)
+            new_name = merge_map.get(e["name"], e["name"])
+            if new_id not in kept_entities:
+                kept_entities[new_id] = {**e, "id": new_id, "name": new_name}
+
+        kept_relationships: dict[str, dict] = {}
+        for r in graph.get("relationships", []):
+            src = id_to_canonical_id.get(r["source"], r["source"])
+            tgt = id_to_canonical_id.get(r["target"], r["target"])
+            if src in removed_ids or tgt in removed_ids:
+                continue
+            if src not in kept_entities or tgt not in kept_entities:
+                continue
+            rid = ad._relation_id(src, tgt, r.get("label", ""))
+            if rid not in kept_relationships:
+                kept_relationships[rid] = {**r, "id": rid, "source": src, "target": tgt}
+
+        new_graph = {
+            **graph,
+            "entities": list(kept_entities.values()),
+            "relationships": list(kept_relationships.values()),
+        }
+
+        new_reminders = []
+        for line in entry.get("reminders", []):
+            remapped_ids = []
+            for eid in line.get("entity_ids", []):
+                new_id = id_to_canonical_id.get(eid, eid)
+                if new_id in removed_ids or new_id not in kept_entities:
+                    continue
+                if new_id not in remapped_ids:
+                    remapped_ids.append(new_id)
+            new_reminders.append({**line, "entity_ids": remapped_ids})
+
+        patched.append({**entry, "graph": new_graph, "reminders": new_reminders})
+
+    return patched
+
+
+# 몇 스냅샷마다 ConsolidationAgent로 canonical_registry 전체를 재점검할지.
+# canonicalize_new_characters는 "새 인물 vs 최근/유사 후보"만 좁게 비교해서 저렴하지만
+# 그만큼 사각지대(전혀 다른 음역 변형, 뒤늦게 놓친 비인물 항목)가 생긴다 — 그 사각지대를
+# 메우려고 몇 스냅샷마다 한 번씩만 전체를 훑는 무거운 패스를 추가로 돌린다.
+CONSOLIDATION_INTERVAL = 5
+
+
 def precompute_from_epub(
     epub_path: str | Path,
     book_id: str,
@@ -286,17 +396,29 @@ def precompute_from_epub(
 
     UPSTAGE_API_KEY 가 필요하다 (실제 LLM 호출). boundaries 는 청크 offset(정수) 리스트.
     agents 패키지는 지연 import — 어댑터/서빙 경로가 langchain 에 의존하지 않게 하기 위함.
+
+    경계선 하나가 끝날 때마다 즉시 로컬 파일/Supabase에 체크포인팅한다. 책 한 권
+    분석은 LLM 호출이 수백 번에 달해 중간에 rate limit/타임아웃으로 실패할 수 있는데,
+    체크포인팅해두면 여기까지 처리한 경계선은 이미 반영되어 있어 재시도 비용이 줄어든다.
     """
     from agents.build_agent import incremental_build_agent  # 지연 import
+    from agents.consolidation_agent import consolidate_registry
     from agents.parsers.epub_parser import parse_epub
     from agents.tools.chunk_tool import make_chunks
 
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
 
-    boundary_results: list[tuple[int, dict]] = []
+    entries: list[dict] = []
+    first_seen: dict[str, int] = {}
     previous: dict = {"characters": [], "relations": [], "events": []}
     last_built_chunk_boundary = -1
+
+    # 인물 이름 병합 상태 — 경계선을 넘어 계속 누적/재사용한다.
+    canonical_registry: list[dict] = []
+    global_name_map: dict[str, str] = {}
+    prev_raw_names: set[str] = set()
+
     for chunk_boundary in sorted(boundaries):
         result = incremental_build_agent(
             chunks=chunks,
@@ -306,15 +428,49 @@ def precompute_from_epub(
         )
         previous = result
         last_built_chunk_boundary = chunk_boundary
-        boundary_results.append((chunk_boundary, result))
 
-    entries = build_entries(boundary_results, book_id=book_id)
-    entries = remap_entries_to_global_index(book_id, epub_path, entries)
+        entries.append(
+            _build_single_entry(
+                chunk_boundary,
+                result,
+                first_seen,
+                book_id,
+                canonical_registry,
+                global_name_map,
+                prev_raw_names,
+            )
+        )
 
-    path = write_store(book_id, entries, store_dir)
-    if upload_to_supabase:
-        upload_snapshots_to_supabase(book_id, entries)
-    return path
+        # 주기적 전체 정리: canonical_registry가 자란 만큼 사각지대도 커지므로,
+        # 몇 스냅샷마다 한 번씩 전체를 다시 훑어서 놓친 병합/비인물 항목을 잡는다.
+        if len(entries) % CONSOLIDATION_INTERVAL == 0:
+            consolidation = consolidate_registry(canonical_registry)
+            merge_map = consolidation["merge_map"]
+            remove_names = consolidation["remove_names"]
+
+            if merge_map or remove_names:
+                canonical_registry[:] = [
+                    c
+                    for c in canonical_registry
+                    if c.get("name", "") not in merge_map and c.get("name", "") not in remove_names
+                ]
+
+                # 이후 새로 등장하는 원본 이름들이 최종 대표 이름으로 이어지도록 체이닝.
+                for raw_name, mapped_name in list(global_name_map.items()):
+                    if mapped_name in merge_map:
+                        global_name_map[raw_name] = merge_map[mapped_name]
+                global_name_map.update(merge_map)
+
+                entries[:] = _apply_consolidation_to_entries(entries, merge_map, remove_names)
+
+        # 경계선 하나 끝날 때마다 즉시 저장(체크포인팅). 중간에 rate limit(429) 등으로
+        # 실패해도 여기까지 처리한 경계선은 Supabase/로컬 파일에 이미 반영되어 있다.
+        remapped_so_far = remap_entries_to_global_index(book_id, epub_path, entries)
+        write_store(book_id, remapped_so_far, store_dir)
+        if upload_to_supabase:
+            upload_snapshots_to_supabase(book_id, remapped_so_far)
+
+    return store_path(book_id, store_dir)
 
 
 if __name__ == "__main__":  # pragma: no cover
