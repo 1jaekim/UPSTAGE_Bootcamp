@@ -9,13 +9,30 @@ _CATEGORY_HINTS = {
     "ally": ("친구", "동료", "조력", "신뢰", "협력", "동행", "도움"),
     "family": ("가족", "부인", "남편", "아내", "후계자", "가문", "형제", "남매", "부부", "딸", "아들"),
     "conflict": ("갈등", "의심", "적대", "추적", "살해", "위협", "공격", "범인", "고발"),
+    "crime": ("살인", "살해", "죽", "사망", "시체", "범인", "피해자", "독살", "공격"),
+    "investigation": ("조사", "수사", "추적", "의심", "용의", "단서", "탐문", "밝히"),
+    "deception": ("속", "기만", "위장", "거짓", "은폐", "숨김", "비밀", "협박", "함정"),
+    "protection": ("보호", "도움", "돕", "동행", "구출", "지키", "경호"),
     "romance": ("사랑", "연인", "약혼", "질투", "청혼", "결혼"),
     "work": ("의뢰", "고용", "조사", "업무", "주치의", "집사", "하인", "고용인"),
     "mystery": ("정체", "비밀", "단서", "미스터리", "수수께끼", "숨김", "은폐"),
 }
 
-_CATEGORY_PRIORITY = ("family", "romance", "conflict", "work", "ally", "mystery", "neutral")
-_DIRECTED_HINTS = ("의뢰", "고용", "추적", "살해", "위협", "공격", "고발", "조사", "도움", "보냄", "지시")
+_CATEGORY_PRIORITY = (
+    "crime",
+    "investigation",
+    "deception",
+    "protection",
+    "family",
+    "romance",
+    "conflict",
+    "work",
+    "ally",
+    "mystery",
+    "neutral",
+)
+_DIRECTED_HINTS = ("의뢰", "고용", "추적", "살해", "위협", "공격", "고발", "조사", "도움", "보냄", "지시", "속임", "보호")
+_STORY_CATEGORIES = {"crime", "investigation", "deception", "protection"}
 
 
 def _relation_text(relationship: Relationship) -> str:
@@ -32,6 +49,17 @@ def _relation_text(relationship: Relationship) -> str:
 
 
 def _category_for(relationships: list[Relationship]) -> str:
+    story_categories = [
+        relationship.relation_category
+        for relationship in relationships
+        if relationship.is_story_relation and relationship.relation_category in _STORY_CATEGORIES
+    ]
+    if story_categories:
+        return max(
+            _CATEGORY_PRIORITY,
+            key=lambda category: (story_categories.count(category), -_CATEGORY_PRIORITY.index(category)),
+        )
+
     text = " ".join(_relation_text(relationship) for relationship in relationships)
     counts = {
         category: sum(1 for hint in hints if hint in text)
@@ -44,6 +72,8 @@ def _category_for(relationships: list[Relationship]) -> str:
 
 def _directionality_for(relationships: list[Relationship], category: str) -> str:
     text = " ".join(_relation_text(relationship) for relationship in relationships)
+    if category in {"crime", "investigation", "deception", "protection"}:
+        return "directed"
     if category in {"family", "romance", "ally"}:
         return "undirected"
     if any(hint in text for hint in _DIRECTED_HINTS):
@@ -52,6 +82,15 @@ def _directionality_for(relationships: list[Relationship], category: str) -> str
 
 
 def _display_label_for(relationships: list[Relationship], category: str) -> str:
+    story_labels = [
+        (relationship.display_label or relationship.label).strip()
+        for relationship in relationships
+        if relationship.is_story_relation and (relationship.display_label or relationship.label).strip()
+    ]
+    if story_labels:
+        label, _ = Counter(story_labels).most_common(1)[0]
+        return label[:12]
+
     labels = [relationship.label.strip() for relationship in relationships if relationship.label.strip()]
     if labels:
         label, _ = Counter(labels).most_common(1)[0]
@@ -60,6 +99,10 @@ def _display_label_for(relationships: list[Relationship], category: str) -> str:
         "ally": "협력",
         "family": "가족",
         "conflict": "갈등",
+        "crime": "사건",
+        "investigation": "조사",
+        "deception": "속임",
+        "protection": "보호",
         "romance": "관계",
         "work": "업무",
         "mystery": "단서",
@@ -87,6 +130,10 @@ def _importance_for(
         score += 1
     if any((relationship.description or "").strip() for relationship in relationships):
         score += 1
+    if any(relationship.is_story_relation for relationship in relationships):
+        score += 2
+    if any(relationship.relation_category in {"crime", "investigation", "deception"} for relationship in relationships):
+        score += 1
     return max(1, min(5, score))
 
 
@@ -102,6 +149,9 @@ def summarize_relationships(
 ) -> GraphJson:
     grouped: dict[tuple[str, str], list[Relationship]] = defaultdict(list)
     for relationship in graph.relationships:
+        first_seen = relationship.first_seen_global_index or relationship.revision_offset
+        if first_seen > current_boundary_global_index:
+            continue
         grouped[_pair_key(relationship)].append(relationship)
 
     entities_by_id = {entity.id: entity for entity in graph.entities}
@@ -109,19 +159,41 @@ def summarize_relationships(
     summarized: list[Relationship] = []
 
     for relationships in grouped.values():
-        relationships = sorted(relationships, key=lambda relationship: relationship.revision_offset)
+        relationships = sorted(
+            relationships,
+            key=lambda relationship: (
+                not relationship.is_story_relation,
+                relationship.revision_offset,
+            ),
+        )
         first = relationships[0]
         category = _category_for(relationships)
         directionality = _directionality_for(relationships, category)
         display_label = _display_label_for(relationships, category)
-        first_seen = min(relationship.revision_offset for relationship in relationships)
+        first_seen = min(
+            relationship.first_seen_global_index or relationship.revision_offset
+            for relationship in relationships
+        )
+        last_seen = max(
+            relationship.last_seen_global_index
+            or relationship.first_seen_global_index
+            or relationship.revision_offset
+            for relationship in relationships
+        )
         importance_score = _importance_for(relationships, entities_by_id, reminder_ids)
         detail_parts = []
-        for relationship in relationships[:4]:
+        related_events = []
+        for relationship in relationships:
             detail = relationship.detail or relationship.description or relationship.label
             if detail and detail not in detail_parts:
                 detail_parts.append(detail)
+            for related_event in relationship.related_events:
+                if related_event not in related_events:
+                    related_events.append(related_event)
+        if len(detail_parts) > 6:
+            detail_parts = detail_parts[:6]
         detail = "\n".join(detail_parts)
+        story_relation = next((relationship for relationship in relationships if relationship.is_story_relation), None)
 
         summarized.append(
             first.model_copy(
@@ -138,6 +210,13 @@ def summarize_relationships(
                     "detail": detail,
                     "description": detail or first.description,
                     "revision_offset": first_seen,
+                    "event_name": story_relation.event_name if story_relation else first.event_name,
+                    "event_summary": story_relation.event_summary if story_relation else first.event_summary,
+                    "relation_role": story_relation.relation_role if story_relation else first.relation_role,
+                    "confidence": max((relationship.confidence or 0.5) for relationship in relationships),
+                    "is_story_relation": any(relationship.is_story_relation for relationship in relationships),
+                    "last_seen_global_index": last_seen,
+                    "related_events": related_events,
                 }
             )
         )

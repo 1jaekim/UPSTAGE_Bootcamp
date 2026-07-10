@@ -22,8 +22,9 @@ import hashlib
 from typing import Iterable
 
 from agents.character_entity_filter import filter_generic_role_entities
+from agents.build_agent import normalize_event
 
-from .schemas import Entity, GraphJson, Relationship, ReminderLine
+from .schemas import Entity, GraphJson, Relationship, ReminderLine, StoryEvent
 
 # 관계 라벨 → tone 약한 휴리스틱 (근거 없는 강한 추측은 하지 않음)
 _TENSE_HINTS = ("적", "추적", "압박", "의혹", "은폐", "배신", "대립", "감시", "위협")
@@ -108,11 +109,35 @@ def to_graph_json(
             )
         )
 
+    events: list[StoryEvent] = []
+    for event in build_result.get("events", []):
+        normalized_event = normalize_event(event, current_offset=boundary)
+        participants = []
+        for participant in normalized_event.get("participants", []):
+            name = participant.get("character_name", "")
+            if not name:
+                continue
+            ensure_entity(name)
+            participants.append(participant)
+        if not participants:
+            continue
+        events.append(
+            StoryEvent.model_validate(
+                {
+                    **normalized_event,
+                    "participants": participants,
+                    "first_seen_chunk_offset": normalized_event.get("first_seen_chunk_offset", boundary),
+                    "last_seen_chunk_offset": normalized_event.get("last_seen_chunk_offset", boundary),
+                }
+            )
+        )
+
     return GraphJson(
         offset=boundary,
         spoiler_safe=spoiler_safe,
         entities=list(entities.values()),
         relationships=relationships,
+        events=events,
     )
 
 
@@ -121,10 +146,15 @@ def to_reminder_lines(build_result: dict) -> list[ReminderLine]:
     build_result = filter_generic_role_entities(build_result)
     lines: list[ReminderLine] = []
     for ev in build_result.get("events", []):
-        text = (ev.get("summary") or "").strip()
+        normalized_event = normalize_event(ev)
+        text = (normalized_event.get("event_summary") or normalized_event.get("summary") or "").strip()
         if not text:
             continue
-        ids = [entity_id(p) for p in ev.get("participants", []) if (p or "").strip()]
+        ids = [
+            entity_id(p.get("character_name", "") if isinstance(p, dict) else p)
+            for p in normalized_event.get("participants", [])
+            if ((p.get("character_name", "") if isinstance(p, dict) else p) or "").strip()
+        ]
         lines.append(ReminderLine(text=text, entity_ids=ids))
     return lines
 

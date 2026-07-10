@@ -1,9 +1,9 @@
 """통합 계약 스키마 (SPEC §0.5). FE/BE/에이전트가 오직 이 형태로만 주고받는다."""
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 EntityType = Literal["person", "ship", "org", "place"]
 NodeColor = Literal["blue", "dark"]
@@ -32,6 +32,10 @@ class Relationship(BaseModel):
         "ally",
         "family",
         "conflict",
+        "crime",
+        "investigation",
+        "deception",
+        "protection",
         "romance",
         "work",
         "mystery",
@@ -44,6 +48,59 @@ class Relationship(BaseModel):
     first_seen_boundary: int | None = None
     is_new_at_current_position: bool = False
     detail: str | None = None
+    event_name: str | None = None
+    event_summary: str | None = None
+    relation_role: str | None = None
+    role_label: str | None = None
+    role_pair_label: str | None = None
+    relationship_summary: str | None = None
+    evidence: list[str] = Field(default_factory=list)
+    confidence: float = 0.5
+    is_story_relation: bool = False
+    last_seen_global_index: int | None = None
+    related_events: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class EventParticipant(BaseModel):
+    character_name: str
+    role: Literal[
+        "perpetrator",
+        "victim",
+        "investigator",
+        "suspect",
+        "accomplice",
+        "witness",
+        "target",
+        "protector",
+        "deceiver",
+        "deceived",
+        "helper",
+        "beneficiary",
+        "heir",
+        "employer",
+        "employee",
+        "informant",
+        "pursuer",
+        "pursued",
+        "threatened",
+        "threatener",
+        "concealer",
+        "exposed",
+    ]
+    confidence: float = 0.7
+
+
+class StoryEvent(BaseModel):
+    event_id: str
+    event_name: str
+    event_summary: str
+    participants: list[EventParticipant] = Field(default_factory=list)
+    evidence: str = ""
+    first_seen_chunk_offset: int | None = None
+    last_seen_chunk_offset: int | None = None
+    first_seen_global_index: int | None = None
+    last_seen_global_index: int | None = None
+    confidence: float = 0.7
 
 
 class GraphJson(BaseModel):
@@ -52,6 +109,7 @@ class GraphJson(BaseModel):
     spoiler_safe: bool
     entities: list[Entity]
     relationships: list[Relationship]
+    events: list[StoryEvent] = Field(default_factory=list)
 
 
 class ReminderLine(BaseModel):

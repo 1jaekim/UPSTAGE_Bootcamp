@@ -22,9 +22,26 @@ VERIFIER_SYSTEM_PROMPT = """
 
 {
   "valid_relation_keys": ["source|target|relation", ...],
-  "valid_event_summaries": ["사건 요약 원문", ...]
+  "valid_event_summaries": ["사건 요약 원문", ...],
+  "invalid_event_roles": [
+    {"event_summary": "사건 요약 원문", "character_name": "인물명", "role": "역할명"}
+  ]
 }
 """
+
+
+_STRONG_EVENT_ROLES = {
+    "perpetrator",
+    "victim",
+    "suspect",
+    "accomplice",
+    "target",
+    "threatened",
+    "threatener",
+    "deceiver",
+    "deceived",
+    "concealer",
+}
 
 
 CHARACTER_DEDUP_SYSTEM_PROMPT = """
@@ -214,9 +231,19 @@ def _deduplicate_events(events: list[dict]) -> list[dict]:
     result = []
 
     for event in events:
+        participants = event.get("participants", [])
+        participant_key = tuple(
+            (
+                participant.get("character_name", ""),
+                participant.get("role", ""),
+            )
+            if isinstance(participant, dict)
+            else (participant, "")
+            for participant in participants
+        )
         key = (
-            event.get("summary", ""),
-            tuple(event.get("participants", [])),
+            event.get("event_id") or event.get("event_name") or event.get("summary", ""),
+            participant_key,
         )
         if key in seen:
             continue
@@ -459,7 +486,10 @@ def _names_from_build_result(build_result: dict) -> list[dict]:
     for event in build_result.get("events", []):
         evidence = event.get("evidence", "")
         for participant in event.get("participants", []):
-            add(participant, evidence=evidence)
+            if isinstance(participant, dict):
+                add(participant.get("character_name", ""), evidence=evidence)
+            else:
+                add(participant, evidence=evidence)
 
     return result
 
@@ -537,7 +567,16 @@ def _apply_character_name_map(
             {
                 **event,
                 "participants": [
-                    _resolve_name(participant, name_map, lookup)
+                    {
+                        **participant,
+                        "character_name": _resolve_name(
+                            participant.get("character_name") or participant.get("name", ""),
+                            name_map,
+                            lookup,
+                        ),
+                    }
+                    if isinstance(participant, dict)
+                    else _resolve_name(participant, name_map, lookup)
                     for participant in event.get("participants", [])
                 ],
             }
@@ -604,7 +643,12 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
             for r in relations
         ],
         "events": [
-            {"summary": e.get("summary", ""), "evidence": e.get("evidence", "")}
+            {
+                "summary": e.get("event_summary") or e.get("summary", ""),
+                "event_name": e.get("event_name", ""),
+                "evidence": e.get("evidence", ""),
+                "participants": e.get("participants", []),
+            }
             for e in events
         ],
     }
@@ -638,7 +682,33 @@ def verify_build_result(build_result: dict, book_id: str | None = None) -> dict:
         for r in relations
         if f"{r.get('source', '')}|{r.get('target', '')}|{r.get('relation', '')}" in valid_keys
     ]
-    filtered_events = [e for e in events if e.get("summary", "") in valid_summaries]
+    invalid_roles = {
+        (
+            item.get("event_summary", ""),
+            item.get("character_name", ""),
+            item.get("role", ""),
+        )
+        for item in result.get("invalid_event_roles", [])
+        if isinstance(item, dict)
+    }
+    filtered_events = []
+    for event in events:
+        summary = event.get("event_summary") or event.get("summary", "")
+        if summary not in valid_summaries:
+            continue
+        participants = []
+        for participant in event.get("participants", []):
+            if not isinstance(participant, dict):
+                participants.append(participant)
+                continue
+            role = participant.get("role", "")
+            name = participant.get("character_name", "")
+            if (summary, name, role) in invalid_roles:
+                continue
+            if role in _STRONG_EVENT_ROLES and not event.get("evidence"):
+                participant = {**participant, "confidence": min(float(participant.get("confidence", 0.5)), 0.35)}
+            participants.append(participant)
+        filtered_events.append({**event, "participants": participants})
 
     return {
         **build_result,

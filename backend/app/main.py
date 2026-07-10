@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -14,8 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import cfi_db, db, fixtures as fx
-from .content_source import AgentResultSource, ContentSource, FixtureSource
-from .precompute import STORE_DIR
+from .content_source import ContentSource
 from .schemas import (
     Book,
     BookSummary,
@@ -26,29 +24,15 @@ from .schemas import (
     Reminders,
 )
 from .upload_pipeline import CfiBuildError, ingest_epub
+from .source_factory import make_content_source
 
 
 # ── 소스 주입 (교체 지점) ────────────────────────────────────────
-# SPO_SOURCE=agent 면 precompute 결과(AgentResultSource)를, 아니면 FixtureSource 를 서빙.
-# 계약이 동일하므로 라우트/스키마 변경 없이 이 선택만 바뀐다.
-# AgentResultSource._store는 (book_id, boundary) 복합키라 원래도 여러 책을 담을 수 있었는데,
-# 예전엔 book_id 하나짜리 파일만 로드해서 사실상 단일 책만 서빙되고 있었다 — 이제
-# Supabase(build_agent_snapshots)를 우선 사용하고, 아직 거기 없는 책은
-# data/precomputed/ 로컬 파일에서 보충해서 합친다.
-def _make_source() -> ContentSource:
-    if os.environ.get("SPO_SOURCE", "fixture").lower() == "agent":
-        combined_store: dict = dict(AgentResultSource.from_supabase()._store)
-        for path in sorted(STORE_DIR.glob("*.json")):
-            file_store = AgentResultSource.from_json_file(path)._store
-            for key, value in file_store.items():
-                combined_store.setdefault(key, value)
-        if combined_store:
-            return AgentResultSource(combined_store)
-        print(f"[SPO_SOURCE=agent] precompute 파일 없음: {STORE_DIR} → FixtureSource 폴백")
-    return FixtureSource()
-
-
-content_source: ContentSource = _make_source()
+# SPO_SOURCE=agent: Supabase(build_agent_snapshots)를 우선 사용하고, 없는 key만
+# backend/data/precomputed/*.json으로 보충한다.
+# SPO_SOURCE=local: 테스트/개발 검증 전용. Supabase를 전혀 조회하지 않고 로컬
+# precomputed JSON만 사용한다.
+content_source: ContentSource = make_content_source()
 
 
 @asynccontextmanager

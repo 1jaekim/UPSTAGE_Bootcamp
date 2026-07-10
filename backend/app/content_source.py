@@ -16,7 +16,9 @@ from agents.character_entity_filter import should_keep_character_entity
 
 from .entity_importance import apply_entity_importance
 from .relation_summary import summarize_relationships
-from .schemas import Entity, GraphJson, Relationship, ReminderLine, Reminders
+from .relation_presenter import apply_relationship_presentation
+from .schemas import Entity, GraphJson, Relationship, ReminderLine, Reminders, StoryEvent
+from .story_relations import expand_story_relationships
 
 
 def _empty_graph() -> GraphJson:
@@ -227,11 +229,32 @@ class AgentResultSource(ContentSource):
                 )
             )
 
+        events: list[StoryEvent] = []
+        for event in graph.events:
+            participants = []
+            for participant in event.participants:
+                canonical_name = self._canonical_name(participant.character_name, alias_map)
+                canonical_name = partial_resolution_map.get(canonical_name, canonical_name)
+                if canonical_name in ambiguous_partial_names:
+                    continue
+                canonical_entity = merged_entities.get(canonical_name)
+                if not canonical_entity:
+                    continue
+                if not self._should_return_entity(book_id, canonical_entity, alias_map):
+                    continue
+                participants.append(participant.model_copy(update={"character_name": canonical_name}))
+                if participant.character_name != canonical_name:
+                    response_name_map[participant.character_name] = canonical_name
+            if len(participants) < 2:
+                continue
+            events.append(event.model_copy(update={"participants": participants}))
+
         return (
             graph.model_copy(
                 update={
                     "entities": list(merged_entities.values()),
                     "relationships": relationships,
+                    "events": events,
                 }
             ),
             entity_id_map,
@@ -244,6 +267,7 @@ class AgentResultSource(ContentSource):
         lines: list[ReminderLine],
         entity_id_map: dict[str, str],
         response_name_map: dict[str, str] | None = None,
+        drop_if_any_entity_removed: bool = True,
     ) -> list[ReminderLine]:
         alias_map = {**load_character_alias_map(book_id), **(response_name_map or {})}
         if not alias_map and not entity_id_map:
@@ -251,7 +275,7 @@ class AgentResultSource(ContentSource):
 
         result: list[ReminderLine] = []
         for line in lines:
-            if any(entity_id not in entity_id_map for entity_id in line.entity_ids):
+            if drop_if_any_entity_removed and any(entity_id not in entity_id_map for entity_id in line.entity_ids):
                 continue
             entity_ids = list(
                 dict.fromkeys(
@@ -364,19 +388,31 @@ class AgentResultSource(ContentSource):
         if not entry:
             return _empty_graph().model_copy(update={"offset": boundary_global_index})
         graph: GraphJson = entry["graph"]
-        graph, entity_id_map, _ = self._apply_alias_dictionary_to_graph(book_id, graph)
+        graph, entity_id_map, response_name_map = self._apply_alias_dictionary_to_graph(book_id, graph)
+        reminder_lines = self._apply_alias_dictionary_to_reminders(
+            book_id,
+            entry.get("reminders", []),
+            entity_id_map,
+            response_name_map,
+            drop_if_any_entity_removed=False,
+        )
         reminder_entity_ids = [
-            entity_id_map[entity_id]
-            for line in entry.get("reminders", [])
+            entity_id
+            for line in reminder_lines
             for entity_id in line.entity_ids
-            if entity_id in entity_id_map
         ]
         graph = apply_entity_importance(book_id, graph, reminder_entity_ids)
+        graph = expand_story_relationships(
+            graph,
+            reminder_lines,
+            current_boundary_global_index=spoiler_boundary_global_index,
+        )
         graph = summarize_relationships(
             graph,
-            current_boundary_global_index=graph.offset,
+            current_boundary_global_index=spoiler_boundary_global_index,
             reminder_entity_ids=reminder_entity_ids,
         )
+        graph = apply_relationship_presentation(graph)
         return graph.model_copy(update={"offset": boundary_global_index})
 
     def get_reminders(

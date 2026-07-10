@@ -195,11 +195,14 @@ def filter_generic_role_entities(build_result: dict, book_id: str | None = None)
 
     events = []
     for event in build_result.get("events", []):
-        participants = [
-            participant
-            for participant in event.get("participants", [])
-            if not is_dropped_role(participant)
-        ]
+        participants = []
+        for participant in event.get("participants", []):
+            if isinstance(participant, dict):
+                name = participant.get("character_name") or participant.get("name") or ""
+                if not is_dropped_role(name):
+                    participants.append(participant)
+            elif not is_dropped_role(participant):
+                participants.append(participant)
         events.append({**event, "participants": participants})
 
     return {

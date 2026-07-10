@@ -46,9 +46,19 @@ def write_reminders(build_result: dict) -> dict:
         temperature=0,
     )
 
+    def participant_name(participant):
+        if isinstance(participant, dict):
+            return participant.get("character_name") or participant.get("name", "")
+        return participant
+
     payload = {
         "events": [
-            {"summary": e.get("summary", ""), "participants": e.get("participants", [])}
+            {
+                "summary": e.get("event_summary") or e.get("summary", ""),
+                "event_name": e.get("event_name", ""),
+                "participants": [participant_name(p) for p in e.get("participants", [])],
+                "participant_roles": e.get("participants", []),
+            }
             for e in events
         ],
         "relations": [

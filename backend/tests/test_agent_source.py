@@ -507,15 +507,24 @@ def test_agent_source_summarizes_relationships_for_story_graph():
 
     normalized_graph = src.get_graph(book_id, 70, reveal_all=False)
 
-    assert len(normalized_graph.relationships) == 2
-    ally = next(relationship for relationship in normalized_graph.relationships if relationship.relation_category == "ally")
-    work = next(relationship for relationship in normalized_graph.relationships if relationship.relation_category == "work")
-    assert ally.display_label in {"동료", "신뢰"}
-    assert ally.directionality == "undirected"
-    assert ally.relation_importance_level == "major"
-    assert ally.first_seen_global_index == 60
-    assert not ally.is_new_at_current_position
-    assert work.display_label in {"의뢰", "조사"}
-    assert work.directionality == "directed"
-    assert work.is_new_at_current_position
-    assert "헨리의 사건" in work.detail
+    assert len(normalized_graph.relationships) == 3
+    holmes_henry = next(
+        relationship
+        for relationship in normalized_graph.relationships
+        if {relationship.source, relationship.target} == {"e_holmes", "e_henry"}
+    )
+    watson_henry = next(
+        relationship
+        for relationship in normalized_graph.relationships
+        if {relationship.source, relationship.target} == {"e_watson", "e_henry"}
+    )
+    assert holmes_henry.display_label == "조사자 → 용의자"
+    assert holmes_henry.role_pair_label == "조사자 → 용의자"
+    assert holmes_henry.relationship_summary
+    assert holmes_henry.relation_category == "investigation"
+    assert holmes_henry.directionality == "directed"
+    assert holmes_henry.relation_importance_level == "major"
+    assert holmes_henry.is_new_at_current_position
+    assert "헨리의 사건" in holmes_henry.detail
+    assert watson_henry.is_story_relation
+    assert watson_henry.related_events

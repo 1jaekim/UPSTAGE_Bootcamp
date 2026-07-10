@@ -20,7 +20,13 @@ from . import agent_adapter as ad
 
 # precompute 결과 저장 위치
 STORE_DIR = Path(__file__).resolve().parent.parent / "data" / "precomputed"
-_GRAPH_POSITION_FIELDS = {"offset", "boundary", "revision_offset"}
+_GRAPH_POSITION_FIELDS = {
+    "offset",
+    "boundary",
+    "revision_offset",
+    "first_seen_global_index",
+    "last_seen_global_index",
+}
 
 
 def build_entries(boundary_results: list[tuple[int, dict]], book_id: str | None = None) -> list[dict]:
@@ -189,6 +195,17 @@ def remap_entries_to_global_index(
             entry.get("graph", {}),
             chunk_boundary_to_global_index,
         )
+        for event in graph.get("events", []):
+            if "first_seen_chunk_offset" in event:
+                event["first_seen_global_index"] = _remap_position_value_to_global_index(
+                    event.get("first_seen_chunk_offset"),
+                    chunk_boundary_to_global_index,
+                )
+            if "last_seen_chunk_offset" in event:
+                event["last_seen_global_index"] = _remap_position_value_to_global_index(
+                    event.get("last_seen_chunk_offset"),
+                    chunk_boundary_to_global_index,
+                )
         graph = {**graph, "offset": boundary_global_index}
         if "boundary" in graph:
             graph["boundary"] = boundary_global_index
