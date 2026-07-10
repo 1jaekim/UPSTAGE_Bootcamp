@@ -30,6 +30,16 @@ export function useAnalysisStatus(bookId: string | null, enabled: boolean) {
   });
 }
 
+export function useDeleteBook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bookId: string) => api.deleteBook(bookId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['books'] });
+    },
+  });
+}
+
 export function useBook(bookId: string) {
   return useQuery({
     queryKey: ['book', bookId],

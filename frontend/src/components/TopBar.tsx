@@ -1,7 +1,66 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { useAnalysisStatus, useBook, useBooks, useUploadBook } from '../api/hooks';
+import { createPortal } from 'react-dom';
+import { useAnalysisStatus, useBook, useBooks, useDeleteBook, useUploadBook } from '../api/hooks';
 import { useSpoStore, type PanelKind } from '../store';
 import { SpoilerModeToggle } from './SpoilerModeToggle';
+
+const DELETE_CONFIRM_WORD = '삭제';
+
+function DeleteBookDialog({
+  title,
+  isDeleting,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const [input, setInput] = useState('');
+  const canDelete = input.trim() === DELETE_CONFIRM_WORD;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
+      <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+        <h3 className="text-sm font-extrabold text-slate-800">책 삭제</h3>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+          <span className="font-bold text-slate-700">{title}</span> 을(를) 삭제하면 분석 결과(관계도, 스냅샷,
+          읽기 위치)까지 전부 사라지고 되돌릴 수 없습니다. 다시 만들려면 처음부터 재분석해야 합니다.
+        </p>
+        <p className="mt-3 text-xs font-semibold text-slate-600">
+          계속하려면 아래 칸에 <span className="font-black text-rose-600">삭제</span> 라고 입력하세요.
+        </p>
+        <input
+          autoFocus
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-rose-400"
+          placeholder="삭제"
+        />
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canDelete || isDeleting}
+            className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white transition disabled:cursor-not-allowed disabled:bg-rose-300"
+          >
+            {isDeleting ? '삭제 중…' : '영구 삭제'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 const TABS: Array<{ kind: Exclude<PanelKind, 'closed'>; label: string }> = [
   { kind: 'relationship', label: '관계도' },
@@ -17,10 +76,25 @@ export function TopBar() {
   const { data: books } = useBooks();
   const { data: book } = useBook(selectedBookId);
   const uploadBook = useUploadBook();
+  const deleteBook = useDeleteBook();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [analyzingBookId, setAnalyzingBookId] = useState<string | null>(null);
   const { data: analysisStatus } = useAnalysisStatus(analyzingBookId, analyzingBookId !== null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteBook.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        if (selectedBookId === deleteTarget.id) {
+          const remaining = books?.filter((item) => item.id !== deleteTarget.id) ?? [];
+          if (remaining[0]) setSelectedBookId(remaining[0].id);
+        }
+        setDeleteTarget(null);
+      },
+    });
+  };
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -48,18 +122,39 @@ export function TopBar() {
           <div className="text-lg font-extrabold tracking-wide text-accent">SpoKeeper</div>
           <div className="hidden h-5 w-px bg-slate-200 sm:block" />
         </div>
-        <select
-          value={selectedBookId}
-          onChange={(event) => setSelectedBookId(event.target.value)}
-          className="hidden max-w-[280px] truncate rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 outline-none transition focus:border-accent md:block"
-          aria-label="도서 선택"
-        >
-          {books?.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.title}
-            </option>
-          ))}
-        </select>
+        <div className="hidden items-center gap-1.5 md:flex">
+          <select
+            value={selectedBookId}
+            onChange={(event) => setSelectedBookId(event.target.value)}
+            className="max-w-[280px] truncate rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 outline-none transition focus:border-accent"
+            aria-label="도서 선택"
+          >
+            {books?.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title}
+              </option>
+            ))}
+          </select>
+          {selectedBookId && (
+            <button
+              type="button"
+              onClick={() =>
+                setDeleteTarget({
+                  id: selectedBookId,
+                  title:
+                    books?.find((item) => item.id === selectedBookId)?.title ??
+                    book?.title ??
+                    selectedBookId,
+                })
+              }
+              title="이 책 삭제"
+              aria-label="이 책 삭제"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-500"
+            >
+              🗑
+            </button>
+          )}
+        </div>
         <div className="min-w-0 truncate text-sm font-medium text-slate-500">
           {book ? `${book.title} · ${book.author}` : '책 정보를 불러오는 중'}
         </div>
@@ -125,6 +220,14 @@ export function TopBar() {
             </>
           )}
         </div>
+      )}
+      {deleteTarget && (
+        <DeleteBookDialog
+          title={deleteTarget.title}
+          isDeleting={deleteBook.isPending}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
       )}
     </header>
   );

@@ -97,6 +97,27 @@ def get_book(book_id: str) -> Book:
     return _require_book(book_id)
 
 
+@app.delete("/api/books/{book_id}")
+def delete_book(book_id: str) -> dict:
+    global _content_source_cache
+
+    from .precompute import store_path
+    from .upload_pipeline import epub_path_for
+
+    deleted = cfi_db.delete_book(book_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="책을 찾을 수 없습니다.")
+
+    for path in (epub_path_for(book_id), store_path(book_id)):
+        path.unlink(missing_ok=True)
+
+    _analysis_progress.pop(book_id, None)
+    cfi_db.clear_cache()
+    _content_source_cache = None
+
+    return {"deleted": True, "book_id": book_id}
+
+
 @app.get("/api/books/{book_id}/file")
 def get_book_file(book_id: str):
     """epub.js가 브라우저에서 직접 렌더링할 수 있도록 원본 EPUB 바이트를 서빙한다."""

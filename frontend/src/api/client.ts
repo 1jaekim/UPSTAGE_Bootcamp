@@ -125,6 +125,15 @@ export const api = {
     return http<Progress>(`/api/books/${bookId}/progress`);
   },
 
+  async deleteBook(bookId: string): Promise<void> {
+    if (USE_MOCK) {
+      await sleep(100);
+      return;
+    }
+    const res = await fetch(`${BASE}/api/books/${bookId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText} — /api/books/${bookId}`);
+  },
+
   async putProgress(
     bookId: string,
     args: { offset?: number; cfi?: string; force?: boolean },

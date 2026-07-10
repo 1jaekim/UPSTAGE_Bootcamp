@@ -211,3 +211,24 @@ def insert_paragraphs(book_id: str, rows: list[dict]) -> int:
         return len(rows)
     finally:
         conn.close()
+
+
+def delete_book(book_id: str) -> bool:
+    """books row를 삭제한다. book_cfi_index/build_agent_snapshots/user_reading_position은
+    전부 book_id에 ON DELETE CASCADE가 걸려있어 자동으로 같이 삭제된다.
+    실제로 삭제된 행이 있었으면 True, 애초에 없던 book_id면 False.
+    """
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute("DELETE FROM books WHERE book_id = %s", (book_id,))
+            except psycopg2.errors.InvalidTextRepresentation:
+                # book_id가 UUID 형식이 아니면(존재할 수 없는 id) 그냥 "없음"으로 취급.
+                conn.rollback()
+                return False
+            deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
