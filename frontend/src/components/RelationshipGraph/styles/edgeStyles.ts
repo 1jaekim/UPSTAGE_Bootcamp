@@ -84,4 +84,22 @@ export const edgeStyles = [
       opacity: 0.08,
     },
   },
+  // has_direct_evidence=false인 약한(추측성) 관계는 기본적으로 안 그린다 — 근거
+  // 없는 연결로 그래프가 뒤덮이는 걸 막기 위함. 연결된 인물을 클릭(focus)하면
+  // 그 인물에 한해서만 점선으로 드러난다(applyNodeFocus가 connectedEdges에
+  // 'focused' 클래스를 주므로, 아래 두 번째 규칙이 나중에 선언되어 display를
+  // 다시 켠다).
+  {
+    selector: 'edge.weak-edge',
+    style: {
+      display: 'none',
+    },
+  },
+  {
+    selector: 'edge.weak-edge.focused',
+    style: {
+      display: 'element',
+      'line-style': 'dashed',
+    },
+  },
 ];

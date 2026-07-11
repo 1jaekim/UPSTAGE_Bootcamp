@@ -44,6 +44,12 @@ class Relationship(BaseModel):
         "mystery",
         "neutral",
     ] = "neutral"
+    # BuildAgent가 원본 관계를 뽑을 때 같이 판단한다: "personal"은 가족/연인/친구/원수처럼
+    # 사건과 무관하게 계속 성립하는 정체성 기반 관계, "action"은 목격자/조사/공범처럼
+    # 특정 사건 때문에 생긴 관계. 프론트가 기본 관계도에는 personal만 보여주고 action은
+    # 인물 클릭 시에만 보여주는 데 쓴다. 구조화된 사건(EventParticipant role)에서 자동
+    # 생성된 관계는 태생적으로 action이라 story_relations.py가 직접 채워 넣는다.
+    relation_kind: Literal["personal", "action"] | None = None
     directionality: Literal["directed", "undirected"] = "undirected"
     relation_importance_score: int = 1
     relation_importance_level: Literal["major", "minor"] = "minor"
@@ -65,6 +71,12 @@ class Relationship(BaseModel):
     # "이 관계 그룹 안에 합성 관계가 하나라도 있었는지"라는 다른 의미로 이미
     # 쓰이고 있어(중요도 계산 등), 라벨 표시 판단에는 이 필드를 따로 쓴다.
     label_is_generic: bool = False
+    # 원본(BuildAgent) relation이거나, 구조화된 사건(event_id 있음)에서 역할이 명확히
+    # 나온 근거 있는 관계면 True. 리마인더 공동 언급만으로 만들어진 약한 합성 관계면
+    # False — 이런 관계는 기본 관계도 엣지로는 안 그리고, 해당 인물을 클릭했을 때만
+    # 보여준다(그래프가 근거 없는 추측성 연결로 뒤덮이는 걸 막으면서도 정보 자체는
+    # 버리지 않기 위함).
+    has_direct_evidence: bool = True
     last_seen_global_index: int | None = None
     related_events: list[dict[str, Any]] = Field(default_factory=list)
 

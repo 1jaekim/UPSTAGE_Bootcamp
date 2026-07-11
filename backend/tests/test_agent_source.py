@@ -45,6 +45,25 @@ def test_adapter_id_is_stable():
     assert ad.entity_id("민우") == ad.entity_id(" 민우 ")
 
 
+def test_adapter_maps_relation_kind_from_build_result():
+    """BuildAgent가 판단한 relation_kind("personal"/"action")가 그대로 Relationship에
+    실린다. 값이 없거나 잘못된 값이면(구버전 데이터 등) None으로 떨어진다."""
+    result = {
+        "characters": [{"name": "민준"}, {"name": "서연"}, {"name": "필주"}],
+        "relations": [
+            {"source": "민준", "target": "서연", "relation": "연인", "relation_kind": "personal"},
+            {"source": "민준", "target": "필주", "relation": "목격자", "relation_kind": "action"},
+            {"source": "서연", "target": "필주", "relation": "동료", "relation_kind": "모름"},
+        ],
+    }
+    graph = ad.to_graph_json(result, boundary=100)
+    by_label = {r.label: r for r in graph.relationships}
+
+    assert by_label["연인"].relation_kind == "personal"
+    assert by_label["목격자"].relation_kind == "action"
+    assert by_label["동료"].relation_kind is None
+
+
 def test_reminders_from_events():
     lines = ad.to_reminder_lines(DEMO_BUILD_RESULTS[0][1])
     assert len(lines) == 2
@@ -503,8 +522,9 @@ def test_agent_source_summarizes_relationships_for_story_graph():
 
     normalized_graph = src.get_graph(book_id, 70, reveal_all=False)
 
-    # 왓슨-헨리는 원본 relations도, 구조화된 사건도 없는 순수 리마인드 조합 쌍이라
-    # 숨겨진다 — 홈즈-왓슨, 홈즈-헨리(둘 다 원본 relations가 있음)만 남는다.
+    # 왓슨-헨리는 원본 relations도, 구조화된 사건도 없다 — 리마인더 공동 언급만으로는
+    # 더 이상 관계를 안 만드니 아예 생기지 않는다. 홈즈-왓슨, 홈즈-헨리는 원본
+    # relations가 있으므로 그대로 남는다.
     assert len(normalized_graph.relationships) == 2
     assert not any(
         {relationship.source, relationship.target} == {"e_watson", "e_henry"}
@@ -515,9 +535,12 @@ def test_agent_source_summarizes_relationships_for_story_graph():
         for relationship in normalized_graph.relationships
         if {relationship.source, relationship.target} == {"e_holmes", "e_henry"}
     )
-    # 원본 relations("의뢰"/"조사")가 있으므로 제네릭 role_pair_label로 덮이지 않고
-    # 원본 라벨 중 하나가 그대로 노출된다.
-    assert holmes_henry.display_label in {"의뢰", "조사"}
+    # 원본 relations("의뢰"/"조사")가 있으므로 제네릭 role_pair_label로 덮이지 않고,
+    # 서로 다른 원본 라벨 두 개는 시간순으로 "의뢰 → 조사"처럼 같이 노출된다(관계가
+    # 어떻게 시작해서 어떻게 이어졌는지 정보를 보존하기 위함 — 둘 중 하나만 임의로
+    # 골라서 다른 쪽 정보를 버리지 않는다).
+    assert holmes_henry.display_label == "의뢰 → 조사"
+    assert holmes_henry.has_direct_evidence is True
     assert holmes_henry.relationship_summary
     assert holmes_henry.directionality == "directed"
     assert holmes_henry.relation_importance_level == "major"

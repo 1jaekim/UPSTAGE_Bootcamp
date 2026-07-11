@@ -9,6 +9,7 @@ import {
 import { FIT_PADDING, runFullscreenLayout } from './RelationshipGraph/layout/fullscreen';
 import { CATEGORY_COLOR, edgeStyles } from './RelationshipGraph/styles/edgeStyles';
 import { nodeBorderWidth, nodeSize, nodeStyles } from './RelationshipGraph/styles/nodeStyles';
+import { isDeceased } from '../utils/characterStatus';
 
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.8;
@@ -31,6 +32,23 @@ function relationDetail(relationship: Relationship) {
   return relationship.relationship_summary || relationship.event_summary || relationship.description || relationLabel(relationship);
 }
 
+// 연인/친구/원수/가족처럼 "관계 자체가 정체성인" 것만 기본 그래프에 보여준다.
+// 목격자/조사/공범처럼 특정 사건 때문에 생긴 "행동 기반" 관계는 정보량은 있지만
+// 기본 화면에 두면 계속 같은 종류의 엣지로 그래프가 채워져 정작 보고 싶은
+// 인간관계가 묻힌다 — 근거가 약한 관계와 같은 방식으로 처리한다: 기본으로는
+// 숨기고, 연결된 인물을 클릭하면 드러난다.
+//
+// relation_kind는 BuildAgent가 원본 관계를 뽑을 때 LLM이 직접 판단해서 채운
+// 필드라 이걸 최우선으로 쓴다 — 카테고리 키워드 사전을 계속 늘려야 하는 방식보다
+// 장르에 안 흔들린다. 이 필드가 없는 구버전 데이터(relation_kind가 비어있음,
+// 예: 재분석 전 책)만 category 기반 근사치로 폴백한다.
+const PERSONAL_CATEGORIES = new Set(['family', 'romance', 'ally', 'conflict']);
+
+function isPersonalRelation(relationship: Relationship): boolean {
+  if (relationship.relation_kind) return relationship.relation_kind === 'personal';
+  return PERSONAL_CATEGORIES.has(relationship.relation_category ?? 'neutral');
+}
+
 function makeElements(entities: Entity[], relationships: Relationship[]) {
   const { groupByEntityId } = deriveCharacterGroups(entities, relationships);
   const nodeIds = new Set<string>();
@@ -44,14 +62,19 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
     const score = scoreOf(entity);
     const size = nodeSize(score);
     const group = groupByEntityId.get(id);
+    // 파스텔(softColor)로 바꿨더니 너무 흐려 보인다는 피드백이 있어, 원래 진한
+    // 그룹 색(color)으로 되돌리고 대신 nodeStyles.ts의 background-opacity를
+    // 낮춰서 채도는 유지하면서 눈부심만 줄인다.
     const color = group?.color ?? '#64748b';
-    const label = entity.name || id;
+    const deceased = isDeceased(entity.description);
+    const name = deceased ? `故 ${entity.name || id}` : entity.name || id;
 
     nodes.push({
       group: 'nodes',
+      classes: deceased ? 'deceased' : undefined,
       data: {
         id,
-        label,
+        label: name,
         score,
         size,
         hoverSize: size + 8,
@@ -63,6 +86,24 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
         groupLabel: group?.label ?? '기타',
       },
     });
+
+    // 설명(직업 등)은 원 안에 이름과 같이 넣을 수 없다 — cytoscape 노드는 라벨을
+    // 하나만 가질 수 있어서, 이름과 한 라벨에 합치면 앵커 위치를 하나로만 고정해야
+    // 해서 "이름은 안, 설명은 밑"을 동시에 만족 못 한다. 대신 설명 전용의 투명한
+    // 위성 노드를 따로 만들고, 본체 노드 위치가 바뀔 때마다(드래그·레이아웃 애니메이션)
+    // 그 바로 위로 계속 따라가게 동기화한다(useEffect의 'position' 이벤트 참고).
+    if (entity.description) {
+      nodes.push({
+        group: 'nodes',
+        classes: 'node-caption',
+        data: {
+          id: `${id}__caption`,
+          label: entity.description,
+          personId: id,
+          personSize: size,
+        },
+      });
+    }
   });
 
   const edges: ElementDefinition[] = [];
@@ -83,8 +124,14 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
     const category = relationship.relation_category ?? 'neutral';
     const relationScore = relationship.relation_importance_score ?? (relationship.relation_importance_level === 'major' ? 4 : 2);
     const majorLabel = relationScore >= 4 || relationship.relation_importance_level === 'major';
+    // 근거(원본 라벨/구조화된 사건) 없이 리마인더 공동 언급만으로 만든 약한 관계이거나,
+    // 목격자/조사/공범 같은 "행동 기반" 카테고리면 기본 그래프에 안 그린다 —
+    // 연결된 인물을 클릭했을 때만 점선으로 드러난다(edgeStyles.ts의 'edge.weak-edge' /
+    // 'edge.weak-edge.focused' 참고).
+    const isWeak = relationship.has_direct_evidence === false || !isPersonalRelation(relationship);
     edges.push({
       group: 'edges',
+      classes: isWeak ? 'weak-edge' : undefined,
       data: {
         id,
         source,
@@ -111,6 +158,28 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
   };
 }
 
+// 설명 위성 노드를 본체 노드 바로 위에 붙여둔다. 본체가 드래그되거나 레이아웃
+// 애니메이션으로 움직일 때마다 따라다니는 것처럼 보이게 매 프레임 재확인한다.
+const CAPTION_GAP = 12;
+
+function syncCaptionPosition(cy: Core, node: cytoscape.NodeSingular) {
+  const caption = cy.getElementById(`${node.id()}__caption`);
+  if (caption.empty()) return;
+  const size = Number(node.data('size') || 48);
+  const targetX = node.position('x');
+  const targetY = node.position('y') - size / 2 - CAPTION_GAP;
+  const current = caption.position();
+  // 위치가 실제로 바뀔 때만 다시 세팅한다 — 매 렌더 프레임마다 이 함수가 불리는데,
+  // 값이 그대로인데도 계속 .position()을 호출하면 그 자체가 다시 렌더를 요청해서
+  // 무한 렌더 루프에 빠질 수 있다.
+  if (Math.abs(current.x - targetX) < 0.5 && Math.abs(current.y - targetY) < 0.5) return;
+  caption.position({ x: targetX, y: targetY });
+}
+
+function syncAllCaptionPositions(cy: Core) {
+  cy.nodes(':not(.node-caption)').forEach((node) => syncCaptionPosition(cy, node));
+}
+
 function clearFocus(cy: Core) {
   cy.elements().removeClass('faded focused neighbor matched');
 }
@@ -119,7 +188,14 @@ function applyNodeFocus(cy: Core, node: cytoscape.NodeSingular) {
   cy.elements().removeClass('focused neighbor matched').addClass('faded');
   node.removeClass('faded').addClass('focused');
   node.connectedEdges().removeClass('faded').addClass('focused');
-  node.neighborhood('node').removeClass('faded').addClass('neighbor');
+  const neighbors = node.neighborhood('node');
+  neighbors.removeClass('faded').addClass('neighbor');
+  // 위성 노드는 본체와 별개 element라 위 removeClass가 안 닿는다 — 포커스된
+  // 인물과 그 이웃의 설명도 같이 안 흐려지게 직접 챙긴다.
+  cy.getElementById(`${node.id()}__caption`).removeClass('faded');
+  neighbors.forEach((neighbor) => {
+    cy.getElementById(`${neighbor.id()}__caption`).removeClass('faded');
+  });
 }
 
 export function FullscreenRelationshipGraph({
@@ -157,7 +233,15 @@ export function FullscreenRelationshipGraph({
   const runCoseLayout = () => {
     const cy = cyRef.current;
     if (!cy || cy.destroyed()) return;
-    runFullscreenLayout(cy, fitVisibleNodes);
+    // cose 레이아웃은 애니메이션 도중에 매 프레임마다 'position' 이벤트를 안 쏴줄 수
+    // 있어서(내부적으로 배치 처리), 위성 노드 동기화를 'position' 리스너 하나에만
+    // 맡기면 레이아웃이 끝난 뒤에도 예전 위치(추가 직후의 기본 좌표, 보통 한 구석)에
+    // 몰려있는 채로 남을 수 있다. 레이아웃이 완전히 멈춘 시점(layoutstop)에 한 번
+    // 더 확실히 동기화해서 최종 위치는 항상 맞도록 보장한다.
+    runFullscreenLayout(cy, () => {
+      syncAllCaptionPositions(cy);
+      fitVisibleNodes();
+    });
   };
 
   useEffect(() => {
@@ -177,15 +261,31 @@ export function FullscreenRelationshipGraph({
 
     cyRef.current = cy;
 
+    // 위성 노드는 스타일에서 이벤트를 꺼뒀지만(events:'no'), 혹시 몰라 한 번 더 막는다.
     cy.on('tap', 'node', (event: EventObject) => {
+      if (event.target.hasClass('node-caption')) return;
       applyNodeFocus(cy, event.target);
       setDetail(null);
     });
+    // 본체 노드가 움직일 때마다(드래그) 설명 위성 노드를 바로 위로 따라가게 한다.
+    cy.on('position', 'node', (event: EventObject) => {
+      const node = event.target as cytoscape.NodeSingular;
+      if (node.hasClass('node-caption')) return;
+      syncCaptionPosition(cy, node);
+    });
+    // cose 레이아웃 애니메이션 중에는 'position' 이벤트가 매 프레임 안 쏴질 수 있어서,
+    // 화면이 실제로 다시 그려질 때마다(매 프레임) 한 번씩 전체를 다시 맞춰서 애니메이션
+    // 중에도 위성 노드가 본체를 눈에 띄게 벗어나 있지 않게 한다.
+    cy.on('render', () => syncAllCaptionPositions(cy));
     cy.on('tap', 'edge', (event: EventObject) => {
       const edge = event.target;
       cy.elements().removeClass('focused neighbor matched').addClass('faded');
       edge.removeClass('faded').addClass('focused');
-      edge.connectedNodes().removeClass('faded').addClass('neighbor');
+      const connected = edge.connectedNodes();
+      connected.removeClass('faded').addClass('neighbor');
+      connected.forEach((node) => {
+        cy.getElementById(`${node.id()}__caption`).removeClass('faded');
+      });
       setDetail({
         title: edge.data('label'),
         detail: edge.data('detail'),
@@ -212,6 +312,7 @@ export function FullscreenRelationshipGraph({
       cy.elements().remove();
       cy.add(elements);
     });
+    syncAllCaptionPositions(cy);
     clearFocus(cy);
     setDetail(null);
     runCoseLayout();
@@ -224,7 +325,7 @@ export function FullscreenRelationshipGraph({
     cy.nodes().removeClass('matched');
     const query = search.trim().toLowerCase();
     if (!query) return;
-    cy.nodes().forEach((node) => {
+    cy.nodes(':not(.node-caption)').forEach((node) => {
       if (String(node.data('label')).toLowerCase().includes(query)) node.addClass('matched');
     });
   }, [open, search]);
@@ -234,7 +335,7 @@ export function FullscreenRelationshipGraph({
     if (!open || !cy || cy.destroyed()) return;
     cy.elements().removeClass('group-muted group-highlight');
     if (activeGroup === 'all') return;
-    cy.nodes().forEach((node) => {
+    cy.nodes(':not(.node-caption)').forEach((node) => {
       if (node.data('groupId') === activeGroup) {
         node.addClass('group-highlight');
       } else {

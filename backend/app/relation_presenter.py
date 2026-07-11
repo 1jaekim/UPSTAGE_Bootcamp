@@ -7,7 +7,10 @@ from .schemas import GraphJson, Relationship
 
 ROLE_PAIR_LABELS = {
     "crime": ("가해자", "피해자"),
-    "investigation": ("조사자", "용의자"),
+    # "용의자"(아직 확정 안 된 의심 단계)는 조사 관계로 안 치므로, 여기 남는 건
+    # 항상 진범/공범/은닉자/도주자처럼 확정된 상대를 조사하는 경우뿐이다
+    # (story_relations.py의 investigation 규칙이 이미 "suspect"를 걸러낸다).
+    "investigation": ("수사관", "범인"),
     "protection": ("보호자", "보호 대상"),
     "deception": ("기만자", "기만당한 인물"),
     "threat": ("위협한 인물", "위협받은 인물"),
@@ -18,6 +21,11 @@ ROLE_PAIR_LABELS = {
     "inheritance": ("사망자", "상속인"),
     "family": ("가족", "가족"),
     "ally": ("조력자", "조력자"),
+    # 같은 사건에서 같은 역할을 공유하는 두 사람(예: 공범 두 명) — 특정 장르 하나만
+    # 땜질하지 않도록 story_relations.py의 _CO_ROLE_GROUPS가 역할 전체를 훑어서 만든다.
+    "accomplice": ("공범", "공범"),
+    "co_victim": ("공동 피해자", "공동 피해자"),
+    "co_witness": ("공동 목격자", "공동 목격자"),
 }
 
 CATEGORY_LABELS = {
@@ -132,7 +140,9 @@ def _summary_from_event_text(text: str | None, *, source_name: str, target_name:
 
 
 def _summary_for(relationship: Relationship, source_name: str, target_name: str, role_pair_label: str, event_name: str) -> str:
-    source_role, target_role = [part.strip() for part in role_pair_label.split("→", 1)]
+    parts = [part.strip() for part in role_pair_label.split("→", 1)]
+    source_role = parts[0]
+    target_role = parts[1] if len(parts) > 1 else parts[0]
     category = relationship.relation_category or "neutral"
     source = _short_name(source_name)
     target = _short_name(target_name)
@@ -150,8 +160,8 @@ def _summary_for(relationship: Relationship, source_name: str, target_name: str,
         return f"{source}는 {target}의 말이나 계획에 속아 사건에 이용된다."
     if role_pair_label == "가해자 → 피해자":
         return f"{source}는 '{event_name}'에서 {target}에게 해를 끼친 핵심 인물로 드러난다."
-    if role_pair_label == "조사자 → 용의자":
-        return f"{source}는 '{event_name}'을 추적하며 {target}의 행동과 정체를 의심하고 조사한다."
+    if role_pair_label == "수사관 → 범인":
+        return f"{source}는 '{event_name}'을 통해 {target}를 진범(또는 공범)으로 지목하고 조사한다."
     if role_pair_label == "보호자 → 보호 대상":
         return f"{source}는 위험에 놓인 {target}을 동행하거나 보호하며 사건에 관여한다."
     if role_pair_label == "기만자 → 기만당한 인물":
@@ -186,7 +196,10 @@ def apply_relationship_presentation(graph: GraphJson) -> GraphJson:
         source_name = _name_of(graph, relationship.source)
         target_name = _name_of(graph, relationship.target)
         source_role, target_role = _contextual_role_pair(relationship, source_name, target_name)
-        role_pair_label = f"{source_role} → {target_role}"
+        # 둘이 같은 역할을 공유하는 대칭 관계(공범-공범, 공동 목격자-공동 목격자 등)는
+        # "공범 → 공범"처럼 화살표로 잇는 대신 그냥 한 번만 보여준다 — 화살표는
+        # 방향이 있다는 인상을 주는데 이런 관계는 애초에 방향이 없다.
+        role_pair_label = source_role if source_role == target_role else f"{source_role} → {target_role}"
         event_name = _event_name(relationship)
         existing_label = (relationship.display_label or relationship.label or "").strip()
         display_label = role_pair_label if (relationship.label_is_generic or not existing_label) else existing_label

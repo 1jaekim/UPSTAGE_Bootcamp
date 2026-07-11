@@ -193,7 +193,8 @@ def test_presenter_falls_back_to_family_category_without_hardcoded_names():
 
     relationship = apply_relationship_presentation(graph).relationships[0]
 
-    assert relationship.role_pair_label == "가족 → 가족"
+    # 둘 다 같은 역할("가족")을 공유하는 대칭 쌍이라 화살표 없이 한 번만 표시한다.
+    assert relationship.role_pair_label == "가족"
     assert "재산과 작위" in relationship.relationship_summary
 
 
@@ -240,7 +241,7 @@ def test_presenter_avoids_mechanical_labels_for_same_category_different_contexts
     investigation = apply_relationship_presentation(investigation_graph).relationships[0]
     protection = apply_relationship_presentation(protection_graph).relationships[0]
 
-    assert investigation.role_pair_label == "조사자 → 용의자"
+    assert investigation.role_pair_label == "수사관 → 범인"
     assert protection.role_pair_label == "보호자 → 보호 대상"
     assert investigation.relationship_summary != protection.relationship_summary
     forbidden = ("조사 대상", "사건 관련 인물", "조사와 의심의 맥락")

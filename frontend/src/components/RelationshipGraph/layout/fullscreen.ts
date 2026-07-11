@@ -1,4 +1,13 @@
+import cytoscape from 'cytoscape';
 import type { Core, LayoutOptions } from 'cytoscape';
+import fcose from 'cytoscape-fcose';
+
+// fCoSE: CoSE(Compound Spring Embedder)의 개선판 — 같은 force-directed 계열이지만
+// 스펙트럴 레이아웃으로 초기 배치를 먼저 잡고 그 위에서 힘 시뮬레이션을 돌려서,
+// CoSE보다 최대 2배 빠르면서 겹침/뭉침이 덜한 결과를 낸다. 확장 등록은 한 번만
+// 하면 되므로 모듈 로드 시점에 해둔다(cytoscape가 이미 등록된 경우 재등록은
+// no-op이라 안전).
+cytoscape.use(fcose);
 
 export const FIT_PADDING = 80;
 
@@ -11,27 +20,32 @@ export function gridLayoutOptions(): LayoutOptions {
   } as LayoutOptions;
 }
 
-export function coseLayoutOptions(): LayoutOptions {
+export function fcoseLayoutOptions(): LayoutOptions {
   return {
-    name: 'cose',
+    name: 'fcose',
+    quality: 'proof',
     fit: true,
     padding: FIT_PADDING,
     animate: true,
     animationDuration: 650,
     randomize: false,
-    componentSpacing: 140,
-    nodeOverlap: 24,
-    nodeRepulsion: 700000,
+    // 위성 설명 노드까지 감안해서 인물 노드끼리 여유 있게 떨어지도록 cose 때보다
+    // 넉넉하게 잡는다.
+    nodeSeparation: 160,
     idealEdgeLength: 180,
-    edgeElasticity: 90,
-    nestingFactor: 1.2,
-    gravity: 0.18,
-    numIter: 1200,
+    edgeElasticity: 0.45,
+    nestingFactor: 0.1,
+    gravity: 0.25,
+    numIter: 2500,
+    tile: true,
+    packComponents: true,
   } as LayoutOptions;
 }
 
 export function seedGroupedPositions(cy: Core) {
-  const nodes = cy.nodes();
+  // 설명 위성 노드(node-caption)는 레이아웃 물리 연산 대상이 아니다 — 본체 노드
+  // 위치가 정해지면 그 아래로 따로 동기화된다(FullscreenRelationshipGraph 참고).
+  const nodes = cy.nodes(':not(.node-caption)');
   if (nodes.length === 0) return;
 
   const groups = Array.from(new Set(nodes.map((node) => String(node.data('groupId') || 'other'))));
@@ -69,15 +83,19 @@ export function runFullscreenLayout(cy: Core, onStop?: () => void) {
   cy.resize();
   seedGroupedPositions(cy);
 
+  // 설명 위성 노드는 레이아웃 물리력(반발력 등) 계산에서 빼서, 실제 인물 노드
+  // 배치가 눈에 안 보이는 라벨용 노드 때문에 왜곡되지 않게 한다.
+  const layoutTargets = cy.elements().not('.node-caption');
+
   try {
-    const layout = cy.layout(coseLayoutOptions());
+    const layout = layoutTargets.layout(fcoseLayoutOptions());
     layout.one('layoutstop', () => {
       onStop?.();
     });
     layout.run();
   } catch (error) {
-    console.error('Relationship graph cose layout failed; using grid fallback.', error);
-    const fallback = cy.layout(gridLayoutOptions());
+    console.error('Relationship graph fcose layout failed; using grid fallback.', error);
+    const fallback = layoutTargets.layout(gridLayoutOptions());
     fallback.one('layoutstop', () => {
       onStop?.();
     });

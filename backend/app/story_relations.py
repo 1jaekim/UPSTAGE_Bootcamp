@@ -126,22 +126,7 @@ STORY_ROLES = {
     "mystery": "미스터리 단서",
 }
 
-INVESTIGATOR_HINTS = (
-    "홈즈",
-    "왓슨",
-    "그레그슨",
-    "레스트레이드",
-    "경찰",
-    "수사관",
-    "탐정",
-)
-
 CORE_STORY_CATEGORIES = {"crime", "investigation", "deception", "protection"}
-
-
-def _story_id(source: str, target: str, category: str, event_summary: str) -> str:
-    raw = f"{source}|{target}|{category}|{event_summary}".encode("utf-8")
-    return f"sr_{hashlib.md5(raw).hexdigest()[:10]}"
 
 
 def _structured_story_id(source: str, target: str, category: str, event_id: str, role: str) -> str:
@@ -174,7 +159,9 @@ def _event_payload(summary: str, category: str, boundary_global_index: int, conf
     }
 
 
-def _structured_event_payload(event, category: str, relation_role: str, confidence: float) -> dict:
+def _structured_event_payload(
+    event, category: str, relation_role: str, confidence: float, *, fan_out: int = 1
+) -> dict:
     first_seen = event.first_seen_global_index or event.first_seen_chunk_offset or 0
     last_seen = event.last_seen_global_index or event.last_seen_chunk_offset or first_seen
     return {
@@ -187,65 +174,11 @@ def _structured_event_payload(event, category: str, relation_role: str, confiden
         "last_seen_global_index": last_seen,
         "confidence": confidence,
         "evidence": event.evidence,
+        # 한 사람이 같은 사건에서 이 역할 쌍으로 몇 명과 동시에 엮였는지(예: 형사 한 명이
+        # 용의자 10명을 한꺼번에 심문). 크면 relation_summary._importance_for가 중요도를
+        # 낮춰서, 라벨이 반복되는 엣지들이 그래프를 도배하지 않게 한다.
+        "fan_out": fan_out,
     }
-
-
-def _ordered_pair(source: str, target: str, category: str, names_by_id: dict[str, str]) -> tuple[str, str]:
-    if category in {"family", "ally", "romance", "mystery"}:
-        return source, target
-
-    source_name = names_by_id.get(source, "")
-    target_name = names_by_id.get(target, "")
-    source_is_investigator = any(hint in source_name for hint in INVESTIGATOR_HINTS)
-    target_is_investigator = any(hint in target_name for hint in INVESTIGATOR_HINTS)
-    if category == "investigation":
-        if target_is_investigator and not source_is_investigator:
-            return target, source
-        return source, target
-    if category in {"protection", "work"}:
-        if target_is_investigator and not source_is_investigator:
-            return target, source
-    return source, target
-
-
-def _make_story_relationship(
-    source: str,
-    target: str,
-    *,
-    category: str,
-    event_summary: str,
-    boundary_global_index: int,
-    names_by_id: dict[str, str],
-    confidence: float,
-) -> Relationship:
-    source, target = _ordered_pair(source, target, category, names_by_id)
-    label = STORY_LABELS.get(category, "사건")
-    related_event = _event_payload(event_summary, category, boundary_global_index, confidence)
-    return Relationship(
-        id=_story_id(source, target, category, event_summary),
-        source=source,
-        target=target,
-        label=label,
-        tone="tense" if category in {"crime", "deception"} else "neutral",
-        description=event_summary,
-        revision_offset=boundary_global_index,
-        display_label=label,
-        relation_category=category,
-        directionality="directed" if _is_directed(category) else "undirected",
-        relation_importance_score=5 if category in {"crime", "investigation", "deception"} else 4,
-        relation_importance_level="major",
-        first_seen_global_index=boundary_global_index,
-        first_seen_boundary=boundary_global_index,
-        is_new_at_current_position=False,
-        detail=event_summary,
-        event_name=event_summary[:40],
-        event_summary=event_summary,
-        relation_role=STORY_ROLES.get(category, "사건 관련"),
-        confidence=confidence,
-        is_story_relation=True,
-        last_seen_global_index=boundary_global_index,
-        related_events=[related_event],
-    )
 
 
 def _make_structured_story_relationship(
@@ -256,11 +189,17 @@ def _make_structured_story_relationship(
     relation_role: str,
     event,
     confidence: float,
+    fan_out: int = 1,
 ) -> Relationship:
     first_seen = event.first_seen_global_index or event.first_seen_chunk_offset or 0
     last_seen = event.last_seen_global_index or event.last_seen_chunk_offset or first_seen
     label = STORY_LABELS.get(category, "사건")
-    related_event = _structured_event_payload(event, category, relation_role, confidence)
+    related_event = _structured_event_payload(event, category, relation_role, confidence, fan_out=fan_out)
+    # 한 사람(예: 형사)이 같은 사건에서 여러 명과 동시에 이 역할 쌍을 맺으면 엣지마다
+    # 똑같은 제네릭 라벨이 반복돼 그래프 텍스트가 도배된다. fan_out이 크면 중요도를
+    # 낮춰서 기본 그래프에서는 라벨 없이 얇게만 보이게 한다(정보 자체는 related_events에
+    # 그대로 남아 클릭하면 보인다) — 한두 명만 연결된 경우는 그대로 강조 표시한다.
+    is_hub = fan_out > 2
     return Relationship(
         id=_structured_story_id(source, target, category, event.event_id, relation_role),
         source=source,
@@ -272,8 +211,8 @@ def _make_structured_story_relationship(
         display_label=label,
         relation_category=category,
         directionality="directed" if _is_directed(category) else "undirected",
-        relation_importance_score=5 if category in {"crime", "investigation", "deception"} else 4,
-        relation_importance_level="major",
+        relation_importance_score=(3 if is_hub else 5) if category in {"crime", "investigation", "deception"} else (2 if is_hub else 4),
+        relation_importance_level="minor" if is_hub else "major",
         first_seen_global_index=first_seen,
         first_seen_boundary=first_seen,
         is_new_at_current_position=False,
@@ -283,6 +222,7 @@ def _make_structured_story_relationship(
         relation_role=relation_role,
         confidence=confidence,
         is_story_relation=True,
+        relation_kind="action",
         last_seen_global_index=last_seen,
         related_events=[related_event],
     )
@@ -307,31 +247,99 @@ def _add_role_pairs(
     relation_role: str,
 ) -> None:
     by_role = _participants_by_role(event)
+    pairs: list[tuple] = []
     for source_role in source_roles:
         for target_role in target_roles:
             for source_participant in by_role.get(source_role, []):
                 for target_participant in by_role.get(target_role, []):
-                    source = names_to_ids.get(source_participant.character_name)
-                    target = names_to_ids.get(target_participant.character_name)
-                    if not source or not target or source == target:
+                    if source_participant.character_name == target_participant.character_name:
                         continue
-                    confidence = min(
-                        event.confidence,
-                        source_participant.confidence,
-                        target_participant.confidence,
-                    )
-                    relationship = _make_structured_story_relationship(
-                        source,
-                        target,
-                        category=category,
-                        relation_role=relation_role,
-                        event=event,
-                        confidence=confidence,
-                    )
-                    if relationship.id in seen_story_ids:
-                        continue
-                    seen_story_ids.add(relationship.id)
-                    relationships.append(relationship)
+                    pairs.append((source_participant, target_participant))
+
+    # 한 사람이 이 사건에서 몇 명과 이 역할 쌍으로 엮이는지(예: 형사 한 명이 용의자
+    # 10명을 한꺼번에 심문) — 크면 _make_structured_story_relationship이 중요도를
+    # 낮춰서 라벨 반복으로 그래프가 도배되지 않게 한다.
+    fan_out_by_source: dict[str, int] = {}
+    for source_participant, _ in pairs:
+        fan_out_by_source[source_participant.character_name] = (
+            fan_out_by_source.get(source_participant.character_name, 0) + 1
+        )
+
+    for source_participant, target_participant in pairs:
+        source = names_to_ids.get(source_participant.character_name)
+        target = names_to_ids.get(target_participant.character_name)
+        if not source or not target:
+            continue
+        confidence = min(
+            event.confidence,
+            source_participant.confidence,
+            target_participant.confidence,
+        )
+        relationship = _make_structured_story_relationship(
+            source,
+            target,
+            category=category,
+            relation_role=relation_role,
+            event=event,
+            confidence=confidence,
+            fan_out=fan_out_by_source.get(source_participant.character_name, 1),
+        )
+        if relationship.id in seen_story_ids:
+            continue
+        seen_story_ids.add(relationship.id)
+        relationships.append(relationship)
+
+
+# _add_role_pairs는 "서로 다른 역할"끼리만 엮는다(가해자→피해자, 조사자→용의자 등).
+# 그래서 "같은 사건에서 같은 역할을 공유하는 두 사람"(공범과 공범, 목격자와 목격자
+# 등)은 대응하는 규칙이 없으면 아예 관계가 안 만들어지거나, 근거 부족한 리마인드
+# 조합으로만 잡혀서 엉뚱한 카테고리(예: "조사자→용의자")로 잘못 라벨링된다. 특정
+# 역할 하나(예: 공범)만 땜질하면 다른 역할 조합에서 똑같은 문제가 재발하므로,
+# EventParticipant.role 전체 목록 중 "같은 역할을 공유하면 의미 있는 대칭 관계가
+# 되는" 역할군을 한 번에 다뤄서 장르에 상관없이 동일하게 적용되게 한다.
+# "공동 용의자"(suspect끼리)는 넣지 않는다 — 용의자는 확정 안 된 의심 단계라,
+# 여러 명이 같이 의심받는다는 것만으로 관계를 만들면 "의심하는 단계"가 그대로
+# 그래프에 노출된다.
+_CO_ROLE_GROUPS: tuple[tuple[tuple[str, ...], str, str], ...] = (
+    # (role 집합, category, relation_role — relation_presenter.ROLE_PAIR_LABELS 키)
+    (("perpetrator", "accomplice"), "crime", "accomplice"),
+    (("victim",), "crime", "co_victim"),
+    (("witness",), "mystery", "co_witness"),
+)
+
+
+def _add_co_role_pairs(
+    relationships: list[Relationship],
+    seen_story_ids: set[str],
+    event,
+    names_to_ids: dict[str, str],
+) -> None:
+    by_role = _participants_by_role(event)
+    for roles, category, relation_role in _CO_ROLE_GROUPS:
+        participants = [participant for role in roles for participant in by_role.get(role, [])]
+        # 그룹이 크면(예: "용의자 10명") 조합 수가 급격히 늘어난다(n명 → n*(n-1)/2쌍).
+        # 각자의 fan_out을 그룹 크기-1로 넘겨서, 큰 그룹일수록 엣지 중요도가 낮아지고
+        # 기본 그래프에서는 라벨 없이 얇게만 보이게 한다.
+        fan_out = max(1, len(participants) - 1)
+        for a, b in combinations(participants, 2):
+            source = names_to_ids.get(a.character_name)
+            target = names_to_ids.get(b.character_name)
+            if not source or not target or source == target:
+                continue
+            confidence = min(event.confidence, a.confidence, b.confidence)
+            relationship = _make_structured_story_relationship(
+                source,
+                target,
+                category=category,
+                relation_role=relation_role,
+                event=event,
+                confidence=confidence,
+                fan_out=fan_out,
+            )
+            if relationship.id in seen_story_ids:
+                continue
+            seen_story_ids.add(relationship.id)
+            relationships.append(relationship)
 
 
 def _relationships_from_structured_events(
@@ -368,13 +376,17 @@ def _relationships_from_structured_events(
             category="crime",
             relation_role="threat",
         )
+        # "용의자(suspect)"는 아직 확정 안 된 의심 단계일 뿐이라 관계로 안 만든다 —
+        # 실제로 경찰/수사관이 진범(perpetrator)이나 공범(accomplice)을 조사하는
+        # 경우만, 혹은 은닉/도주처럼 능동적인 행동(concealer/pursued)이 있는 경우만
+        # "조사" 관계로 취급한다. "의심스러워 보인다"는 것만으로는 조사 관계가 아니다.
         _add_role_pairs(
             relationships,
             seen_story_ids,
             event,
             names_to_ids,
             ("investigator", "pursuer"),
-            ("suspect", "perpetrator", "accomplice", "deceiver", "concealer", "pursued"),
+            ("perpetrator", "accomplice", "deceiver", "concealer", "pursued"),
             category="investigation",
             relation_role="investigation",
         )
@@ -442,6 +454,7 @@ def _relationships_from_structured_events(
             category="family",
             relation_role="inheritance",
         )
+        _add_co_role_pairs(relationships, seen_story_ids, event, names_to_ids)
 
     return relationships
 
@@ -517,35 +530,15 @@ def expand_story_relationships(
         if enriched is not None:
             relationships.append(enriched)
 
-    seen_story_ids = {relationship.id for relationship in relationships}
-    for line in reminders:
-        participant_ids = [entity_id for entity_id in dict.fromkeys(line.entity_ids) if entity_id in valid_ids]
-        if len(participant_ids) < 2:
-            continue
-        # 인원이 많은 집단 장면(예: "일곱 명이 함께 목격했다")은 그 안의 모든 쌍이 서로
-        # 관계가 있다는 뜻이 아니라 단순 공동 등장일 뿐이다. 참여자 수만큼 조합이
-        # 제곱으로 늘어나(7명이면 21개) 실제 의미 있는 관계(가족·연인 등)를 같은
-        # 제네릭 카테고리 라벨(조사/속임 등)이 압도해버리는 문제가 있어, 소규모
-        # 장면(4명 이하)에서만 쌍 관계를 만든다. 특정 작품과 무관한 구조적 제한이다.
-        if len(participant_ids) > 4:
-            continue
-        category = _category_for_text(line.text)
-        if category not in CORE_STORY_CATEGORIES:
-            continue
-        confidence = 0.85 if category in {"crime", "investigation"} else 0.75
-        for source, target in combinations(participant_ids, 2):
-            story_relationship = _make_story_relationship(
-                source,
-                target,
-                category=category,
-                event_summary=line.text,
-                boundary_global_index=min(graph.offset, current_boundary_global_index),
-                names_by_id=names_by_id,
-                confidence=confidence,
-            )
-            if story_relationship.id in seen_story_ids:
-                continue
-            seen_story_ids.add(story_relationship.id)
-            relationships.append(story_relationship)
+    # 예전엔 여기서 리마인더 한 줄에 같이 언급된 사람들을 전부 조합(combinations)으로
+    # 묶어서 "조사자→용의자"류 관계를 만들었다. 그런데 이 방식은 문장 안에서 누가
+    # 실제로 조사자이고 누가 용의자/조력자인지 구분하지 못한 채 언급된 사람 전원을
+    # 대칭적으로 짝짓는다 — 그 결과 "서은교가 조사자 역할을 했고 노경수/정다혜가
+    # 도왔다"는 문장에서 이미 죽은 피해자 서인호까지 노경수/정다혜와 "조사자→용의자"로
+    # 잘못 엮이는 등 사실과 다른 관계가 만들어졌다. 이제는 (1) BuildAgent가 원본
+    # 관계를 뽑을 때 소스/타깃과 relation_kind를 직접 판단하고, (2) 구조화된 사건이
+    # EventParticipant.role로 누가 무슨 역할인지 명확히 구분해서 관계를 만들기
+    # 때문에, 역할을 모른 채 추측하던 이 조합 생성 방식은 완전히 제거한다 — 정보를
+    # 덜 보여주더라도 틀린 방향의 관계를 만드는 것보다 낫다.
 
     return graph.model_copy(update={"relationships": relationships})

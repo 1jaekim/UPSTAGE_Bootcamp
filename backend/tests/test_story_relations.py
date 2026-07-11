@@ -36,11 +36,12 @@ def _source(graph: GraphJson, reminders: list[ReminderLine], boundary: int = 100
     return AgentResultSource({(BOOK_ID, boundary): {"graph": graph, "reminders": reminders}})
 
 
-def test_reminder_only_pairs_without_original_relation_are_hidden():
-    """"같은 문장에 같이 언급됐다"는 것만으로 만든 약한 추측성 관계(리마인드
-    조합)는 원본 relations도, 구조화된 사건도 없으면 화면에서 숨긴다. 반면
-    원본 relations에 실제로 있는 쌍(홈즈-왓슨)은 계속 노출되고, 리마인드에서
-    나온 부가 정보로 importance 등이 보강된다.
+def test_reminder_co_mention_no_longer_fabricates_relations():
+    """리마인더 한 줄에 같이 언급됐다는 것만으로는 더 이상 관계를 만들지 않는다 —
+    문장 안에서 누가 조사자이고 누가 용의자/조력자인지 구분 못 한 채 언급된 사람
+    전원을 대칭적으로 묶던 예전 방식은 실제로는 없는 관계(예: 이미 죽은 피해자가
+    "조사자"로 엮이는 등)를 만드는 버그가 있어 제거했다. 원본 relations에 실제로
+    있는 쌍(홈즈-왓슨)만 그대로 노출된다.
     """
     graph = GraphJson(
         offset=100,
@@ -64,14 +65,12 @@ def test_reminder_only_pairs_without_original_relation_are_hidden():
     normalized_graph = _source(graph, reminders).get_graph(BOOK_ID, 100, reveal_all=False)
     pairs = {frozenset((r.source, r.target)) for r in normalized_graph.relationships}
 
-    # 홈즈-스태플턴, 왓슨-스태플턴은 원본 관계도 사건도 없는 순수 추측성 쌍이라 숨겨진다.
+    # 홈즈-스태플턴, 왓슨-스태플턴은 원본 관계도 구조화된 사건도 없으니 아예 안 생긴다.
     assert frozenset(("e_holmes", "e_stapleton")) not in pairs
     assert frozenset(("e_watson", "e_stapleton")) not in pairs
     # 홈즈-왓슨은 원본 관계가 있으므로 그대로 노출되고, 라벨도 원본("동료")을 유지한다.
-    assert frozenset(("e_holmes", "e_watson")) in pairs
-    holmes_watson = next(
-        r for r in normalized_graph.relationships if frozenset((r.source, r.target)) == frozenset(("e_holmes", "e_watson"))
-    )
+    holmes_watson = next(r for r in normalized_graph.relationships if frozenset((r.source, r.target)) == frozenset(("e_holmes", "e_watson")))
+    assert holmes_watson.has_direct_evidence is True
     assert holmes_watson.display_label == "동료"
 
 
@@ -88,22 +87,15 @@ def test_summary_preserves_multiple_relations_in_detail_and_related_events():
             _relationship("r2", "e_holmes", "e_stapleton", "추적", "홈즈는 스태플턴의 행적을 추적한다."),
         ],
     )
-    reminders = [
-        ReminderLine(
-            text="셜록 홈즈는 스태플턴을 조사하고 사건의 단서를 찾았다.",
-            entity_ids=["e_holmes", "e_stapleton"],
-        )
-    ]
-
-    normalized_graph = _source(graph, reminders).get_graph(BOOK_ID, 100, reveal_all=False)
+    normalized_graph = _source(graph, []).get_graph(BOOK_ID, 100, reveal_all=False)
 
     assert len(normalized_graph.relationships) == 1
     relationship = normalized_graph.relationships[0]
-    assert relationship.is_story_relation
     assert "의심한다" in relationship.detail
     assert "행적을 추적" in relationship.detail
+    # 두 원본 relations의 텍스트("의심"/"추적")가 investigation 카테고리로 인식돼
+    # _enrich_existing_relationship이 이벤트 정보를 채운다.
     assert relationship.related_events
-    assert any("조사하고 사건의 단서" in event["event_summary"] for event in relationship.related_events)
 
 
 def test_future_story_relationship_is_not_exposed_before_boundary():
@@ -134,10 +126,10 @@ def test_future_story_relationship_is_not_exposed_before_boundary():
     assert normalized_graph.relationships == []
 
 
-def test_alias_and_generic_filter_apply_even_when_relations_are_hidden():
+def test_alias_and_generic_filter_apply_even_when_relations_lack_direct_evidence():
     """별칭 정규화("홈즈"→"셜록 홈즈")와 일반명사 필터("의사" 제외)는 관계 유무와
-    무관하게 인물(entity) 목록에 그대로 적용된다. 이 케이스는 원본 관계도, 구조화된
-    사건도 없는 순수 리마인드 조합뿐이라 관계 자체는 전부 숨겨진다.
+    무관하게 인물(entity) 목록에 그대로 적용된다. 리마인더 공동 언급만으로는 더 이상
+    관계를 안 만드니, 이 케이스는 관계 없이 인물 목록만 채워진다.
     """
     graph = GraphJson(
         offset=100,
@@ -202,7 +194,85 @@ def test_structured_event_creates_perpetrator_victim_relation():
     assert relationship.related_events[0]["event_id"] == "ev_charles_death"
 
 
-def test_structured_event_creates_investigator_suspect_relation():
+def test_structured_event_creates_co_accomplice_relation():
+    """가해자와 공범처럼 "같은 사건에서 같은 편"인 역할끼리는 _add_role_pairs의
+    교차 역할 규칙(가해자→피해자 등)으로는 관계가 안 만들어진다. 특정 장르 하나에
+    "공범" 라벨만 땜질하는 게 아니라 역할 taxonomy 전체에 적용되는 _add_co_role_pairs가
+    이걸 "공범" 관계로 만들어주는지 확인한다.
+    """
+    graph = GraphJson(
+        offset=300,
+        spoiler_safe=True,
+        entities=[
+            _entity("e_segyeong", "오세경"),
+            _entity("e_kihwan", "최기환"),
+        ],
+        relationships=[],
+        events=[
+            {
+                "event_id": "ev_conspiracy",
+                "event_name": "은폐 공모",
+                "event_summary": "오세경과 최기환이 함께 사고를 은폐했다.",
+                "participants": [
+                    {"character_name": "오세경", "role": "perpetrator", "confidence": 0.9},
+                    {"character_name": "최기환", "role": "accomplice", "confidence": 0.9},
+                ],
+                "evidence": "최기환이 공모를 자백했다.",
+                "first_seen_global_index": 280,
+                "last_seen_global_index": 300,
+            }
+        ],
+    )
+
+    normalized_graph = _source(graph, [], boundary=300).get_graph(BOOK_ID, 300, reveal_all=False)
+    relationships = normalized_graph.relationships
+    accomplice = next(r for r in relationships if {r.source, r.target} == {"e_segyeong", "e_kihwan"})
+
+    assert accomplice.relation_role == "accomplice"
+    assert accomplice.display_label == "공범"
+    assert accomplice.directionality == "undirected"
+    assert accomplice.has_direct_evidence is True
+    # 구조화된 사건에서 자동 생성된 관계는 태생적으로 "행동 기반"이라 relation_kind가
+    # 항상 action이다 — 원본 BuildAgent 관계처럼 LLM이 personal/action을 새로 판단할
+    # 필요가 없다(역할 자체가 이미 행동을 뜻하므로).
+    assert accomplice.relation_kind == "action"
+
+
+def test_original_relation_kind_is_preserved_over_synthetic_relations():
+    """원본(BuildAgent) 관계에 이미 relation_kind="personal"이 있으면, 같은 쌍에
+    합성 관계가 섞여도 원본 판단이 우선한다(카테고리 키워드 추측보다 신뢰도가 높음)."""
+    graph = GraphJson(
+        offset=100,
+        spoiler_safe=True,
+        entities=[
+            _entity("e_a", "김민준"),
+            _entity("e_b", "이서연"),
+        ],
+        relationships=[
+            _relationship(
+                "r1",
+                "e_a",
+                "e_b",
+                "연인",
+                "민준과 서연은 연인 사이다.",
+                relation_kind="personal",
+            ),
+        ],
+    )
+    reminders = [
+        ReminderLine(text="민준과 서연은 함께 사건을 조사했다.", entity_ids=["e_a", "e_b"]),
+    ]
+
+    normalized_graph = _source(graph, reminders).get_graph(BOOK_ID, 100, reveal_all=False)
+    relationship = next(
+        r for r in normalized_graph.relationships if {r.source, r.target} == {"e_a", "e_b"}
+    )
+
+    assert relationship.relation_kind == "personal"
+
+
+def test_structured_event_creates_investigator_perpetrator_relation():
+    """조사 관계는 "진범/공범"처럼 확정된 상대를 조사하는 경우만 만든다."""
     graph = GraphJson(
         offset=300,
         spoiler_safe=True,
@@ -215,10 +285,10 @@ def test_structured_event_creates_investigator_suspect_relation():
             {
                 "event_id": "ev_investigation",
                 "event_name": "스태플턴 조사",
-                "event_summary": "홈즈가 스태플턴을 용의자로 보고 추적했다.",
+                "event_summary": "홈즈가 진범 스태플턴을 추적했다.",
                 "participants": [
                     {"character_name": "셜록 홈즈", "role": "investigator", "confidence": 0.9},
-                    {"character_name": "스태플턴", "role": "suspect", "confidence": 0.8},
+                    {"character_name": "스태플턴", "role": "perpetrator", "confidence": 0.8},
                 ],
                 "evidence": "홈즈가 스태플턴을 추적했다.",
                 "first_seen_global_index": 300,
@@ -228,12 +298,44 @@ def test_structured_event_creates_investigator_suspect_relation():
     )
 
     normalized_graph = _source(graph, [], boundary=300).get_graph(BOOK_ID, 300, reveal_all=False)
-    relationship = normalized_graph.relationships[0]
+    relationships = normalized_graph.relationships
+    investigation = next(r for r in relationships if {r.source, r.target} == {"e_holmes", "e_stapleton"})
 
-    assert relationship.source == "e_holmes"
-    assert relationship.target == "e_stapleton"
-    assert relationship.relation_category == "investigation"
-    assert relationship.relation_role == "investigation"
+    assert investigation.relation_category == "investigation"
+    assert investigation.relation_role == "investigation"
+    assert investigation.display_label == "수사관 → 범인"
+
+
+def test_suspect_role_alone_does_not_create_investigation_relation():
+    """"용의자(suspect)"는 아직 확정 안 된 의심 단계라, investigator-suspect 쌍만으로는
+    관계를 만들지 않는다 — "의심하는 단계"는 조사 관계로 안 친다는 요구사항."""
+    graph = GraphJson(
+        offset=300,
+        spoiler_safe=True,
+        entities=[
+            _entity("e_holmes", "셜록 홈즈"),
+            _entity("e_stapleton", "스태플턴"),
+        ],
+        relationships=[],
+        events=[
+            {
+                "event_id": "ev_suspicion",
+                "event_name": "스태플턴 의심",
+                "event_summary": "홈즈는 스태플턴을 의심스러운 인물로 보았다.",
+                "participants": [
+                    {"character_name": "셜록 홈즈", "role": "investigator", "confidence": 0.9},
+                    {"character_name": "스태플턴", "role": "suspect", "confidence": 0.8},
+                ],
+                "evidence": "홈즈는 스태플턴을 의심했다.",
+                "first_seen_global_index": 300,
+                "last_seen_global_index": 300,
+            }
+        ],
+    )
+
+    normalized_graph = _source(graph, [], boundary=300).get_graph(BOOK_ID, 300, reveal_all=False)
+
+    assert normalized_graph.relationships == []
 
 
 def test_structured_event_creates_deception_relation():
@@ -341,12 +443,12 @@ def test_structured_event_alias_and_generic_filter_before_relation_generation():
         events=[
             {
                 "event_id": "ev_alias",
-                "event_name": "용의자 조사",
-                "event_summary": "홈즈가 의사를 지나 스태플턴을 조사했다.",
+                "event_name": "진범 검거",
+                "event_summary": "홈즈가 의사를 지나 진범 스태플턴을 검거했다.",
                 "participants": [
                     {"character_name": "홈즈", "role": "investigator"},
                     {"character_name": "의사", "role": "witness"},
-                    {"character_name": "스태플턴", "role": "suspect"},
+                    {"character_name": "스태플턴", "role": "perpetrator"},
                 ],
                 "first_seen_global_index": 300,
                 "last_seen_global_index": 300,

@@ -53,6 +53,14 @@ export interface Relationship {
   evidence?: string[];
   confidence?: number;
   is_story_relation?: boolean;
+  /** 원본 라벨이나 구조화된 사건 근거가 있으면 true. false면 리마인더 공동 언급만으로
+   *  만든 약한 추측성 관계 — 기본 관계도 엣지로는 안 그리고, 연결된 인물을 클릭했을
+   *  때만 보여준다. */
+  has_direct_evidence?: boolean;
+  /** "personal": 가족/연인/친구/원수처럼 사건과 무관하게 계속 성립하는 정체성 기반 관계.
+   *  "action": 목격자/조사/공범처럼 특정 사건 때문에 생긴 관계. BuildAgent가 원본 관계를
+   *  뽑을 때 직접 판단해서 채운다(구버전 데이터는 null일 수 있음). */
+  relation_kind?: 'personal' | 'action' | null;
   last_seen_global_index?: number | null;
   related_events?: Array<Record<string, unknown>>;
 }
