@@ -38,7 +38,10 @@ def _epub_path_for(book_id: str) -> str:
     return str(local_path) if local_path.exists() else ""
 
 
-@lru_cache(maxsize=8)
+# maxsize=8이었을 때는 등록된 책이 8권을 넘는 순간(업로드가 쌓이면서 자연히 넘김)
+# 매 요청마다 LRU 캐시가 밀려나면서(스래싱) 사실상 캐시가 하나도 안 먹혀 API가
+# 몇 초씩 걸리는 문제가 있었다 — 책 수가 작고 자연스럽게 유계(bounded)라 무제한으로 둔다.
+@lru_cache(maxsize=None)
 def _parsed_chapters(book_id: str) -> list[dict]:
     from agents.parsers.epub_parser import parse_epub
 
@@ -52,7 +55,7 @@ def _normalize_title(title: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", title.lower())
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=None)
 def _parser_chapter_offset(book_id: str, first_cfi_title: str) -> int:
     """cfi_db의 chapter_index=1 제목을 epub_parser 결과에서 찾아 두 인덱싱 체계의
     오프셋을 자동으로 맞춘다 (책마다 표지·목차 문서 개수가 달라서 고정값을 쓰면 안 됨).
@@ -73,7 +76,7 @@ def _chapter_text(book_id: str, cfi_chapter_index: int, cfi_chapter_title: str) 
     return None
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=None)
 def book_for(book_id: str, title: str = "", author: str = "—") -> Book:
     paragraphs = cfi_db.get_paragraphs(book_id)
 

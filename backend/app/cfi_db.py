@@ -34,7 +34,10 @@ def _connect():
     return psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
 
 
-@lru_cache(maxsize=8)
+# maxsize=8이었을 때는 등록된 책이 8권을 넘으면 /api/books가 전체 책을 순회할 때마다
+# LRU 캐시가 계속 밀려나서(스래싱) 캐시가 사실상 안 먹혀 매 요청마다 Supabase에 새
+# 연결을 맺느라 몇 초씩 걸렸다 — 책 수가 작고 자연히 유계라 무제한으로 둔다.
+@lru_cache(maxsize=None)
 def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
     """book_id의 전체 문단을 cfi_path 순서(=global_index)로 반환. 결과는 캐시됨."""
     conn = _connect()
