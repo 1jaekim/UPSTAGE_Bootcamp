@@ -1,288 +1,328 @@
-# 🍀 SpoKeeper
+# SpoKeeper
 
-> **"읽기 위치가 스포일러의 경계가 됩니다."**
+> **Your reading position is the spoiler boundary.**
 
-SpoKeeper는 사용자가 현재까지 읽은 소설의 내용만을 기반으로 **인물 관계도(Context Graph)** 와 **맥락 리마인드(Context Reminder)** 를 제공하는 AI 기반 **Spoiler-Safe 독서 보조 서비스**입니다.
+SpoKeeper is an AI-assisted EPUB reader that shows character relationships and contextual reminders using only the part of a book the reader has already reached.
 
-기존 AI 요약 서비스나 RAG 기반 검색은 책 전체를 참조하기 때문에 의도치 않은 스포일러가 발생할 수 있습니다.
+Most summarization and retrieval systems can access an entire book, which makes accidental spoilers difficult to prevent. SpoKeeper instead treats the reader's EPUB CFI and canonical paragraph index as an access boundary. Information beyond that boundary is filtered on the server before it reaches the UI.
 
-SpoKeeper는 **현재 읽기 위치(Offset)** 를 기준으로 정보 접근을 제한하고, **Multi-Agent Workflow**를 통해 미래 내용을 차단하면서 독서 경험을 돕는 것을 목표로 합니다.
+## What SpoKeeper Provides
 
----
+- An EPUB reader powered by epub.js
+- Page-based progress display across the reader, graph, reminder panel, and footer
+- CFI and `global_index` based spoiler enforcement
+- An interactive character relationship graph with full-screen mode and character details
+- Context reminders generated only from already revealed information
+- EPUB upload, SHA-256 deduplication, CFI indexing, and background analysis
+- Persistent reading progress and EPUB-to-`book_id` mapping
+- Local snapshots for isolated result validation and Supabase-backed snapshots for shared environments
+- Character alias consolidation, relationship summaries, and indirect spoiler checks
 
-# 프로젝트 개요
+## Spoiler-Safety Model
 
-사용자는 EPUB 소설을 업로드한 후 평소처럼 책을 읽기만 하면 됩니다.
-
-SpoKeeper는 사용자의 현재 읽기 위치까지 등장한
-
-- 등장인물
-- 인물 관계
-- 주요 사건
-
-을 자동으로 분석하고,
-
-현재까지의 내용을 기반으로
-
-- 인물 관계도
-- Context Reminder
-
-를 제공합니다.
-
----
-
-#  해결하려는 문제
-
-독서 중 AI를 활용할 때 가장 큰 문제는 **스포일러**입니다.
-
-| 문제 | 설명 |
-|------|------|
-| 스포일러 발생 | AI가 미래 사건이나 등장인물을 함께 설명하는 문제 |
-| 등장인물 기억 어려움 | 장편 소설일수록 인물 관계를 기억하기 어려움 |
-| 줄거리 기억 부족 | 오랜만에 다시 읽으면 앞 내용을 잊어버림 |
-
-SpoKeeper는 **"현재 읽은 위치까지만"** 정보를 제공하여 이러한 문제를 해결합니다.
-
----
-
-#  핵심 기능
-
-###  EPUB Parser : EPUB 파일에서 본문과 챕터를 자동 추출합니다.
-
-###  AI BuildAgent : 등장인물, 관계, 사건을 자동 분석합니다.
-
-###  Knowledge Graph : 현재까지 등장한 인물 관계를 시각화합니다.
-
-###  Context Reminder : 현재 읽은 위치까지의 내용을 자연스럽게 요약합니다.
-
-###  Spoiler Guard : Offset 기반으로 미래 내용을 차단하여 스포일러를 방지합니다.
-
----
-
-## 1️ VerifierAgent (1차 Guard)
-
-Retriever가 검색한 결과 중
-
-```
-정보 Offset ≤ 사용자 Offset
-```
-
-인 정보만 통과시킵니다.
-
----
-
-## 2️ ReminderWriterAgent
-
-현재 Offset 이하의 정보만 이용하여
-
-리마인드를 생성합니다.
-
-추측, 해석, 미래 예측은 수행하지 않습니다.
-
----
-
-## 3️ Render Guard (예정)
-
-생성된 결과를 다시 Offset 기준으로 검증하여
-
-미래 정보가 포함되지 않았는지 확인합니다.
-
----
-
-## 4️ IndirectLeakageJudge (예정)
-
-직접적인 스포일러뿐 아니라
-
-- 암시
-- 복선
-- 미래를 연상시키는 표현
-
-까지 판단하여
-
-- PASS
-- REWRITE
-- SUPPRESS
-
-중 하나를 선택합니다.
-
----
-
-#  Agent Workflow
+The page number shown in the UI is a derived display value. It may change when the font size, viewport, or EPUB layout changes. It is not used as the security boundary.
 
 ```text
-                 EPUB
-
-                   │
-
-             ParserAgent
-
-                   │
-
-             ChunkAgent
-
-                   │
-
-              ChromaDB
-
-                   │
-
-      Incremental BuildAgent
-
-                   │
-
-             BuildAgent
-
-                   │
-
-         Knowledge Graph
-
-        ┌──────────┴──────────┐
-
-        ▼                     ▼
-
- CharacterProfiler      Graph Viewer
-
+epub.js current CFI
         │
-
         ▼
+normalized EPUB CFI
+        │
+        ▼
+book_cfi_index global_index
+        │
+        ├── progress persistence
+        ├── graph snapshot lookup
+        ├── relationship filtering
+        └── reminder filtering
 
- Avatar Prompt (예정)
-
-────────────────────────────────────
-
-       RetrieverAgent
-
-              │
-
-              ▼
-
-      VerifierAgent
-
-              │
-
-              ▼
-
-    ReminderWriterAgent
-
-              │
-
-              ▼
-
- IndirectLeakageJudge (예정)
-
-              │
-
-              ▼
-
-      Render Guard (예정)
-
-              │
-
-              ▼
-
-            사용자
+UI pagination
+        └── current page / total pages (display only)
 ```
 
----
+The backend selects the latest precomputed snapshot whose boundary is less than or equal to the reader's current `global_index`. Verification and response-time guards remove entities, relationships, events, and reminders that are not safe at that position.
 
-#  프로젝트 구조
+## Main Features
 
-저장소는 **frontend / backend / agents** 3개 폴더로 구성된다.
+### EPUB Reading and Page Synchronization
+
+- Paginated EPUB rendering with epub.js
+- Previous/next page navigation and progress controls
+- CFI-based location restoration after refresh
+- Page recalculation after viewport reflow
+- A consistent page number across the reader, relationship panel, reminder panel, and progress footer
+- `Page calculation in progress` fallback while pagination is being generated
+
+### Character Relationship Graph
+
+- Cytoscape-based interactive graph
+- Character names displayed directly on nodes
+- Curved relationship edges with persistent labels
+- Character-specific deterministic colors
+- Selection, hover, connected-node emphasis, and detail panels
+- Relationship descriptions, aliases, and first-seen information
+- Shared presentation rules between the embedded and full-screen graph
+
+### Spoiler-Safe AI Pipeline
+
+The analysis pipeline incrementally processes the book and builds cumulative snapshots:
+
+1. EPUB parser
+2. Chunk generator
+3. Incremental BuildAgent
+4. Character consolidation and alias resolution
+5. VerifierAgent
+6. ReminderWriterAgent
+7. IndirectLeakageJudge
+8. Snapshot persistence
+
+New analyses store a snapshot at every analyzed chunk boundary so relationship information can appear progressively instead of being released in large batches.
+
+### Book Upload and Persistence
+
+Uploaded books follow this flow:
+
+```text
+EPUB upload
+  → SHA-256 duplicate check
+  → book_id creation or reuse
+  → local EPUB storage
+  → relative storage_path persistence
+  → CFI index generation
+  → immediate reading availability
+  → background AI snapshot generation
+```
+
+Absolute EPUB paths are never persisted. Paths are resolved relative to `backend/data` and checked against path traversal before use.
+
+## Architecture
+
+```text
+frontend/                    React reader and graph UI
+    │
+    │ HTTP /api
+    ▼
+backend/app/main.py          FastAPI routes and reading-state contract
+    ├── cfi_db.py            CFI ↔ global_index lookup
+    ├── book_repository.py   Safe EPUB path and local metadata registry
+    ├── content_source.py    Snapshot selection and spoiler filtering
+    ├── precompute.py        Incremental snapshot generation
+    └── db.py                Local reading-progress persistence
+    │
+    ├── backend/data/precomputed/*.json
+    ├── backend/data/uploaded_books/*.epub
+    └── Supabase PostgreSQL
+            ├── books
+            ├── book_cfi_index
+            └── build_agent_snapshots
+
+agents/
+    ├── build_agent.py
+    ├── verifier_agent.py
+    ├── reminder_writer_agent.py
+    ├── indirect_leakage_judge.py
+    └── consolidation_agent.py
+```
+
+## Technology Stack
+
+### Frontend
+
+- React 19
+- TypeScript
+- Vite
+- Zustand
+- TanStack Query
+- epub.js
+- Cytoscape.js and fCoSE
+- Tailwind CSS
+
+### Backend and AI
+
+- Python
+- FastAPI
+- Pydantic
+- SQLAlchemy and SQLite for local reading progress
+- PostgreSQL / Supabase for book metadata, CFI indexes, and snapshots
+- EbookLib and Beautiful Soup
+- Upstage Solar through `langchain-upstage`
+
+## Repository Structure
 
 ```text
 .
-├── frontend/                # React + Vite (읽기 UI, 관계도, 리마인드)
-│   ├── src/
-│   │   ├── api/             # 통합 계약 타입·클라이언트·훅
-│   │   └── components/
-│   └── vite.config.ts       # /api → 127.0.0.1:8000 프록시
-│
-├── backend/                 # FastAPI 서빙 (계약 graph_json·reminders·progress)
+├── frontend/
+│   ├── src/api/                    API client, contracts, and query hooks
+│   ├── src/components/             Reader, panels, and graph UI
+│   ├── src/store.ts                Client reading and UI state
+│   └── vite.config.ts              /api proxy to FastAPI
+├── backend/
 │   ├── app/
-│   │   ├── main.py          # 라우트 + 소스 주입(_make_source)
-│   │   ├── schemas.py       # 통합 계약 스키마
-│   │   ├── content_source.py# FixtureSource / AgentResultSource
-│   │   ├── agent_adapter.py # 에이전트 출력 → 계약 변환
-│   │   ├── precompute.py    # 경계선별 build 결과 → 계약 JSON store
-│   │   └── db.py, fixtures.py
-│   ├── scripts/make_demo_store.py
+│   │   ├── main.py                 FastAPI application
+│   │   ├── schemas.py              API schemas
+│   │   ├── cfi_db.py               CFI/global-index repository
+│   │   ├── book_repository.py      Safe EPUB registry and resolver
+│   │   ├── content_source.py       Snapshot sources and spoiler gating
+│   │   ├── precompute.py           AI snapshot pipeline
+│   │   └── upload_pipeline.py      EPUB ingestion and CFI indexing
+│   ├── cfi_tools/                  Node-based EPUB CFI index builder
+│   ├── data/                       EPUB files and local snapshot data
 │   └── tests/
-│
-└── agents/                  # AI 에이전트 파이프라인 (Solar-Pro2 + LangChain)
-    ├── build_agent.py       # 인물·관계·사건 추출 (+ 증분 빌드)
-    ├── character_profiler_agent.py
-    ├── parsers/epub_parser.py
-    ├── tools/chunk_tool.py
-    ├── config.py
-    ├── app.py               # Streamlit 프로토타입
-    ├── data/books/          # EPUB 샘플
-    └── requirements.txt
+└── agents/                         Extraction, verification, and reminder agents
 ```
 
-> 실행: 모든 명령은 **저장소 최상위**에서. `agents`·`backend` 는 최상위를 sys.path 기준으로
-> import 한다 (`from agents.build_agent import ...`, `from backend.app...`).
+Run Python commands from the repository root because imports use `backend.*` and `agents.*` from that location.
 
----
+## Prerequisites
 
-#  기술 스택
+- Python 3.11 or later
+- Node.js and npm
+- A PostgreSQL/Supabase database for shared book and snapshot data
+- An Upstage API key to analyze new books
 
-### AI
+The frontend mock mode and previously generated local snapshots can be used without running the paid AI analysis pipeline. The live backend still requires the metadata and CFI data needed by the selected book.
 
-- Upstage Solar-Pro2
-- LangChain
+## Installation
 
-### Vector Database
+### 1. Create a Python environment
 
-- ChromaDB
+Windows PowerShell:
 
-### Backend
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r backend/requirements.txt
+pip install -r agents/requirements.txt
+```
 
-- Python
-- Streamlit (Prototype)
+macOS/Linux:
 
-### 예정
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r backend/requirements.txt
+pip install -r agents/requirements.txt
+```
 
-- FastAPI
-- React
+### 2. Install Node dependencies
 
----
+```bash
+npm install --prefix frontend
+npm install --prefix backend/cfi_tools
+```
 
+### 3. Configure the backend
 
+Create `backend/.env`:
 
+```dotenv
+SUPABASE_DB_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+UPSTAGE_API_KEY=your_upstage_api_key
 
+# fixture | local | agent
+SPO_SOURCE=agent
 
-#  개발 진행 현황
+# Initial book loaded by the backend fixture compatibility layer
+SPO_BOOK_ID=your_default_book_id
 
-| 기능 | 상태 |
-|------|------|
-| EPUB Parser | ✅ |
-| Chunk Generator | ✅ |
-| ChromaDB | ✅ |
-| Incremental BuildAgent | ✅ |
-| BuildAgent | ✅ |
-| CharacterProfilerAgent | ✅ |
-| Graph Viewer | ✅ |
-| VerifierAgent | ✅ |
-| ReminderWriterAgent | 🚧 |
-| Render Guard | 🚧 |
-| IndirectLeakageJudge | 🚧 |
-| AvatarGeneratorAgent | 🚧 |
+# development enables the single-EPUB fallback in the safe path resolver
+SPO_ENV=development
+```
 
----
+Content source modes:
 
-#  기대 효과
+| Mode | Behavior |
+|---|---|
+| `fixture` | Uses built-in demonstration data. |
+| `local` | Reads `backend/data/precomputed/*.json` without querying Supabase snapshots. |
+| `agent` | Loads Supabase snapshots first and falls back to local precomputed files for missing entries. |
 
-###  독자
+### 4. Configure the frontend
 
-- 등장인물 관계를 쉽게 이해
-- 줄거리 기억 부담 감소
-- 스포일러 없는 독서 경험
+Create `frontend/.env`:
 
-###  AI 서비스
+```dotenv
+VITE_USE_MOCK=false
 
-- Offset 기반 접근 제어
-- Multi-Agent Workflow
-- Knowledge Graph 기반 관계 관리
-- Spoiler Guard 구조를 통한 안전한 AI 독서 지원
+# Optional. Leave unset to use the Vite /api proxy.
+# VITE_API_BASE=http://127.0.0.1:8000
+```
 
----
+## Running the Application
+
+Start the backend from the repository root:
+
+```bash
+python -m uvicorn backend.app.main:app --reload --port 8000
+```
+
+Start the frontend in another terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open:
+
+- Frontend: <http://localhost:5173>
+- Backend health check: <http://127.0.0.1:8000/api/health>
+- OpenAPI documentation: <http://127.0.0.1:8000/docs>
+
+## API Overview
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Backend health check |
+| `GET` | `/api/books` | List available books |
+| `POST` | `/api/books/upload` | Upload, index, and schedule analysis for an EPUB |
+| `GET` | `/api/books/{book_id}` | Get book metadata and chapter indexes |
+| `DELETE` | `/api/books/{book_id}` | Delete a book and its local files |
+| `GET` | `/api/books/{book_id}/file` | Stream the EPUB to epub.js |
+| `GET` | `/api/books/{book_id}/chapters/{index}` | Get parsed chapter content |
+| `GET` | `/api/books/{book_id}/graph` | Get the spoiler-safe relationship graph |
+| `GET` | `/api/books/{book_id}/reminders` | Get spoiler-safe contextual reminders |
+| `GET` | `/api/books/{book_id}/progress` | Read persisted progress |
+| `PUT` | `/api/books/{book_id}/progress` | Save CFI, global index, and page metadata |
+| `GET` | `/api/books/{book_id}/analysis-status` | Poll background analysis progress |
+
+Graph and reminder requests accept `current_global_index`, `current_page`, and `total_pages`. The backend uses `current_global_index` for filtering and returns page values only as presentation metadata.
+
+## Local EPUB and Snapshot Storage
+
+- Uploaded EPUBs: `backend/data/uploaded_books/{book_id}.epub`
+- Local metadata registry: `backend/data/book_registry.json`
+- Local snapshots: `backend/data/precomputed/{book_id}.json`
+- Local progress database: `spokeeper.db`
+
+EPUBs placed directly under `backend/data` are discovered at backend startup and receive a deterministic ID based on their SHA-256 hash. For full CFI indexing and AI analysis, use the upload API or run the analysis pipeline explicitly.
+
+Existing snapshots keep the granularity with which they were originally generated. Re-run analysis to apply newer per-chunk snapshot behavior to an older book.
+
+## Validation
+
+Backend tests:
+
+```bash
+python -m pytest backend/tests -q
+```
+
+Frontend checks:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+CFI mapping and spoiler-boundary behavior have dedicated regression tests under `backend/tests`.
+
+## Design Principles
+
+1. **The server owns spoiler enforcement.** Future data is filtered before the API response is created.
+2. **CFI/global index is authoritative.** Page numbers are presentation-only derived values.
+3. **Progress and spoiler boundaries are separate.** The current location can move backward while the normal spoiler boundary remains monotonic unless the user explicitly resets it.
+4. **Stored paths are relative and validated.** EPUB resolution cannot escape `backend/data`.
+5. **Existing API contracts remain backward compatible.** Legacy offset fields are retained while CFI, global-index, and page metadata are added.
