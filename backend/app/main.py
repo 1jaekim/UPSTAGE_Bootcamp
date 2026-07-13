@@ -14,6 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import cfi_db, db, fixtures as fx
+from .book_repository import (
+    InvalidEpubPathError,
+    UnsafeEpubPathError,
+    bootstrap_local_epubs,
+    list_registered_books,
+    resolve_epub_path,
+    unregister_local_book,
+)
 from .content_source import ContentSource
 from .schemas import (
     Book,
@@ -54,6 +62,7 @@ def get_content_source() -> ContentSource:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    bootstrap_local_epubs()
     db.init_db()
     db.seed_demo_progress()  # 데모 기본 reading_offset/spoiler_boundary(global_index)=380
     yield
@@ -74,6 +83,13 @@ def _all_books() -> dict[str, Book]:
         if row["book_id"] in books:
             continue
         books[row["book_id"]] = fx.book_for(row["book_id"], title=row["title"])
+    for metadata in list_registered_books():
+        if metadata["book_id"] in books:
+            continue
+        books[metadata["book_id"]] = fx.book_for(
+            metadata["book_id"],
+            title=metadata["title"],
+        )
     return books
 
 
@@ -102,14 +118,22 @@ def delete_book(book_id: str) -> dict:
     global _content_source_cache
 
     from .precompute import store_path
-    from .upload_pipeline import epub_path_for
+
+    try:
+        epub_path = resolve_epub_path(book_id)
+    except (FileNotFoundError, UnsafeEpubPathError, InvalidEpubPathError):
+        epub_path = None
 
     deleted = cfi_db.delete_book(book_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="책을 찾을 수 없습니다.")
 
-    for path in (epub_path_for(book_id), store_path(book_id)):
+    paths_to_delete = [store_path(book_id)]
+    if epub_path is not None:
+        paths_to_delete.append(epub_path)
+    for path in paths_to_delete:
         path.unlink(missing_ok=True)
+    unregister_local_book(book_id)
 
     _analysis_progress.pop(book_id, None)
     cfi_db.clear_cache()
@@ -122,9 +146,10 @@ def delete_book(book_id: str) -> dict:
 def get_book_file(book_id: str):
     """epub.js가 브라우저에서 직접 렌더링할 수 있도록 원본 EPUB 바이트를 서빙한다."""
     _require_book(book_id)
-    path = Path(fx._epub_path_for(book_id))
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="원본 EPUB 파일을 찾을 수 없습니다.")
+    try:
+        path = resolve_epub_path(book_id)
+    except (FileNotFoundError, UnsafeEpubPathError, InvalidEpubPathError) as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
     return FileResponse(path, media_type="application/epub+zip", filename=path.name)
 
 
@@ -274,9 +299,7 @@ def _run_full_analysis(book_id: str) -> None:
     from agents.parsers.epub_parser import parse_epub
     from agents.tools.chunk_tool import make_chunks
     from .precompute import precompute_from_epub
-    from .upload_pipeline import epub_path_for
-
-    epub_path = str(epub_path_for(book_id))
+    epub_path = str(resolve_epub_path(book_id))
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
     last = len(chunks) - 1

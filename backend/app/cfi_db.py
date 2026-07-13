@@ -140,6 +140,22 @@ def set_storage_path(book_id: str, storage_path: str) -> None:
         conn.close()
 
 
+def get_book_storage_path(book_id: str) -> str | None:
+    """books.storage_path를 반환하고, 해당 book_id가 없으면 None을 반환한다."""
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute("SELECT storage_path FROM books WHERE book_id = %s", (book_id,))
+            except psycopg2.errors.InvalidTextRepresentation:
+                conn.rollback()
+                return None
+            row = cur.fetchone()
+            return str(row[0]).strip() if row and row[0] else None
+    finally:
+        conn.close()
+
+
 def list_books() -> list[dict]:
     """status='ready'인 책 목록을 (book_id, title, storage_path)로 반환."""
     conn = _connect()

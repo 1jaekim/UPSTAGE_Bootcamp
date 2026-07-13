@@ -70,16 +70,16 @@ function RelationItem({
   return (
     <li className="relative border-l border-slate-200 pl-4">
       <div className="absolute -left-[5px] top-3 h-2.5 w-2.5 rounded-full bg-slate-300" />
-      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="border border-[#d8d8ca] bg-transparent p-3 transition-colors hover:bg-[#faf9f5]">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-extrabold text-accent">{relationLabel(relationship)}</span>
           <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${CATEGORY_BADGE[category] ?? CATEGORY_BADGE.neutral}`}>
             {categoryLabel(relationship)}
           </span>
         </div>
-        <div className="mt-2 text-sm font-extrabold text-slate-800">{entityName(entities, otherId)}</div>
+        <div className="mt-2 text-sm font-extrabold text-[#283126]">{entityName(entities, otherId)}</div>
         {relationSummary(relationship) && (
-          <p className="mt-1 text-xs font-semibold leading-5 text-slate-600">{relationSummary(relationship)}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#4d574b]">{relationSummary(relationship)}</p>
         )}
         {relationship.event_name && (
           <p className="mt-2 text-[11px] font-bold text-slate-400">대표 사건: {relationship.event_name}</p>
@@ -136,9 +136,9 @@ export function CharacterRelationshipTree({
 
   return (
     <section className="space-y-3">
-      <h3 className="text-xs font-extrabold uppercase text-slate-400">관계 트리</h3>
+      <h3 className="text-xs font-extrabold uppercase tracking-[0.08em] text-[#858d7d]">관계 트리</h3>
       {directRelationships.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-400">
+        <div className="border border-dashed border-[#d8d8ca] bg-[#faf9f5] p-6 text-center text-sm font-semibold text-[#858d7d]">
           이 인물과 직접 연결된 공개 관계가 없습니다.
         </div>
       ) : (

@@ -13,10 +13,10 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <label className="flex items-start justify-between gap-4 border border-[#d8d8ca] bg-transparent p-5">
       <span>
-        <span className="block text-sm font-bold text-slate-800">{label}</span>
-        <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">{description}</span>
+        <span className="block text-sm font-bold text-[#283126]">{label}</span>
+        <span className="mt-1 block text-xs font-semibold leading-5 text-[#858d7d]">{description}</span>
       </span>
       <button
         type="button"
@@ -24,7 +24,7 @@ function ToggleRow({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
-          checked ? 'bg-accent' : 'bg-slate-200'
+          checked ? 'bg-[#52745d]' : 'bg-[#d8d8ca]'
         }`}
       >
         <span
@@ -57,7 +57,7 @@ export function SettingsPanel() {
         checked={maskNames}
         onChange={setMaskNames}
       />
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs font-semibold text-slate-500">
+      <div className="border border-[#d8d8ca] bg-[#faf9f5] p-4 text-xs font-semibold text-[#6d7568]">
         <div className="flex items-center justify-between gap-3">
           <span>데이터 소스</span>
           <span

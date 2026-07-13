@@ -48,10 +48,10 @@ export function CharacterSelector({
         key={entity.id}
         type="button"
         onClick={() => onSelect(entity.id)}
-        className={`shrink-0 rounded-xl border px-3 py-2 text-left transition ${
+        className={`shrink-0 border px-3 py-2 text-left transition ${
           selected
-            ? 'border-accent bg-indigo-50 text-accent shadow-sm'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+            ? 'border-[#283126] bg-[#ebece2] text-[#283126]'
+            : 'border-[#d8d8ca] bg-transparent text-[#6d7568] hover:border-[#283126] hover:bg-[#faf9f5]'
         }`}
       >
         <span className="block text-[10px] font-black leading-none tracking-wide text-amber-500">{stars(value)}</span>
@@ -69,7 +69,7 @@ export function CharacterSelector({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-extrabold uppercase text-slate-400">인물 목록</h3>
+        <h3 className="text-xs font-extrabold uppercase tracking-[0.08em] text-[#858d7d]">인물 목록</h3>
         {minor.length > 0 && (
           <button
             type="button"

@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 
 from . import cfi_db
+from .book_repository import register_local_epub
 
 CFI_TOOLS_DIR = Path(__file__).resolve().parent.parent / "cfi_tools"
 CFI_SCRIPT = CFI_TOOLS_DIR / "build_cfi_index.js"
@@ -25,6 +26,11 @@ UPLOADED_BOOKS_DIR = Path(__file__).resolve().parent.parent / "data" / "uploaded
 
 def epub_path_for(book_id: str) -> Path:
     return UPLOADED_BOOKS_DIR / f"{book_id}.epub"
+
+
+def _storage_path_for(book_id: str) -> str:
+    """DB에 저장할 backend/data 기준 POSIX 상대경로."""
+    return (Path("uploaded_books") / f"{book_id}.epub").as_posix()
 
 
 class CfiBuildError(RuntimeError):
@@ -63,6 +69,14 @@ def ingest_epub(epub_bytes: bytes, filename: str, title: str) -> dict:
         if not local_path.exists():
             UPLOADED_BOOKS_DIR.mkdir(parents=True, exist_ok=True)
             local_path.write_bytes(epub_bytes)
+        cfi_db.set_storage_path(existing_book_id, _storage_path_for(existing_book_id))
+        register_local_epub(
+            existing_book_id,
+            _storage_path_for(existing_book_id),
+            title=title,
+            content_hash=content_hash,
+            original_filename=filename,
+        )
         return {
             "book_id": existing_book_id,
             "reused": True,
@@ -78,7 +92,14 @@ def ingest_epub(epub_bytes: bytes, filename: str, title: str) -> dict:
     UPLOADED_BOOKS_DIR.mkdir(parents=True, exist_ok=True)
     local_epub_path = epub_path_for(book_id)
     local_epub_path.write_bytes(epub_bytes)
-    cfi_db.set_storage_path(book_id, str(local_epub_path))
+    cfi_db.set_storage_path(book_id, _storage_path_for(book_id))
+    register_local_epub(
+        book_id,
+        _storage_path_for(book_id),
+        title=title,
+        content_hash=content_hash,
+        original_filename=filename,
+    )
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)

@@ -10,7 +10,7 @@ export function RelationshipGraph({ graph }: { graph: GraphJson }) {
       <button
         type="button"
         onClick={() => setExpanded(true)}
-        className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-bold text-slate-600 shadow-sm transition hover:border-accent hover:bg-indigo-50 hover:text-accent"
+        className="h-9 shrink-0 border border-[#d8d8ca] bg-transparent px-3 text-xs font-bold text-[#4d574b] transition hover:border-[#283126] hover:text-[#283126]"
         aria-label="관계도 보기"
       >
         관계도 보기
