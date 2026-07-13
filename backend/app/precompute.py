@@ -303,6 +303,33 @@ def remap_boundaries_to_global_index(
     return remap_entries_to_global_index(book_id, epub_path, entries)
 
 
+def delete_snapshots_from_supabase(book_id: str) -> int:
+    """book_id의 기존 스냅샷 행을 전부 삭제. 재분석 시작 전에 한 번 호출한다.
+
+    upload_snapshots_to_supabase는 (book_id, boundary) upsert라, boundary 스케줄이
+    바뀌면(예: 청크 오프셋 재보정 후 재분석) 예전 스케줄의 boundary들은 새 entries에
+    안 나타나서 절대 지워지지 않고 계속 쌓인다 — floor 선택 로직이 이 스테일 스냅샷을
+    골라버리면 재분석 이전의 잘못된 그래프가 다시 노출된다. 실제로 이 문제로 재분석
+    직후에도 옛 boundary(16/52/88/124/160/217)가 새 boundary와 섞여서 표시된 사고가 있었다.
+    """
+    import psycopg2
+
+    from .config import SUPABASE_DB_URL
+
+    if not SUPABASE_DB_URL:
+        return 0
+
+    conn = psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM build_agent_snapshots WHERE book_id = %s", (book_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
+
+
 def upload_snapshots_to_supabase(book_id: str, entries: list[dict]) -> int:
     """entries를 Supabase build_agent_snapshots 테이블에 적재. 적재 행 수 반환."""
     import json as _json
@@ -454,6 +481,11 @@ def precompute_from_epub(
 
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
+
+    if upload_to_supabase:
+        # 새 스케줄로 재분석을 시작하기 전에 이 책의 예전 스냅샷을 전부 지운다 —
+        # 그러지 않으면 예전 boundary 스케줄의 스테일 데이터가 새 데이터와 섞인다.
+        delete_snapshots_from_supabase(book_id)
 
     # 이번 실행 전체에 걸쳐 동일한 시각을 쓴다 — 프론트에서 "이 책 데이터가 언제
     # 마지막으로 갱신됐는지"를 볼 때, 경계선마다 시각이 제각각이면 오히려 혼란스럽다.
