@@ -15,9 +15,9 @@ type LocationsWithTotal = {
 function charsForViewport(width: number, height: number): number {
   // epub.js locations는 문자 단위이므로 현재 viewport가 담을 수 있는 문자 수를 기준으로
   // 다시 생성한다. 화면/폰트 reflow 시 같은 CFI의 표시 page가 새로 계산된다.
-  const columns = Math.max(24, Math.floor(width / 10));
-  const rows = Math.max(12, Math.floor(height / 29));
-  return Math.max(300, Math.min(2400, columns * rows));
+  const columns = Math.max(24, Math.floor(width / 13));
+  const rows = Math.max(10, Math.floor(height / 34));
+  return Math.max(300, Math.min(1800, columns * rows));
 }
 
 // 페이지 번호/슬라이더 위치는 서버 응답을 기다릴 필요 없이 클라이언트에서 바로 계산되므로
@@ -48,27 +48,24 @@ export function EpubJsReader() {
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [locationsReady, setLocationsReady] = useState(false);
-  const [paginationRevision, setPaginationRevision] = useState(0);
 
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new ResizeObserver(([entry]) => {
+      // 여기서는 실제 컨테이너 크기를 계속 기록만 해둔다(다음 책을 열 때
+      // charsForViewport 계산에 씀) — 리사이즈가 일어났다고 locations를 다시
+      // 만들거나 book/rendition을 재생성하지는 않는다. 예전엔 사이드 패널을
+      // 열고 닫을 때마다 locations를 다시 계산해서, 실제로 읽는 위치는 그대로인데
+      // 페이지 번호만 엉뚱하게 튀는 문제가 있었다(예: 1페이지 -> 8페이지, 내용은
+      // 안 바뀜) — 시각적 레이아웃은 CSS width:100%로 이미 잘 따라가므로, 페이지
+      // 번호 계산까지 매번 다시 할 필요가 없다.
       const width = Math.round(entry.contentRect.width);
       const height = Math.round(entry.contentRect.height);
-      const previous = viewportRef.current;
       viewportRef.current = { width, height };
-      if (previous.width > 0 && previous.height > 0 && (previous.width !== width || previous.height !== height)) {
-        clearTimeout(timer);
-        timer = setTimeout(() => setPaginationRevision((value) => value + 1), 180);
-      }
     });
     observer.observe(element);
-    return () => {
-      clearTimeout(timer);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -213,7 +210,7 @@ export function EpubJsReader() {
       bookRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId, paginationRevision, progressLoading]);
+  }, [bookId, progressLoading]);
 
   useEffect(() => {
     if (!locationsReady || requestedPage === null || !renditionRef.current || !bookRef.current) return;
