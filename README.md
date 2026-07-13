@@ -1,3 +1,7 @@
+<p align="right">
+  <a href="./README_EN.md">🇺🇸 English</a>
+</p>
+
 # 🍀 SpoKeeper
 
 > **"읽기 위치가 스포일러의 경계가 됩니다."**
