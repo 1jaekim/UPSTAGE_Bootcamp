@@ -1470,6 +1470,680 @@
           ]
         }
       ]
+    },
+    {
+      "boundary": 240,
+      "graph": {
+        "offset": 240,
+        "spoiler_safe": true,
+        "entities": [
+          {
+            "id": "e_a1f7ce94",
+            "name": "심학규",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "송나라 말년의 황주 도화동 사람. 곽씨부인의 남편. 심청의 아버지."
+          },
+          {
+            "id": "e_7a65da65",
+            "name": "곽씨부인",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "심학규의 아내. 심청의 어머니. 가난하지만 덕행이 높은 인물."
+          },
+          {
+            "id": "e_d40f1e7d",
+            "name": "심청",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "심학규와 곽씨부인의 딸. 곽씨부인이 출산한 후 병으로 죽음."
+          },
+          {
+            "id": "e_f2558d1a",
+            "name": "장승상댁 시비",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "월평 무릉촌 장승상댁에서 온 시비. 심청이를 초청하러 옴."
+          },
+          {
+            "id": "e_54aec296",
+            "name": "승상부인",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "심소졔를 선녀에 비유하며 후대하는 인물. 심소졔에게 의복과 양식을 제공함"
+          },
+          {
+            "id": "e_0e9eb1c4",
+            "name": "몽운사 화주승",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "심봉사를 구하고 공양미 삼백 석을 요구하여 심봉사가 후회하게 만든 인물"
+          },
+          {
+            "id": "e_91647022",
+            "name": "남경 선인",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "심청을 인당수 제숙으로 사 가려는 상인"
+          },
+          {
+            "id": "e_c7af7948",
+            "name": "오자서",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "초나라 충신. 오나라에 피신해 있다가 죽은 후 강물에 던져진 인물. 심청과 대화하며 자신의 신세를 토로함."
+          },
+          {
+            "id": "e_83d5e323",
+            "name": "굴원",
+            "type": "person",
+            "color": "blue",
+            "importance_score": 1,
+            "importance_level": "minor",
+            "description": "초나라 시인. 회왕을 섬기다가 참소를 당해 강물에 몸을 던진 인물. 심청과 대화하며 충성과 효성의 공통점을 언급함."
+          }
+        ],
+        "relationships": [
+          {
+            "id": "r_7c5d1200",
+            "source": "e_a1f7ce94",
+            "target": "e_7a65da65",
+            "label": "부부",
+            "tone": "neutral",
+            "description": "심봉사가 / 여보 마누ᄅᆡ 예 사ᄅᆞᆷ이 셰상의 삼겨날 졔 부부야 뉘 업스랴마는",
+            "revision_offset": 50,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "personal",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_816dd869",
+            "source": "e_a1f7ce94",
+            "target": "e_d40f1e7d",
+            "label": "아버지-딸",
+            "tone": "neutral",
+            "description": "심봉사 이른 말리 / 마누ᄅᆡ 그 말 마오 쳣ᄎᆡ는 순산이요 ᄯᅡᆯ이라도 잘 두며 언의 아들 주어 밧구것소",
+            "revision_offset": 50,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "personal",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_0bd3c617",
+            "source": "e_7a65da65",
+            "target": "e_d40f1e7d",
+            "label": "어머니-딸",
+            "tone": "neutral",
+            "description": "곽씨부인 셜어ᄒᆞ여 ᄒᆞ는 말리 / 신공 드려 만득으로 나흔 자식 ᄯᅡᆯ이라 ᄒᆞ오",
+            "revision_offset": 99,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "personal",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_b2539dd3",
+            "source": "e_d40f1e7d",
+            "target": "e_f2558d1a",
+            "label": "초청자-피초청자",
+            "tone": "neutral",
+            "description": "일일은 월평 무릉촌 장승상ᄃᆡᆁ 시비 드러와 부인 명을 바다 심소졔를 청ᄒᆞ거늘",
+            "revision_offset": 99,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "action",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_704a9721",
+            "source": "e_d40f1e7d",
+            "target": "e_54aec296",
+            "label": "하인-주인",
+            "tone": "neutral",
+            "description": "부인이 층찬 왈... 네 젼셰를 모로난야 분명이 션녀로다",
+            "revision_offset": 148,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "action",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_d4f80140",
+            "source": "e_a1f7ce94",
+            "target": "e_0e9eb1c4",
+            "label": "구원자-구함을 받은 자",
+            "tone": "neutral",
+            "description": "몽운사 화주승이 절을 즁창ᄒᆞ랴... 화주승이 심봉사를 업고 방안의다가 안치고",
+            "revision_offset": 148,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "action",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_28c47ad0",
+            "source": "e_d40f1e7d",
+            "target": "e_54aec296",
+            "label": "거짓 수양딸",
+            "tone": "neutral",
+            "description": "장승상ᄃᆡᆁ 노부인이 월션의 날다려 수양ᄯᅡᆯ을 사무려 ᄒᆞ시난듸 차마 허락지 안이 ᄒᆞ엿삽더니 금자 사셰는 공양미 삼ᄇᆡᆨ 석을 주션ᄒᆞᆯ 기리 젼이 업셔 이 사연을 노부인게 엿자온직 ᄇᆡᆨ미 삼ᄇᆡᆨ 셕을 ᄂᆡ여 주시기로 수양ᄯᅡᆯ노 팔여난이다",
+            "revision_offset": 197,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "action",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_3b85d5d7",
+            "source": "e_d40f1e7d",
+            "target": "e_a1f7ce94",
+            "label": "부자",
+            "tone": "neutral",
+            "description": "심청이 도라와셔 졔의 부친의게 ᄒᆞ직할ᄉᆡ 심봉사 붓들고 ᄯᅴ놀며",
+            "revision_offset": 240,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "personal",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          },
+          {
+            "id": "r_509ca80a",
+            "source": "e_d40f1e7d",
+            "target": "e_7a65da65",
+            "label": "모자",
+            "tone": "neutral",
+            "description": "부인이 젼ᄉᆡᆼ의 ᄂᆡ의 부모라...부인이 반기여 지필묵을 ᄂᆡ여주시니",
+            "revision_offset": 240,
+            "display_label": null,
+            "relation_category": "neutral",
+            "relation_kind": "personal",
+            "directionality": "undirected",
+            "relation_importance_score": 1,
+            "relation_importance_level": "minor",
+            "first_seen_global_index": null,
+            "first_seen_boundary": null,
+            "is_new_at_current_position": false,
+            "detail": null,
+            "event_name": null,
+            "event_summary": null,
+            "relation_role": null,
+            "role_label": null,
+            "role_pair_label": null,
+            "relationship_summary": null,
+            "evidence": [],
+            "confidence": 0.5,
+            "is_story_relation": false,
+            "label_is_generic": false,
+            "has_direct_evidence": true,
+            "last_seen_global_index": null,
+            "related_events": []
+          }
+        ],
+        "events": [
+          {
+            "event_id": "birth_of_simcheong",
+            "event_name": "심청의 출생",
+            "event_summary": "곽씨부인이 심청을 출산함.",
+            "participants": [
+              {
+                "character_name": "곽씨부인",
+                "role": "victim",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심학규",
+                "role": "helper",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "심청",
+                "role": "beneficiary",
+                "confidence": 0.9
+              }
+            ],
+            "evidence": "비난이다 비난이다 삼신졔왕젼의 비난이다 곽씨부인 노산이오ᄆᆡ 헌 초ᄆᆡ의 외씨 ᄲᆞ지듯 순산ᄒᆞ여 주옵소셔",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 50,
+            "last_seen_global_index": 50,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "illness_of_gwakssi",
+            "event_name": "곽씨부인의 병",
+            "event_summary": "곽씨부인이 출산 후 병으로 고통받음.",
+            "participants": [
+              {
+                "character_name": "곽씨부인",
+                "role": "victim",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "심학규",
+                "role": "helper",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "ᄋᆡ고 ᄇᆡ야 ᄋᆡ고 허리야 / 심봉사 일변 반갑고 일변 놀ᄂᆡ여 집 ᄒᆞᆫ 줌 졍이 추려ᄂᆡ여 사발의 졍화수를 소반의 밧쳐 노코 단졍이 ᄭᅮᆯ어안져",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 4,
+            "first_seen_global_index": 50,
+            "last_seen_global_index": 50,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "death_of_gwakssi",
+            "event_name": "곽씨부인의 죽음",
+            "event_summary": "곽씨부인이 병으로 죽음. 심청을 심학규에게 맡기고 유언을 남김.",
+            "participants": [
+              {
+                "character_name": "곽씨부인",
+                "role": "victim",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "심학규",
+                "role": "helper",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "심청",
+                "role": "beneficiary",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심학규",
+                "role": "deceived",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심청",
+                "role": "beneficiary",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "ᄋᆡ고 ᄂᆡ가 이졋소 져 아히 일홈을 심쳥이라 지여 두고 나 ᄶᅵ던 옥지환이 함 속의 잇스니 심쳥이 자라거든 날 본 다시 ᄂᆡ여 주고\n현쳘ᄒᆞ든 곽씨부인 불상이도 죽어구나 / 여보 마누ᄅᆡ 그ᄃᆡ 살고 ᄂᆡ가 죽으면져",
+            "first_seen_chunk_offset": 4,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 50,
+            "last_seen_global_index": 99,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e2",
+            "event_name": "심청이의 효행",
+            "event_summary": "심청이가 어린 나이부터 밥을 빌어다 아버지를 봉양하며 극진히 모심.",
+            "participants": [
+              {
+                "character_name": "심청",
+                "role": "helper",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "심학규",
+                "role": "beneficiary",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "심쳥이 이 날부텀 밥 빌너 나셜 제 / 심쳥이 ᄒᆞ난 말리 / 치운 방의 늘근 부친 응당 기달일 거스니 나 혼자 먹사오릿가",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 99,
+            "last_seen_global_index": 99,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "e3",
+            "event_name": "장승상댁 시비의 초청",
+            "event_summary": "장승상댁 시비가 심청이를 초청하러 옴.",
+            "participants": [
+              {
+                "character_name": "장승상댁 시비",
+                "role": "employer",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심청",
+                "role": "target",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "일일은 월평 무릉촌 장승상ᄃᆡᆁ 시비 드러와 부인 명을 바다 심소졔를 청ᄒᆞ거늘",
+            "first_seen_chunk_offset": 9,
+            "last_seen_chunk_offset": 9,
+            "first_seen_global_index": 99,
+            "last_seen_global_index": 99,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "event_002",
+            "event_name": "심소졔의 위로",
+            "event_summary": "심소졔가 후회하는 심봉사를 위로하며 공양미 마련을 약속함",
+            "participants": [
+              {
+                "character_name": "심청",
+                "role": "helper",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심학규",
+                "role": "beneficiary",
+                "confidence": 0.8
+              }
+            ],
+            "evidence": "심청이 반기 듯고 부친을 위로ᄒᆞ되... 아부지 걱정 마르시고 진지나 잡수시요",
+            "first_seen_chunk_offset": 14,
+            "last_seen_chunk_offset": 14,
+            "first_seen_global_index": 148,
+            "last_seen_global_index": 148,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "event_003",
+            "event_name": "승상부인의 후대",
+            "event_summary": "승상부인이 심소졔를 선녀에 비유하며 의복과 양식을 제공함",
+            "participants": [
+              {
+                "character_name": "승상부인",
+                "role": "witness",
+                "confidence": 0.7
+              },
+              {
+                "character_name": "심청",
+                "role": "beneficiary",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "부인이 층찬 왈... 네 젼셰를 모로난야 분명이 션녀로다",
+            "first_seen_chunk_offset": 14,
+            "last_seen_chunk_offset": 14,
+            "first_seen_global_index": 148,
+            "last_seen_global_index": 148,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "event_001",
+            "event_name": "심청의 몸 팔기",
+            "event_summary": "심청이 아버지의 눈을 뜨게 하기 위해 인당수 제숙으로 몸을 팔기로 결심하고 남경 선인과 거래함",
+            "participants": [
+              {
+                "character_name": "심청",
+                "role": "perpetrator",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "남경 선인",
+                "role": "beneficiary",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "심학규",
+                "role": "beneficiary",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "심청이 그 말 반기 듯고 귀덕어미 ᄉᆡ이 너어 사ᄅᆞᆷ사랴 ᄒᆞ난 곡절을 무른직",
+            "first_seen_chunk_offset": 19,
+            "last_seen_chunk_offset": 19,
+            "first_seen_global_index": 197,
+            "last_seen_global_index": 197,
+            "confidence": 0.7
+          },
+          {
+            "event_id": "event_002",
+            "event_name": "심청의 거짓 수양딸 거래",
+            "event_summary": "심청이 장승상댁 노부인에게 수양딸로 팔렸다고 거짓으로 말하며 아버지를 안심시킴",
+            "participants": [
+              {
+                "character_name": "심청",
+                "role": "deceiver",
+                "confidence": 0.9
+              },
+              {
+                "character_name": "심학규",
+                "role": "deceived",
+                "confidence": 0.8
+              },
+              {
+                "character_name": "승상부인",
+                "role": "target",
+                "confidence": 0.7
+              }
+            ],
+            "evidence": "장승상ᄃᆡᆁ 노부인이 월션의 날다려 수양ᄯᅡᆯ을 사무려 ᄒᆞ시난듸 차마 허락지 안이 ᄒᆞ엿삽더니 금자 사셰는 공양미 삼ᄇᆡᆨ 석을 주션ᄒᆞᆯ 기리 젼이 업셔 이 사연을 노부인게 엿자온직 ᄇᆡᆨ미 삼ᄇᆡᆨ 셕을 ᄂᆡ여 주시기로 수양ᄯᅡᆯ노 팔여난이다",
+            "first_seen_chunk_offset": 19,
+            "last_seen_chunk_offset": 19,
+            "first_seen_global_index": 197,
+            "last_seen_global_index": 197,
+            "confidence": 0.7
+          }
+        ],
+        "generated_at": "2026-07-13T06:19:14.710419+00:00",
+        "current_global_index": null,
+        "current_page": null,
+        "total_pages": null,
+        "spoiler_boundary_page": null,
+        "snapshot_boundary": null
+      },
+      "reminders": [
+        {
+          "text": "곽씨부인이 심청을 출산했으나 출산 후 병으로 고통받다가 결국 죽음을 맞이하며 심청을 심학규에게 맡겼습니다.",
+          "entity_ids": [
+            "e_7a65da65",
+            "e_d40f1e7d",
+            "e_a1f7ce94"
+          ]
+        },
+        {
+          "text": "심청은 어린 나이부터 밥을 빌어다 아버지 심학규를 극진히 모시는 효행을 보였습니다.",
+          "entity_ids": [
+            "e_d40f1e7d",
+            "e_a1f7ce94"
+          ]
+        },
+        {
+          "text": "장승상댁 시비가 심청을 초청하러 왔으며, 심청은 승상부인에게서 의복과 양식을 제공받았습니다.",
+          "entity_ids": [
+            "e_f2558d1a",
+            "e_d40f1e7d",
+            "e_54aec296"
+          ]
+        },
+        {
+          "text": "심청은 아버지의 소원을 이루기 위해 중요한 결정을 내리고 어떤 인물과 협상을 진행했습니다.",
+          "entity_ids": [
+            "e_d40f1e7d",
+            "e_a1f7ce94",
+            "e_91647022"
+          ]
+        },
+        {
+          "text": "심청은 아버지에게 자신의 상황을 설명하기 위해 일부 사실을 생략한 이야기를 전했습니다.",
+          "entity_ids": [
+            "e_d40f1e7d",
+            "e_a1f7ce94",
+            "e_54aec296"
+          ]
+        },
+        {
+          "text": "심학규와 곽씨부인은 부부 관계이며, 심청은 그들의 딸로 태어났습니다.",
+          "entity_ids": [
+            "e_a1f7ce94",
+            "e_7a65da65",
+            "e_d40f1e7d"
+          ]
+        }
+      ]
     }
   ]
 }
