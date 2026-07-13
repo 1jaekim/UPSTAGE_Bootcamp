@@ -267,6 +267,17 @@ def remap_entries_to_global_index(
         if "boundary" in graph:
             graph["boundary"] = boundary_global_index
         remapped.append({**entry, "boundary": boundary_global_index, "graph": graph})
+
+    # 서로 다른 chunk 경계선이 같은 global_index로 매핑될 수 있다 — 예를 들어 두 chunk
+    # 경계 사이에 새 문단이 없으면(짧은 챕터, 챕터 경계 근처 등) 둘 다 가장 가까운 같은
+    # 문단으로 반올림된다. 이 상태로 그대로 Supabase에 upsert하면 "같은 배치 안에서
+    # 같은 행을 두 번 갱신하려 한다"는 CardinalityViolation 에러가 난다(book_id+boundary
+    # 유니크 제약). 같은 global_index면 더 나중에(더 누적된 정보를 담은) 항목만 남긴다.
+    deduped: dict[int, dict] = {}
+    for item in remapped:
+        deduped[item["boundary"]] = item
+    remapped = list(deduped.values())
+
     remapped.sort(key=lambda e: e["boundary"])
     return remapped
 

@@ -9,6 +9,7 @@ type LocationsWithTotal = {
   locationFromCfi: (cfi: string) => number;
   cfiFromLocation: (location: number) => string;
   total: number;
+  epubcfi: { compare: (a: string, b: string) => number };
 };
 
 function charsForViewport(width: number, height: number): number {
@@ -87,16 +88,40 @@ export function EpubJsReader() {
     renditionRef.current = rendition;
 
     let cancelled = false;
+    // epub.js의 locations는 글자 수 기준 구간이라, 실제 렌더링되는 화면 페이지보다
+    // 성길 수 있다 — 특히 짧은 챕터의 끝과 다음 챕터의 시작이 같은 구간 안에 들어가
+    // 버리면(예: 9장 끝, 10장 시작이 같은 location index) 실제로는 페이지가 넘어갔는데
+    // 페이지 번호가 그대로인 것처럼 보인다. 직전에 보고한 위치와 비교해서, CFI는
+    // 분명히 바뀌었는데 계산된 페이지가 그대로면 이동 방향만큼 보정한다.
+    const lastReportedRef = { current: null as { cfi: string; page: number } | null };
 
-    const reportPage = (cfi: string) => {
+    const reportPage = (cfi: string, hints?: { atStart?: boolean; atEnd?: boolean }) => {
       const locations = book.locations as unknown as LocationsWithTotal;
       const locationIndex = locations.locationFromCfi(cfi);
       const totalLocationCount = locations.total;
-      if (typeof locationIndex === 'number' && totalLocationCount > 0) {
-        const page = locationIndex + 1;
-        return { page, totalPages: totalLocationCount + 1 };
+      if (typeof locationIndex !== 'number' || totalLocationCount <= 0) return null;
+
+      const totalPages = totalLocationCount + 1;
+      let page = locationIndex + 1;
+
+      if (hints?.atStart) {
+        // epub.js가 "책의 진짜 첫 페이지"라고 직접 알려주는 값(atStart) — locations
+        // 계산이 CFI 트리 깊이 차이로 1칸 밀려도(1페이지인데 2로 계산되는 경우) 이
+        // 신호를 우선해서 확정으로 1페이지를 쓴다.
+        page = 1;
+      } else if (hints?.atEnd) {
+        page = totalPages;
+      } else {
+        const last = lastReportedRef.current;
+        if (last && last.cfi !== cfi && page === last.page) {
+          const direction = locations.epubcfi.compare(cfi, last.cfi);
+          if (direction > 0) page = Math.min(page + 1, totalPages);
+          else if (direction < 0) page = Math.max(page - 1, 1);
+        }
       }
-      return null;
+
+      lastReportedRef.current = { cfi, page };
+      return { page, totalPages };
     };
 
     const flushProgress = (cfi: string, pagination: { page: number; totalPages: number }) => {
@@ -124,8 +149,8 @@ export function EpubJsReader() {
       );
     };
 
-    const syncLocation = (cfi: string) => {
-      const pagination = reportPage(cfi);
+    const syncLocation = (cfi: string, hints?: { atStart?: boolean; atEnd?: boolean }) => {
+      const pagination = reportPage(cfi, hints);
       setLatestCfi(cfi);
       if (!pagination) return;
 
@@ -148,10 +173,13 @@ export function EpubJsReader() {
       })
       .then(() => {
         if (cancelled) return undefined;
-        return rendition.display(latestCfi ?? progress?.current_cfi ?? progress?.cfi ?? undefined).then(() => {
-          const current = rendition.currentLocation() as { start?: { cfi: string } } | undefined;
+        const savedCfi = latestCfi ?? progress?.current_cfi ?? progress?.cfi ?? undefined;
+        return rendition.display(savedCfi).then(() => {
+          const current = rendition.currentLocation() as
+            | { start?: { cfi: string }; atStart?: boolean; atEnd?: boolean }
+            | undefined;
           if (current?.start?.cfi) {
-            syncLocation(current.start.cfi);
+            syncLocation(current.start.cfi, { atStart: current.atStart, atEnd: current.atEnd });
           }
         });
       })
@@ -159,9 +187,12 @@ export function EpubJsReader() {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'EPUB을 불러오지 못했습니다.');
       });
 
-    rendition.on('relocated', (location: { start: { cfi: string } }) => {
-      syncLocation(location.start.cfi);
-    });
+    rendition.on(
+      'relocated',
+      (location: { start: { cfi: string }; atStart?: boolean; atEnd?: boolean }) => {
+        syncLocation(location.start.cfi, { atStart: location.atStart, atEnd: location.atEnd });
+      },
+    );
 
     return () => {
       cancelled = true;
