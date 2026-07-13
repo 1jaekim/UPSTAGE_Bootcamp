@@ -20,8 +20,8 @@
           <mxGeometry x="60" y="200" width="130" height="130" as="geometry" />
         </mxCell>
 
-        <!-- Frontend -->
-        <mxCell id="frontend" value="&lt;span style=&quot;font-size:42px&quot;&gt;🖥️&lt;/span&gt;&lt;br&gt;&lt;b&gt;Frontend&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#666&quot;&gt;React (Vite) · :4173&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=middle;" vertex="1" parent="1">
+        <!-- nginx (React 정적 서빙 + /api 프록시) -->
+        <mxCell id="frontend" value="&lt;span style=&quot;font-size:42px&quot;&gt;🌐&lt;/span&gt;&lt;br&gt;&lt;b&gt;nginx&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#666&quot;&gt;React 서빙 + /api 프록시 · :8080&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="270" y="215" width="150" height="130" as="geometry" />
         </mxCell>
 

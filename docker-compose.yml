@@ -1,12 +1,12 @@
-# SpoKeeper 도커 구성 — nginx 없이 4개 서비스로 서비스한다.
+# SpoKeeper 도커 구성 — 4개 서비스로 서비스한다.
 #
-#   frontend  vite preview (정적 서빙 + /api → backend 프록시)   :4173  ← 브라우저
+#   nginx     React 정적 빌드 서빙 + /api → backend 프록시   :8080  ← 브라우저
 #   backend   FastAPI (API 서빙 + 업로드 시 CFI 생성 + 잡 enqueue)  :8000
 #   agent     RQ 워커 (Redis 큐에서 분석 잡을 집어 실행)
 #   redis     큐 브로커 + 진행률 공유 저장소
 #
 # 실행:  docker compose up --build
-#   브라우저에서 http://localhost:4173 접속.
+#   브라우저에서 http://localhost:8080 접속.
 #   .env (SUPABASE_DB_URL / UPSTAGE_API_KEY / SPO_SOURCE=agent)가 있어야 한다.
 
 services:
@@ -58,13 +58,12 @@ services:
       - backend
     restart: unless-stopped
 
-  frontend:
+  nginx:
+    # ./frontend 에서 React 를 빌드하고 nginx 로 서빙(+ /api 프록시)하는 이미지.
     build:
       context: ./frontend
-    environment:
-      VITE_PROXY_TARGET: http://backend:8000
     ports:
-      - "4173:4173"
+      - "8080:80"
     depends_on:
       - backend
     restart: unless-stopped

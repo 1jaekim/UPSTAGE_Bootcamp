@@ -6,7 +6,7 @@
         <mxCell id="1" parent="0" />
 
         <!-- ============ Browser (host) ============ -->
-        <mxCell id="browser" value="&lt;b&gt;사용자 브라우저&lt;/b&gt;&lt;br&gt;http://localhost:4173" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="browser" value="&lt;b&gt;사용자 브라우저&lt;/b&gt;&lt;br&gt;http://localhost:8080" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="40" y="470" width="160" height="70" as="geometry" />
         </mxCell>
 
@@ -21,7 +21,7 @@
         </mxCell>
 
         <!-- ============ frontend service ============ -->
-        <mxCell id="frontend" value="&lt;b&gt;frontend&lt;/b&gt;&lt;hr size=1&gt;&lt;div align=left&gt;build: ./frontend (node:20)&lt;br&gt;command: vite preview&lt;br&gt;ports: &lt;b&gt;4173:4173&lt;/b&gt;&lt;br&gt;env: VITE_PROXY_TARGET=&lt;br&gt;&#160;&#160;&#160;&#160;http://backend:8000&lt;br&gt;depends_on: backend&lt;br&gt;&lt;i&gt;정적 dist 서빙 + /api 프록시 (nginx 대체)&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+        <mxCell id="frontend" value="&lt;b&gt;nginx&lt;/b&gt;&lt;hr size=1&gt;&lt;div align=left&gt;build: ./frontend (node 빌드 → nginx)&lt;br&gt;image: nginx:1.27-alpine&lt;br&gt;ports: &lt;b&gt;8080:80&lt;/b&gt;&lt;br&gt;depends_on: backend&lt;br&gt;&lt;i&gt;React 정적 빌드(dist) 서빙&lt;br&gt;+ /api → backend 리버스 프록시&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
           <mxGeometry x="330" y="200" width="330" height="180" as="geometry" />
         </mxCell>
 
@@ -73,10 +73,10 @@
         </mxCell>
 
         <!-- ============ Runtime traffic edges (solid) ============ -->
-        <mxCell id="e_browser_fe" value=":4173" style="endArrow=block;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="browser" target="frontend">
+        <mxCell id="e_browser_fe" value=":8080" style="endArrow=block;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="browser" target="frontend">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e_fe_be" value="/api → backend:8000&#10;(vite preview 프록시)" style="endArrow=block;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="frontend" target="backend">
+        <mxCell id="e_fe_be" value="/api → backend:8000&#10;(nginx 리버스 프록시)" style="endArrow=block;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="frontend" target="backend">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e_be_redis" value="enqueue 분석 잡&#10;+ 진행률 read" style="endArrow=block;html=1;strokeColor=#333333;strokeWidth=2;fontSize=11;" edge="1" parent="1" source="backend" target="redis">
