@@ -15,28 +15,28 @@ export function SidePanel() {
   if (panel === 'closed') return null;
 
   return (
-    <aside className="flex min-h-0 flex-col border-l border-slate-200 bg-white shadow-[-8px_0_20px_rgba(15,23,42,0.035)]">
-      <header className="flex h-[60px] shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-5">
+    <aside className="flex min-h-0 flex-col border border-[#dedbd1] bg-[#fffdfa]">
+      <header className="flex shrink-0 items-center justify-between border-b border-[#dedbd1] bg-transparent px-7 py-4">
         <div>
-          <h2 className="text-[15px] font-bold text-slate-800">
+          <h2 className="font-serif text-xl font-bold text-[#20231f]">
             {panel === 'relationship' && '관계도'}
             {panel === 'reminder' && '요약'}
             {panel === 'settings' && '설정'}
           </h2>
-          <p className="text-xs font-semibold text-slate-400">
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa38f]">
             {currentPage > 0 ? `현재 ${currentPage}페이지까지 공개된 정보` : '페이지 계산 중'}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setPanel('closed')}
-          className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-lg leading-none text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+          className="grid h-[30px] w-[30px] place-items-center border border-transparent bg-transparent text-lg leading-none text-[#6d7568] transition hover:border-[#283126] hover:text-[#283126]"
           aria-label="패널 닫기"
         >
           ×
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] pb-5 pt-4 [scrollbar-color:#d2d6c8_transparent] [scrollbar-width:thin]">
         {panel === 'relationship' && <RelationPanel />}
         {panel === 'reminder' && <ReminderPanel />}
         {panel === 'settings' && <SettingsPanel />}

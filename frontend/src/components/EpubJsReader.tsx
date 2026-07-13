@@ -3,7 +3,6 @@ import ePub, { type Book, type Rendition } from 'epubjs';
 import { bookFileUrl } from '../api/client';
 import { useProgress, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
-import { ReaderToolbar } from './ReaderToolbar';
 
 type LocationsWithTotal = {
   locationFromCfi: (cfi: string) => number;
@@ -222,12 +221,11 @@ export function EpubJsReader() {
   }, [locationsReady, requestPage, requestedPage]);
 
   return (
-    <div className="mx-auto flex h-full max-w-[980px] flex-col">
-      <ReaderToolbar currentPage={currentPage} totalPages={totalPages} locationsReady={locationsReady} />
-      <section className="relative min-h-0 flex-1 rounded-[18px] border border-slate-200 bg-white px-5 py-6 shadow-[0_10px_24px_rgba(15,23,42,0.04)] sm:px-10 lg:px-14">
+    <div className="relative mx-auto flex h-full w-full max-w-[1080px] items-start justify-center px-12">
+      <section className="reader-page relative h-full w-full max-w-[780px] min-w-0 overflow-hidden border border-[#dedbd1] bg-[#fffdfa] px-5 py-6 sm:px-10 lg:px-[52px] lg:py-11">
         {loadError ? (
           <div className="grid h-full place-items-center text-center">
-            <p className="max-w-md rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
+            <p className="max-w-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600">
               {loadError}
             </p>
           </div>
@@ -235,25 +233,24 @@ export function EpubJsReader() {
           <div ref={containerRef} className="h-full w-full overflow-hidden" />
         )}
       </section>
-      <div className="mt-4 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => renditionRef.current?.prev()}
-          className="grid h-11 w-11 place-items-center rounded-full border border-slate-300 bg-white text-xl font-bold text-accent shadow-[0_8px_18px_rgba(15,23,42,0.08)] transition hover:border-accent hover:bg-indigo-50"
-          aria-label="이전 페이지"
-        >
-          ‹
-        </button>
-        <div className="text-xs font-bold text-slate-400">EPUB pagination</div>
-        <button
-          type="button"
-          onClick={() => renditionRef.current?.next()}
-          className="grid h-11 w-11 place-items-center rounded-full border border-slate-300 bg-white text-xl font-bold text-accent shadow-[0_8px_18px_rgba(15,23,42,0.08)] transition hover:border-accent hover:bg-indigo-50"
-          aria-label="다음 페이지"
-        >
-          ›
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => renditionRef.current?.prev()}
+        disabled={!locationsReady || currentPage <= 1}
+        className="absolute left-0 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[#d8d8ca] bg-[#faf9f5] text-2xl font-medium text-[#283126] shadow-sm transition hover:border-[#283126] hover:bg-[#fffdfa] disabled:cursor-default disabled:opacity-45"
+        aria-label="이전 페이지"
+      >
+        ‹
+      </button>
+      <button
+        type="button"
+        onClick={() => renditionRef.current?.next()}
+        disabled={!locationsReady || (totalPages > 0 && currentPage >= totalPages)}
+        className="absolute right-0 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-[#d8d8ca] bg-[#faf9f5] text-2xl font-medium text-[#283126] shadow-sm transition hover:border-[#283126] hover:bg-[#fffdfa] disabled:cursor-default disabled:opacity-45"
+        aria-label="다음 페이지"
+      >
+        ›
+      </button>
     </div>
   );
 }

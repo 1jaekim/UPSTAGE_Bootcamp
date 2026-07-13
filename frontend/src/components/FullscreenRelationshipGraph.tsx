@@ -420,32 +420,32 @@ export function FullscreenRelationshipGraph({
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div className="flex h-[90vh] w-[min(1420px,96vw)] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-2xl">
-        <header className="flex h-[60px] shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5">
-          <h2 className="text-base font-extrabold text-slate-900">관계도 탐색</h2>
-          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:border-slate-300 hover:text-slate-800" aria-label="관계도 닫기">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#1a1512]/40 p-4" role="dialog" aria-modal="true">
+      <div className="flex h-[88vh] w-[min(1180px,96vw)] flex-col overflow-hidden border border-[#283126] bg-[#fffdf8] shadow-2xl">
+        <header className="flex h-[60px] shrink-0 items-center justify-between border-b border-[#d8d8ca] bg-[#fbfaf5] px-6">
+          <h2 className="font-serif text-lg font-bold text-[#283126]">관계도 탐색</h2>
+          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center border border-transparent bg-transparent text-xl leading-none text-[#4d574b] transition hover:border-[#283126] hover:text-[#283126]" aria-label="관계도 닫기">
             ×
           </button>
         </header>
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#dedbd1] px-6 py-3">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="인물 검색"
-            className="h-10 w-72 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-accent focus:ring-2 focus:ring-indigo-100"
+            className="h-10 w-72 border-x-0 border-t-0 border-b border-[#d8d8ca] bg-transparent px-1 text-sm font-semibold text-[#4d574b] outline-none transition focus:border-[#283126]"
           />
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" onClick={() => zoom(1 / 1.18)} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-600">-</button>
-            <button type="button" onClick={() => zoom(1.18)} className="h-9 w-9 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-600">+</button>
-            <button type="button" onClick={fitVisibleNodes} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600">Fit</button>
-            <button type="button" onClick={() => cyRef.current?.center()} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600">Center</button>
-            <button type="button" onClick={runCoseLayout} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600">Reset Layout</button>
+            <button type="button" onClick={() => zoom(1 / 1.18)} className="h-9 w-9 border border-[#d8d8ca] bg-transparent text-sm font-bold text-[#4d574b]">-</button>
+            <button type="button" onClick={() => zoom(1.18)} className="h-9 w-9 border border-[#d8d8ca] bg-transparent text-sm font-bold text-[#4d574b]">+</button>
+            <button type="button" onClick={fitVisibleNodes} className="h-9 border border-[#d8d8ca] bg-transparent px-3 text-xs font-bold text-[#4d574b]">Fit</button>
+            <button type="button" onClick={() => cyRef.current?.center()} className="h-9 border border-[#d8d8ca] bg-transparent px-3 text-xs font-bold text-[#4d574b]">Center</button>
+            <button type="button" onClick={runCoseLayout} className="h-9 border border-[#d8d8ca] bg-transparent px-3 text-xs font-bold text-[#4d574b]">Reset Layout</button>
           </div>
         </div>
         <div className="grid h-[calc(90vh-120px)] min-h-[600px] grid-cols-[minmax(0,1fr)_320px]">
           <div className="relative min-w-0">
-          <div ref={containerRef} className="absolute inset-0 h-full w-full bg-slate-50" />
+          <div ref={containerRef} className="absolute inset-0 h-full w-full bg-[radial-gradient(circle,#d2d6c8_1px,transparent_1px)] bg-[length:24px_24px] bg-[#fbfaf5]" />
           {entities.length === 0 && (
             <div className="absolute inset-0 grid place-items-center bg-slate-50 text-sm font-semibold text-slate-400">
               현재 위치까지 표시할 인물이 없습니다.
@@ -492,7 +492,7 @@ export function FullscreenRelationshipGraph({
             </div>
           )}
           </div>
-          <aside className="overflow-y-auto border-l border-slate-200 bg-slate-50/70 p-5" aria-live="polite">
+          <aside className="overflow-y-auto border-l border-[#d8d8ca] bg-[#fbfaf5] p-5" aria-live="polite">
             {!selectedEntity && (
               <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm leading-6 text-slate-500 shadow-sm">
                 관계도에서 인물을 선택하면 상세 정보가 표시됩니다.
