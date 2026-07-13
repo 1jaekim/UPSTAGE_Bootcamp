@@ -55,19 +55,30 @@ export function useChapter(bookId: string, index: number) {
   });
 }
 
-/** useGraph(bookId, boundary, spoilerSafe) — 키 ['graph',bookId,boundary,spoilerSafe]
- *  spoilerSafe=false → reveal_all=true. boundary 변경 시 자동 refetch. */
-export function useGraph(bookId: string, boundary: number, spoilerSafe: boolean) {
+/** currentGlobalIndex가 실제 필터 기준이고 currentPage/totalPages는 응답 표시 메타다. */
+export function useGraph(
+  bookId: string,
+  currentGlobalIndex: number,
+  currentPage: number,
+  totalPages: number,
+  spoilerSafe: boolean,
+) {
   return useQuery({
-    queryKey: ['graph', bookId, boundary, spoilerSafe],
-    queryFn: () => api.getGraph(bookId, boundary, !spoilerSafe),
+    queryKey: ['graph', bookId, currentGlobalIndex, currentPage, totalPages, spoilerSafe],
+    queryFn: () => api.getGraph(bookId, currentGlobalIndex, currentPage, totalPages, !spoilerSafe),
   });
 }
 
-export function useReminders(bookId: string, boundary: number, entityId?: string) {
+export function useReminders(
+  bookId: string,
+  currentGlobalIndex: number,
+  currentPage: number,
+  totalPages: number,
+  entityId?: string,
+) {
   return useQuery({
-    queryKey: ['reminders', bookId, boundary, entityId ?? null],
-    queryFn: () => api.getReminders(bookId, boundary, entityId),
+    queryKey: ['reminders', bookId, currentGlobalIndex, currentPage, totalPages, entityId ?? null],
+    queryFn: () => api.getReminders(bookId, currentGlobalIndex, currentPage, totalPages, entityId),
   });
 }
 
@@ -81,7 +92,7 @@ export function useProgress(bookId: string) {
 export function usePutProgress(bookId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: number | { offset?: number; cfi?: string; force?: boolean }) =>
+    mutationFn: (args: number | Parameters<typeof api.putProgress>[1]) =>
       typeof args === 'number'
         ? api.putProgress(bookId, { offset: args })
         : api.putProgress(bookId, args),

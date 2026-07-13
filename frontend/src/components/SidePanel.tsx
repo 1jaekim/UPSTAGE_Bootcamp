@@ -6,6 +6,7 @@ import { SettingsPanel } from './SettingsPanel';
 export function SidePanel() {
   const panel = useSpoStore((s) => s.panel);
   const setPanel = useSpoStore((s) => s.setPanel);
+  const currentPage = useSpoStore((s) => s.currentPage);
 
   return (
     <aside className={`${panel === 'closed' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-col border-l border-slate-200 bg-white shadow-[-8px_0_20px_rgba(15,23,42,0.035)]`}>
@@ -17,7 +18,9 @@ export function SidePanel() {
             {panel === 'settings' && '설정'}
             {panel === 'closed' && 'SpoKeeper'}
           </h2>
-          <p className="text-xs font-semibold text-slate-400">현재 offset 기준으로 공개된 정보만 표시합니다.</p>
+          <p className="text-xs font-semibold text-slate-400">
+            {currentPage > 0 ? `현재 ${currentPage}페이지까지 공개된 정보` : '페이지 계산 중'}
+          </p>
         </div>
         <button
           type="button"

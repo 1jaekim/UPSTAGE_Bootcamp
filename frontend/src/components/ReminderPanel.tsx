@@ -3,13 +3,22 @@ import { useSpoStore } from '../store';
 
 export function ReminderPanel() {
   const bookId = useSpoStore((s) => s.selectedBookId);
-  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
-  const { data, isLoading, isError } = useReminders(bookId, spoilerBoundary);
+  const currentGlobalIndex = useSpoStore((s) => s.currentGlobalIndex);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
+  const { data, isLoading, isError } = useReminders(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+  );
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold leading-5 text-blue-700">
-        현재 offset까지의 사건만 요약합니다. 이후 내용은 spoiler boundary 밖에 남겨둡니다.
+        {currentPage > 0
+          ? `현재 ${currentPage}페이지 기준으로 공개된 사건만 요약합니다.`
+          : '페이지 계산 중 · 현재 위치까지 공개된 사건만 요약합니다.'}
       </div>
 
       {isLoading ? (

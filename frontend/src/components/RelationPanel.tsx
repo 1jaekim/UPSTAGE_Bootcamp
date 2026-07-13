@@ -33,14 +33,22 @@ function formatGeneratedAt(iso: string): string {
 
 export function RelationPanel() {
   const bookId = useSpoStore((s) => s.selectedBookId);
-  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
+  const currentGlobalIndex = useSpoStore((s) => s.currentGlobalIndex);
   const spoilerSafe = useSpoStore((s) => s.spoilerSafe);
   const latestCfi = useSpoStore((s) => s.latestCfi);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
   const setProgress = useSpoStore((s) => s.setProgress);
   const setAnalyzed = useSpoStore((s) => s.setAnalyzed);
   const analyzed = useSpoStore((s) => s.analyzed);
   const putProgress = usePutProgress(bookId);
-  const { data: graph, isLoading, isError } = useGraph(bookId, spoilerBoundary, spoilerSafe);
+  const { data: graph, isLoading, isError } = useGraph(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+    spoilerSafe,
+  );
   const [syncing, setSyncing] = useState(false);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
 
@@ -65,10 +73,17 @@ export function RelationPanel() {
     }
     setSyncing(true);
     putProgress.mutate(
-      { cfi: latestCfi },
+      { currentCfi: latestCfi, currentPage, totalPages },
       {
         onSuccess: (progress) => {
-          setProgress(progress.reading_offset, progress.spoiler_boundary);
+          setProgress(
+            progress.reading_offset,
+            progress.spoiler_boundary,
+            progress.current_page,
+            progress.total_pages,
+            progress.spoiler_boundary_page,
+            progress.current_cfi,
+          );
           setAnalyzed(true);
           setSyncing(false);
         },
@@ -102,7 +117,11 @@ export function RelationPanel() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold leading-5 text-blue-700">
         <span>
-          {spoilerSafe ? 'Spoiler 방지 ON: 현재 공개 boundary까지만 표시합니다.' : 'Spoiler 방지 OFF: 서버가 허용한 전체 데이터를 표시합니다.'}
+          {spoilerSafe
+            ? currentPage > 0
+              ? `Spoiler 방지 ON: 현재 ${currentPage}페이지까지 공개된 정보만 표시합니다.`
+              : 'Spoiler 방지 ON: 페이지 계산 중 · 현재 위치까지 공개된 정보만 표시합니다.'
+            : 'Spoiler 방지 OFF: 서버가 허용한 전체 데이터를 표시합니다.'}
         </span>
         {graph && graph.entities.length > 0 && <RelationshipGraph graph={graph} />}
       </div>

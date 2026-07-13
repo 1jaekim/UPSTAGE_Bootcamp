@@ -70,6 +70,7 @@ export const mockProgress: Progress = {
   user_id: 'local',
   book_id: 'b_mist',
   reading_offset: 380,
+  current_global_index: 380,
   spoiler_boundary: 380,
 };
 

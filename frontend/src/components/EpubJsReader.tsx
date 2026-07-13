@@ -5,13 +5,19 @@ import { useProgress, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { ReaderToolbar } from './ReaderToolbar';
 
-const PAGES_PER_UPDATE = 10;
-const CHARS_PER_LOCATION = 1000;
-
 type LocationsWithTotal = {
   locationFromCfi: (cfi: string) => number;
+  cfiFromLocation: (location: number) => string;
   total: number;
 };
+
+function charsForViewport(width: number, height: number): number {
+  // epub.js locations는 문자 단위이므로 현재 viewport가 담을 수 있는 문자 수를 기준으로
+  // 다시 생성한다. 화면/폰트 reflow 시 같은 CFI의 표시 page가 새로 계산된다.
+  const columns = Math.max(24, Math.floor(width / 10));
+  const rows = Math.max(12, Math.floor(height / 29));
+  return Math.max(300, Math.min(2400, columns * rows));
+}
 
 export function EpubJsReader() {
   const bookId = useSpoStore((s) => s.selectedBookId);
@@ -20,22 +26,49 @@ export function EpubJsReader() {
   const setLatestCfi = useSpoStore((s) => s.setLatestCfi);
   const currentPage = useSpoStore((s) => s.currentPage);
   const totalPages = useSpoStore((s) => s.totalPages);
+  const latestCfi = useSpoStore((s) => s.latestCfi);
+  const requestedPage = useSpoStore((s) => s.requestedPage);
+  const requestPage = useSpoStore((s) => s.requestPage);
   const putProgress = usePutProgress(bookId);
   const { data: progress, isLoading: progressLoading } = useProgress(bookId);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<Book | null>(null);
   const renditionRef = useRef<Rendition | null>(null);
-  const pageCountRef = useRef(0);
+  const viewportRef = useRef({ width: 0, height: 0 });
+  const syncSequenceRef = useRef(0);
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [locationsReady, setLocationsReady] = useState(false);
+  const [paginationRevision, setPaginationRevision] = useState(0);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      const previous = viewportRef.current;
+      viewportRef.current = { width, height };
+      if (previous.width > 0 && previous.height > 0 && (previous.width !== width || previous.height !== height)) {
+        clearTimeout(timer);
+        timer = setTimeout(() => setPaginationRevision((value) => value + 1), 180);
+      }
+    });
+    observer.observe(element);
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || progressLoading) return;
+    syncSequenceRef.current += 1;
     setLoadError(null);
     setLocationsReady(false);
-    pageCountRef.current = 0;
+    setPage(0, 0);
 
     const book = ePub(bookFileUrl(bookId), { openAs: 'epub' });
     bookRef.current = book;
@@ -53,20 +86,51 @@ export function EpubJsReader() {
       const locationIndex = locations.locationFromCfi(cfi);
       const totalLocationCount = locations.total;
       if (typeof locationIndex === 'number' && totalLocationCount > 0) {
-        setPage(locationIndex + 1, totalLocationCount + 1);
+        const page = locationIndex + 1;
+        return { page, totalPages: totalLocationCount + 1 };
       }
+      return null;
+    };
+
+    const syncLocation = (cfi: string) => {
+      const pagination = reportPage(cfi);
+      setLatestCfi(cfi);
+      if (!pagination) return;
+      const sequence = ++syncSequenceRef.current;
+      putProgress.mutate(
+        {
+          currentCfi: cfi,
+          currentPage: pagination.page,
+          totalPages: pagination.totalPages,
+        },
+        {
+          onSuccess: (next) => {
+            if (sequence !== syncSequenceRef.current) return;
+            setProgress(
+              next.reading_offset,
+              next.spoiler_boundary,
+              next.current_page,
+              next.total_pages,
+              next.spoiler_boundary_page,
+              next.current_cfi,
+            );
+            setLocationsReady(true);
+          },
+        },
+      );
     };
 
     book.ready
-      .then(() => book.locations.generate(CHARS_PER_LOCATION))
+      .then(() => {
+        const { width, height } = viewportRef.current;
+        return book.locations.generate(charsForViewport(width || 760, height || 560));
+      })
       .then(() => {
         if (cancelled) return undefined;
-        setLocationsReady(true);
-        return rendition.display(progress?.cfi ?? undefined).then(() => {
+        return rendition.display(latestCfi ?? progress?.current_cfi ?? progress?.cfi ?? undefined).then(() => {
           const current = rendition.currentLocation() as { start?: { cfi: string } } | undefined;
           if (current?.start?.cfi) {
-            reportPage(current.start.cfi);
-            setLatestCfi(current.start.cfi);
+            syncLocation(current.start.cfi);
           }
         });
       })
@@ -75,22 +139,7 @@ export function EpubJsReader() {
       });
 
     rendition.on('relocated', (location: { start: { cfi: string } }) => {
-      reportPage(location.start.cfi);
-      setLatestCfi(location.start.cfi);
-      pageCountRef.current += 1;
-
-      if (pageCountRef.current % PAGES_PER_UPDATE === 0) {
-        putProgress.mutate(
-          { cfi: location.start.cfi },
-          {
-            onSuccess: (progressByGlobalIndex) =>
-              setProgress(
-                progressByGlobalIndex.reading_offset,
-                progressByGlobalIndex.spoiler_boundary,
-              ),
-          },
-        );
-      }
+      syncLocation(location.start.cfi);
     });
 
     return () => {
@@ -101,7 +150,16 @@ export function EpubJsReader() {
       bookRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId, progressLoading]);
+  }, [bookId, paginationRevision, progressLoading]);
+
+  useEffect(() => {
+    if (!locationsReady || requestedPage === null || !renditionRef.current || !bookRef.current) return;
+    const locations = bookRef.current.locations as unknown as LocationsWithTotal;
+    const target = Math.max(0, Math.min(requestedPage - 1, locations.total));
+    const cfi = locations.cfiFromLocation(target);
+    requestPage(null);
+    if (cfi) void renditionRef.current.display(cfi);
+  }, [locationsReady, requestPage, requestedPage]);
 
   return (
     <div className="mx-auto flex h-full max-w-[980px] flex-col">

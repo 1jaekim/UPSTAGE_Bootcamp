@@ -19,18 +19,31 @@ function SectionTitle({ icon, children }: { icon: string; children: React.ReactN
 
 export function SpoKeeperPanel() {
   const bookId = useSpoStore((s) => s.selectedBookId);
-  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
+  const currentGlobalIndex = useSpoStore((s) => s.currentGlobalIndex);
   const spoilerSafe = useSpoStore((s) => s.spoilerSafe);
   const analyzed = useSpoStore((s) => s.analyzed);
   const setAnalyzed = useSpoStore((s) => s.setAnalyzed);
   const latestCfi = useSpoStore((s) => s.latestCfi);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
   const setProgress = useSpoStore((s) => s.setProgress);
   const putProgress = usePutProgress(bookId);
   const [syncing, setSyncing] = useState(false);
   const [showMinorRelations, setShowMinorRelations] = useState(false);
 
-  const { data: graph, isLoading: gLoading } = useGraph(bookId, spoilerBoundary, spoilerSafe);
-  const { data: reminders, isLoading: rLoading } = useReminders(bookId, spoilerBoundary);
+  const { data: graph, isLoading: gLoading } = useGraph(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+    spoilerSafe,
+  );
+  const { data: reminders, isLoading: rLoading } = useReminders(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+  );
 
   const loading = gLoading || rLoading || syncing;
   const isEmpty = !!graph && graph.entities.length === 0;
@@ -47,8 +60,8 @@ export function SpoKeeperPanel() {
   const minorRelationCount =
     graph?.relationships.filter((relationship) => relationship.relation_importance_level === 'minor').length ?? 0;
 
-  // 평소엔 10페이지마다만 경계선이 갱신되지만, 이 버튼을 누르는 순간만은
-  // "현재 위치"라는 이름에 맞게 진짜 현재 페이지의 CFI로 강제 동기화한다.
+  // 페이지 이동 때도 동기화하지만, 분석 버튼 시점의 CFI/page/global_index 묶음을
+  // 다시 확정한 뒤 관계와 리마인드 쿼리를 갱신한다.
   const onAnalyze = () => {
     if (!latestCfi) {
       setAnalyzed(true);
@@ -56,10 +69,17 @@ export function SpoKeeperPanel() {
     }
     setSyncing(true);
     putProgress.mutate(
-      { cfi: latestCfi },
+      { currentCfi: latestCfi, currentPage, totalPages },
       {
         onSuccess: (p) => {
-          setProgress(p.reading_offset, p.spoiler_boundary);
+          setProgress(
+            p.reading_offset,
+            p.spoiler_boundary,
+            p.current_page,
+            p.total_pages,
+            p.spoiler_boundary_page,
+            p.current_cfi,
+          );
           setAnalyzed(true);
           setSyncing(false);
         },

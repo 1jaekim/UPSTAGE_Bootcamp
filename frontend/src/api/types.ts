@@ -74,6 +74,10 @@ export interface GraphJson {
   events?: Array<Record<string, unknown>>;
   /** 이 스냅샷을 마지막으로 만든/갱신한 시각(ISO 8601, UTC). 없으면 예전 데이터. */
   generated_at?: string | null;
+  current_global_index?: number | null;
+  current_page?: number | null;
+  total_pages?: number | null;
+  spoiler_boundary_page?: number | null;
 }
 
 export interface ReminderLine {
@@ -85,6 +89,10 @@ export interface ReminderLine {
 export interface Reminders {
   offset: number;
   lines: ReminderLine[];
+  current_global_index?: number | null;
+  current_page?: number | null;
+  total_pages?: number | null;
+  spoiler_boundary_page?: number | null;
 }
 
 // ── 서빙 메타 (계약 외 부수 리소스) ────────────────────────────
@@ -121,6 +129,12 @@ export interface Progress {
   reading_offset: number;
   spoiler_boundary: number;
   cfi?: string | null;
+  current_cfi?: string | null;
+  current_global_index: number;
+  reading_page?: number | null;
+  current_page?: number | null;
+  total_pages?: number | null;
+  spoiler_boundary_page?: number | null;
 }
 
 export interface BookSummary {
