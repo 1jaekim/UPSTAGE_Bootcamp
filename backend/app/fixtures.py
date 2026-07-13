@@ -114,13 +114,23 @@ def chapter_with_content(book_id: str, index: int) -> Chapter:
 
 
 # ── 기존 단일 책(셜록 홈즈) 코드와의 호환용 별칭 ──────────────────────────
-BOOK_MIST = book_for(BOOK_ID, title="The Hound of the Baskervilles", author="Arthur Conan Doyle")
-_BOOK_MIST_ANCHOR_TITLE = next((c.title for c in BOOK_MIST.chapters if c.index == 1), "")
-CHAPTER_CONTENT: dict[int, str] = {
-    c.index: text
-    for c in BOOK_MIST.chapters
-    if (text := _chapter_text(BOOK_ID, c.index, _BOOK_MIST_ANCHOR_TITLE)) is not None
-}
+# 이 블록은 모듈 임포트 시점(즉 서버 기동 시점)에 바로 실행된다 — 예전엔 이 기본
+# 책의 EPUB 파일이 없으면(다른 환경으로 옮기거나, 여러 팀원이 각자 다른 로컬
+# 데이터로 작업할 때 흔함) 여기서 예외가 그대로 터져서 서버 전체가 아예 기동조차
+# 못 했다. 이건 그냥 구버전 호환용 별칭일 뿐이라 실패해도 서버 기동을 막으면 안
+# 되므로, 못 찾으면 빈 값으로 폴백한다.
+try:
+    BOOK_MIST = book_for(BOOK_ID, title="The Hound of the Baskervilles", author="Arthur Conan Doyle")
+    _BOOK_MIST_ANCHOR_TITLE = next((c.title for c in BOOK_MIST.chapters if c.index == 1), "")
+    CHAPTER_CONTENT: dict[int, str] = {
+        c.index: text
+        for c in BOOK_MIST.chapters
+        if (text := _chapter_text(BOOK_ID, c.index, _BOOK_MIST_ANCHOR_TITLE)) is not None
+    }
+except Exception:
+    BOOK_MIST = Book(id=BOOK_ID, title=BOOK_ID, author="—", total_offset=0, parts=[], chapters=[])
+    _BOOK_MIST_ANCHOR_TITLE = ""
+    CHAPTER_CONTENT = {}
 
 
 # ── graph/reminders 픽스처 (교체 대기 중 — 아직 이전 데모 소설 데이터) ──────────
