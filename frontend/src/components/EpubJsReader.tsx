@@ -19,6 +19,12 @@ function charsForViewport(width: number, height: number): number {
   return Math.max(300, Math.min(2400, columns * rows));
 }
 
+// 페이지 번호/슬라이더 위치는 서버 응답을 기다릴 필요 없이 클라이언트에서 바로 계산되므로
+// (epub.js locations가 이미 로컬에 있음) 즉시 반영한다. 서버 확정 상태(reading_offset,
+// spoiler_boundary 등)만 이 지연 이후 한 번 저장한다 — 슬라이더를 빠르게 끌 때마다
+// 매번 요청을 쏘지 않기 위한 최소한의 디바운스.
+const PROGRESS_FLUSH_DELAY_MS = 150;
+
 export function EpubJsReader() {
   const bookId = useSpoStore((s) => s.selectedBookId);
   const setProgress = useSpoStore((s) => s.setProgress);
@@ -37,6 +43,7 @@ export function EpubJsReader() {
   const renditionRef = useRef<Rendition | null>(null);
   const viewportRef = useRef({ width: 0, height: 0 });
   const syncSequenceRef = useRef(0);
+  const flushTimerRef = useRef<number | null>(null);
 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [locationsReady, setLocationsReady] = useState(false);
@@ -92,10 +99,7 @@ export function EpubJsReader() {
       return null;
     };
 
-    const syncLocation = (cfi: string) => {
-      const pagination = reportPage(cfi);
-      setLatestCfi(cfi);
-      if (!pagination) return;
+    const flushProgress = (cfi: string, pagination: { page: number; totalPages: number }) => {
       const sequence = ++syncSequenceRef.current;
       putProgress.mutate(
         {
@@ -118,6 +122,23 @@ export function EpubJsReader() {
           },
         },
       );
+    };
+
+    const syncLocation = (cfi: string) => {
+      const pagination = reportPage(cfi);
+      setLatestCfi(cfi);
+      if (!pagination) return;
+
+      // 페이지 번호/슬라이더는 서버 응답을 기다리지 않고 여기서 바로 갱신한다 —
+      // epub.js locations가 이미 로컬에 있어서 즉시 계산 가능하다. 서버 확정 상태
+      // (reading_offset/spoiler_boundary 등)만 디바운스 후 저장한다.
+      setPage(pagination.page, pagination.totalPages);
+
+      if (flushTimerRef.current !== null) window.clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = window.setTimeout(() => {
+        flushTimerRef.current = null;
+        flushProgress(cfi, pagination);
+      }, PROGRESS_FLUSH_DELAY_MS);
     };
 
     book.ready
@@ -144,6 +165,17 @@ export function EpubJsReader() {
 
     return () => {
       cancelled = true;
+      // 디바운스 타이머가 아직 안 끝난 상태로 책을 나가거나 바꾸면 마지막 위치
+      // 저장이 유실될 수 있어 여기서 한 번 더 확실히 저장한다.
+      if (flushTimerRef.current !== null) {
+        window.clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+        const current = rendition.currentLocation() as { start?: { cfi: string } } | undefined;
+        if (current?.start?.cfi) {
+          const pagination = reportPage(current.start.cfi);
+          if (pagination) flushProgress(current.start.cfi, pagination);
+        }
+      }
       rendition.destroy();
       book.destroy();
       renditionRef.current = null;
