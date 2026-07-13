@@ -62,6 +62,28 @@ class FixtureSource(ContentSource):
             (fx.GRAPH_C3.offset, fx.REMINDERS_C3),
         ]
 
+    def _with_entity_first_seen(self, graph: GraphJson, boundary_global_index: int) -> GraphJson:
+        first_seen_by_id: dict[str, int] = {}
+        for snapshot in sorted(self._fixture_graphs(), key=lambda item: item.offset):
+            if snapshot.offset > boundary_global_index:
+                break
+            for entity in snapshot.entities:
+                first_seen_by_id.setdefault(entity.id, snapshot.offset)
+        return graph.model_copy(
+            update={
+                "entities": [
+                    entity.model_copy(
+                        update={
+                            "first_seen_global_index": entity.first_seen_global_index
+                            if entity.first_seen_global_index is not None
+                            else first_seen_by_id.get(entity.id, boundary_global_index)
+                        }
+                    )
+                    for entity in graph.entities
+                ]
+            }
+        )
+
     def get_graph(
         self,
         book_id: str,
@@ -70,7 +92,11 @@ class FixtureSource(ContentSource):
     ) -> GraphJson:
         if reveal_all:
             graph = max(self._fixture_graphs(), key=lambda g: g.offset)
+
             return graph.model_copy(update={"offset": boundary_global_index, "snapshot_boundary": graph.offset})
+
+            graph = self._with_entity_first_seen(graph, graph.offset)
+            return graph.model_copy(update={"offset": boundary_global_index})
 
         visible_graphs = [
             graph
@@ -78,6 +104,7 @@ class FixtureSource(ContentSource):
             if graph.offset <= boundary_global_index
         ]
         graph = max(visible_graphs, key=lambda g: g.offset) if visible_graphs else _empty_graph()
+        graph = self._with_entity_first_seen(graph, boundary_global_index)
         # 계약 offset 은 요청 경계선을 반영
         return graph.model_copy(update={"offset": boundary_global_index, "snapshot_boundary": graph.offset})
 
@@ -178,12 +205,32 @@ class AgentResultSource(ContentSource):
             canonical_name = partial_resolution_map.get(canonical_name, canonical_name)
             if entity.name != canonical_name:
                 response_name_map[entity.name] = canonical_name
-            canonical_entity = entity.model_copy(update={"name": canonical_name})
+            aliases = {
+                alias
+                for alias, target in alias_map.items()
+                if target == canonical_name and alias != canonical_name
+            }
+            aliases.update(entity.aliases)
+            if entity.name != canonical_name:
+                aliases.add(entity.name)
+            canonical_entity = entity.model_copy(
+                update={"name": canonical_name, "aliases": sorted(aliases)}
+            )
             if not self._should_return_entity(book_id, canonical_entity, alias_map):
                 continue
             existing = merged_entities.get(canonical_name)
             if existing:
                 entity_id_map[entity.id] = existing.id
+                first_seen_values = [
+                    value
+                    for value in (existing.first_seen_global_index, canonical_entity.first_seen_global_index)
+                    if value is not None
+                ]
+                merged_aliases = sorted(set(existing.aliases) | set(canonical_entity.aliases))
+                updates = {"aliases": merged_aliases}
+                if first_seen_values:
+                    updates["first_seen_global_index"] = min(first_seen_values)
+                merged_entities[canonical_name] = existing.model_copy(update=updates)
                 continue
 
             merged_entities[canonical_name] = canonical_entity
@@ -347,6 +394,40 @@ class AgentResultSource(ContentSource):
         )
         return self._store.get((book_id, keys[-1])) if keys else None
 
+    def _with_entity_first_seen(
+        self,
+        book_id: str,
+        boundary_global_index: int,
+        graph: GraphJson,
+    ) -> GraphJson:
+        """현재 boundary 이하 스냅샷만 사용해 entity 최초 등장 위치를 복원한다."""
+        first_seen_by_id: dict[str, int] = {}
+        boundaries = sorted(
+            boundary
+            for (stored_book_id, boundary) in self._store
+            if stored_book_id == book_id and boundary <= boundary_global_index
+        )
+        for boundary in boundaries:
+            entry = self._store[(book_id, boundary)]
+            stored_graph: GraphJson = entry["graph"]
+            for entity in stored_graph.entities:
+                first_seen_by_id.setdefault(entity.id, boundary)
+
+        return graph.model_copy(
+            update={
+                "entities": [
+                    entity.model_copy(
+                        update={
+                            "first_seen_global_index": entity.first_seen_global_index
+                            if entity.first_seen_global_index is not None
+                            else first_seen_by_id.get(entity.id, boundary_global_index)
+                        }
+                    )
+                    for entity in graph.entities
+                ]
+            }
+        )
+
     def _max_snapshot_boundary_global_index(self, book_id: str) -> int | None:
         boundaries = [boundary for (bk, boundary) in self._store if bk == book_id]
         return max(boundaries) if boundaries else None
@@ -381,9 +462,13 @@ class AgentResultSource(ContentSource):
         if not entry:
             return _empty_graph().model_copy(update={"offset": boundary_global_index})
         graph: GraphJson = entry["graph"]
+
         # 실제로 쓰인 스냅샷 자기 자신의 boundary(=offset) — 아래에서 graph.offset이
         # "요청한 현재 위치"로 덮어써지기 전에 먼저 떼어둔다.
         snapshot_boundary = graph.offset
+
+        graph = self._with_entity_first_seen(book_id, spoiler_boundary_global_index, graph)
+
         graph, entity_id_map, response_name_map = self._apply_alias_dictionary_to_graph(book_id, graph)
         reminder_lines = self._apply_alias_dictionary_to_reminders(
             book_id,

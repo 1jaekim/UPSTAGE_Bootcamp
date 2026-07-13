@@ -100,6 +100,27 @@ def test_agent_source_gating(tmp_path, monkeypatch):
     assert len(src.get_graph(BOOK_ID, 380, reveal_all=False).entities) == 5
 
 
+def test_agent_source_derives_entity_first_seen_without_future_snapshots():
+    def graph(boundary, entity_ids):
+        return GraphJson(
+            offset=boundary,
+            spoiler_safe=True,
+            entities=[Entity(id=entity_id, name=entity_id, type="person", color="blue") for entity_id in entity_ids],
+            relationships=[],
+        )
+
+    source = AgentResultSource(
+        {
+            ("book-layout", 10): {"graph": graph(10, ["a"]), "reminders": []},
+            ("book-layout", 20): {"graph": graph(20, ["a", "b"]), "reminders": []},
+            ("book-layout", 30): {"graph": graph(30, ["a", "b", "future"]), "reminders": []},
+        }
+    )
+
+    result = source.get_graph("book-layout", 20, reveal_all=False)
+    assert {entity.id: entity.first_seen_global_index for entity in result.entities} == {"a": 10, "b": 20}
+
+
 def test_agent_source_applies_character_alias_dictionary_before_returning_snapshots():
     book_id = "3fb1a332-ae08-450b-8b20-3567a4da4180"
     graph = GraphJson(
@@ -145,9 +166,11 @@ def test_agent_source_applies_character_alias_dictionary_before_returning_snapsh
     normalized_graph = src.get_graph(book_id, 10, reveal_all=False)
     names = [entity.name for entity in normalized_graph.entities]
     sherlock_id = next(entity.id for entity in normalized_graph.entities if entity.name == "셜록 홈즈")
+    sherlock = next(entity for entity in normalized_graph.entities if entity.name == "셜록 홈즈")
     watson_id = next(entity.id for entity in normalized_graph.entities if entity.name == "존 H. 왓슨")
 
     assert names == ["셜록 홈즈", "존 H. 왓슨"]
+    assert "홈즈" in sherlock.aliases
     assert len(normalized_graph.relationships) == 1
     assert normalized_graph.relationships[0].source == sherlock_id
     assert normalized_graph.relationships[0].target == watson_id

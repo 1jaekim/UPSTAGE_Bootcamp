@@ -14,6 +14,30 @@ import { isDeceased } from '../utils/characterStatus';
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.8;
 
+const ENTITY_COLOR_PALETTE = [
+  '#6b8eaa',
+  '#789b7a',
+  '#b18478',
+  '#8b7fa8',
+  '#b39462',
+  '#648f8b',
+  '#9a7890',
+  '#7f91b2',
+  '#8d9a68',
+  '#b0786b',
+  '#718ca0',
+  '#927fa0',
+] as const;
+
+function entityColor(entityId: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < entityId.length; index += 1) {
+    hash ^= entityId.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ENTITY_COLOR_PALETTE[(hash >>> 0) % ENTITY_COLOR_PALETTE.length];
+}
+
 type Detail = {
   title: string;
   detail: string;
@@ -65,7 +89,7 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
     // 파스텔(softColor)로 바꿨더니 너무 흐려 보인다는 피드백이 있어, 원래 진한
     // 그룹 색(color)으로 되돌리고 대신 nodeStyles.ts의 background-opacity를
     // 낮춰서 채도는 유지하면서 눈부심만 줄인다.
-    const color = group?.color ?? '#64748b';
+    const color = entityColor(id);
     const deceased = isDeceased(entity.description);
     const name = deceased ? `故 ${entity.name || id}` : entity.name || id;
 
@@ -87,26 +111,10 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
       },
     });
 
-    // 설명(직업 등)은 원 안에 이름과 같이 넣을 수 없다 — cytoscape 노드는 라벨을
-    // 하나만 가질 수 있어서, 이름과 한 라벨에 합치면 앵커 위치를 하나로만 고정해야
-    // 해서 "이름은 안, 설명은 밑"을 동시에 만족 못 한다. 대신 설명 전용의 투명한
-    // 위성 노드를 따로 만들고, 본체 노드 위치가 바뀔 때마다(드래그·레이아웃 애니메이션)
-    // 그 바로 위로 계속 따라가게 동기화한다(useEffect의 'position' 이벤트 참고).
-    if (entity.description) {
-      nodes.push({
-        group: 'nodes',
-        classes: 'node-caption',
-        data: {
-          id: `${id}__caption`,
-          label: entity.description,
-          personId: id,
-          personSize: size,
-        },
-      });
-    }
   });
 
   const edges: ElementDefinition[] = [];
+  const pairEdgeIndexes = new Map<string, number>();
   relationships.forEach((relationship, index) => {
     const source = String(relationship.source ?? '').trim();
     const target = String(relationship.target ?? '').trim();
@@ -120,6 +128,12 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
       suffix += 1;
     }
     usedEdgeIds.add(id);
+
+    const pairKey = [source, target].sort().join('::');
+    const pairIndex = pairEdgeIndexes.get(pairKey) ?? 0;
+    pairEdgeIndexes.set(pairKey, pairIndex + 1);
+    const curveLevel = Math.floor(pairIndex / 2) + 1;
+    const curveDirection = pairIndex % 2 === 0 ? 1 : -1;
 
     const category = relationship.relation_category ?? 'neutral';
     const relationScore = relationship.relation_importance_score ?? (relationship.relation_importance_level === 'major' ? 4 : 2);
@@ -144,6 +158,7 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
         directed: relationship.directionality === 'directed',
         width: majorLabel ? 3 : 2,
         opacity: majorLabel ? 0.82 : 0.38,
+        controlPointDistance: curveLevel * curveDirection * 42,
         detail: relationDetail(relationship),
         eventName: relationship.event_name ?? '',
       },
@@ -211,8 +226,11 @@ export function FullscreenRelationshipGraph({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cyRef = useRef<Core | null>(null);
+  const seenNodeIdsRef = useRef(new Set<string>());
+  const seenEdgeIdsRef = useRef(new Set<string>());
   const [search, setSearch] = useState('');
   const [detail, setDetail] = useState<Detail | null>(null);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<CharacterGroupId | 'all'>('all');
   const { elements, nodeCount, edgeCount, groups } = useMemo(
     () => makeElements(entities, relationships),
@@ -261,11 +279,19 @@ export function FullscreenRelationshipGraph({
 
     cyRef.current = cy;
 
+    cy.on('mouseover', 'edge', (event: EventObject) => event.target.addClass('hovered'));
+    cy.on('mouseout', 'edge', (event: EventObject) => event.target.removeClass('hovered'));
+    cy.on('mouseover', 'node', (event: EventObject) => {
+      if (!event.target.hasClass('node-caption')) event.target.addClass('hovered');
+    });
+    cy.on('mouseout', 'node', (event: EventObject) => event.target.removeClass('hovered'));
+
     // 위성 노드는 스타일에서 이벤트를 꺼뒀지만(events:'no'), 혹시 몰라 한 번 더 막는다.
     cy.on('tap', 'node', (event: EventObject) => {
       if (event.target.hasClass('node-caption')) return;
       applyNodeFocus(cy, event.target);
       setDetail(null);
+      setSelectedEntityId(event.target.id());
     });
     // 본체 노드가 움직일 때마다(드래그) 설명 위성 노드를 바로 위로 따라가게 한다.
     cy.on('position', 'node', (event: EventObject) => {
@@ -283,7 +309,7 @@ export function FullscreenRelationshipGraph({
       edge.removeClass('faded').addClass('focused');
       const connected = edge.connectedNodes();
       connected.removeClass('faded').addClass('neighbor');
-      connected.forEach((node) => {
+      connected.forEach((node: cytoscape.NodeSingular) => {
         cy.getElementById(`${node.id()}__caption`).removeClass('faded');
       });
       setDetail({
@@ -291,11 +317,13 @@ export function FullscreenRelationshipGraph({
         detail: edge.data('detail'),
         eventName: edge.data('eventName'),
       });
+      setSelectedEntityId(null);
     });
     cy.on('tap', (event: EventObject) => {
       if (event.target === cy) {
         clearFocus(cy);
         setDetail(null);
+        setSelectedEntityId(null);
       }
     });
 
@@ -312,9 +340,32 @@ export function FullscreenRelationshipGraph({
       cy.elements().remove();
       cy.add(elements);
     });
+
+    const newNodes = cy.nodes(':not(.node-caption)').filter(
+      (node) => !seenNodeIdsRef.current.has(node.id()),
+    );
+    const newEdges = cy.edges().filter(
+      (edge) => !seenEdgeIdsRef.current.has(edge.id()),
+    );
+    cy.nodes(':not(.node-caption)').forEach((node) => {
+      seenNodeIdsRef.current.add(node.id());
+    });
+    cy.edges().forEach((edge) => {
+      seenEdgeIdsRef.current.add(edge.id());
+    });
+
+    if (newNodes.length > 0) {
+      newNodes.addClass('new-node');
+      window.setTimeout(() => newNodes.removeClass('new-node'), 30);
+    }
+    if (newEdges.length > 0) {
+      newEdges.addClass('new-edge');
+      window.setTimeout(() => newEdges.removeClass('new-edge'), 30);
+    }
     syncAllCaptionPositions(cy);
     clearFocus(cy);
     setDetail(null);
+    setSelectedEntityId(null);
     runCoseLayout();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, elements]);
@@ -350,6 +401,15 @@ export function FullscreenRelationshipGraph({
 
   if (!open) return null;
 
+  const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? null;
+  const selectedRelationships = selectedEntity
+    ? relationships.filter(
+        (relationship) =>
+          relationship.source === selectedEntity.id || relationship.target === selectedEntity.id,
+      )
+    : [];
+  const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
+
   const zoom = (factor: number) => {
     const cy = cyRef.current;
     if (!cy || cy.destroyed()) return;
@@ -361,7 +421,7 @@ export function FullscreenRelationshipGraph({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div className="flex h-[90vh] w-[min(1180px,96vw)] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-2xl">
+      <div className="flex h-[90vh] w-[min(1420px,96vw)] flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-2xl">
         <header className="flex h-[60px] shrink-0 items-center justify-between border-b border-slate-200 bg-slate-50 px-5">
           <h2 className="text-base font-extrabold text-slate-900">관계도 탐색</h2>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 bg-white text-xl leading-none text-slate-500 transition hover:border-slate-300 hover:text-slate-800" aria-label="관계도 닫기">
@@ -383,7 +443,8 @@ export function FullscreenRelationshipGraph({
             <button type="button" onClick={runCoseLayout} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600">Reset Layout</button>
           </div>
         </div>
-        <div className="relative h-[calc(90vh-120px)] min-h-[600px] w-full">
+        <div className="grid h-[calc(90vh-120px)] min-h-[600px] grid-cols-[minmax(0,1fr)_320px]">
+          <div className="relative min-w-0">
           <div ref={containerRef} className="absolute inset-0 h-full w-full bg-slate-50" />
           {entities.length === 0 && (
             <div className="absolute inset-0 grid place-items-center bg-slate-50 text-sm font-semibold text-slate-400">
@@ -430,6 +491,73 @@ export function FullscreenRelationshipGraph({
               <p>{detail.detail}</p>
             </div>
           )}
+          </div>
+          <aside className="overflow-y-auto border-l border-slate-200 bg-slate-50/70 p-5" aria-live="polite">
+            {!selectedEntity && (
+              <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm leading-6 text-slate-500 shadow-sm">
+                관계도에서 인물을 선택하면 상세 정보가 표시됩니다.
+              </p>
+            )}
+            {selectedEntity && (
+              <div className="space-y-6">
+                <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 h-3 w-3 shrink-0 rounded-full ring-4 ring-slate-100" style={{ backgroundColor: entityColor(selectedEntity.id) }} />
+                    <div className="min-w-0">
+                      <h3 className="break-words text-xl font-extrabold leading-tight text-slate-900">{selectedEntity.name}</h3>
+                      <span className="mt-2 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-bold text-slate-500">
+                        {selectedEntity.type === 'person' ? '인물' : selectedEntity.type}
+                      </span>
+                    </div>
+                  </div>
+                {selectedEntity.aliases && selectedEntity.aliases.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3">
+                    {selectedEntity.aliases.map((alias) => (
+                      <span key={alias} className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">별칭 · {alias}</span>
+                    ))}
+                  </div>
+                )}
+                </section>
+
+                <section>
+                  <h4 className="text-xs font-extrabold uppercase tracking-[0.08em] text-slate-400">설명</h4>
+                  <p className="mt-2 whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600 shadow-sm">
+                    {selectedEntity.description || '표시할 인물 설명이 없습니다.'}
+                  </p>
+                </section>
+
+                <section>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold uppercase tracking-[0.08em] text-slate-400">관계 목록</h4>
+                    <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-[11px] font-bold text-slate-500">{selectedRelationships.length}</span>
+                  </div>
+                <div className="mt-2 space-y-3">
+                  {selectedRelationships.length === 0 && <p className="text-sm text-slate-400">표시할 관계가 없습니다.</p>}
+                  {selectedRelationships.map((relationship) => {
+                    const counterpartId = relationship.source === selectedEntity.id
+                      ? relationship.target
+                      : relationship.source;
+                    return (
+                      <div
+                        key={relationship.id}
+                        className="rounded-xl border border-slate-200 border-l-4 bg-white p-3 shadow-sm transition-colors duration-200 hover:bg-slate-50"
+                        style={{ borderLeftColor: entityColor(counterpartId) }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: entityColor(counterpartId) }} />
+                          <div className="break-words text-sm font-extrabold text-slate-800">{entityNames.get(counterpartId) ?? counterpartId}</div>
+                        </div>
+                        <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600">{relationLabel(relationship)}</span>
+                        <p className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-slate-500">{relationDetail(relationship)}</p>
+                        <p className="mt-2 text-[11px] font-medium text-slate-400">revision {relationship.revision_offset}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                </section>
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </div>
