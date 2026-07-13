@@ -29,7 +29,7 @@ services:
       # 컨테이너 기준으로 덮어쓴다(load_dotenv override=False 라 이 값이 우선).
       SPO_EPUB_PATH: /app/agents/data/books/arthur-conan-doyle_the-hound-of-the-baskervilles.epub
     ports:
-      # 호스트 8001 → 컨테이너 8000. 브라우저는 frontend(:4173)만 쓰고, 이 포트는
+      # 호스트 8001 → 컨테이너 8000. 브라우저는 nginx(:8080)만 쓰고, 이 포트는
       # 직접 API 디버깅용이다. (호스트 8000 이 비어 있으면 "8000:8000" 로 바꿔도 됨)
       - "8001:8000"
     volumes:
