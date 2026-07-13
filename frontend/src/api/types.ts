@@ -14,6 +14,7 @@ export interface Entity {
   importance_level?: 'major' | 'minor';
   /** 본문에서 확인된 인물 설명(직업/역할 등). 근거 없으면 비어있을 수 있음. */
   description?: string | null;
+  aliases?: string[];
 }
 
 export interface Relationship {

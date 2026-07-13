@@ -20,6 +20,10 @@ class Entity(BaseModel):
     # BuildAgent가 본문에서 뽑은 인물 설명(직업/역할 등, 예: "슈퍼 주인"). 근거가
     # 없으면 비워둔다(추측 금지 원칙과 동일).
     description: str | None = None
+    aliases: list[str] = Field(default_factory=list)
+    # 기존 스냅샷에는 없을 수 있어 response-time에 AgentResultSource가 현재 boundary
+    # 이하의 스냅샷만 오름차순으로 훑어 보완한다.
+    first_seen_global_index: int | None = None
 
 
 class Relationship(BaseModel):
