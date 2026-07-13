@@ -6,6 +6,37 @@ def _entity(entity_id: str, name: str) -> Entity:
     return Entity(id=entity_id, name=name, type="person", color="blue")
 
 
+def test_presenter_never_leaks_hardcoded_baskerville_text_into_unrelated_book():
+    """실제로 재현됐던 사고: 심청전(홈즈와 전혀 무관한 책)의 "옥황상제-용왕" 같은
+    work/의뢰 계열 관계에 셜록 홈즈용 하드코딩 문장("찰스 경의 죽음과 가문의
+    저주")이 그대로 노출됐다. event_summary가 없어도 하드코딩된 특정 책 내용이
+    나오면 안 되고, 범용 카테고리 문장으로만 귀결돼야 한다."""
+    graph = GraphJson(
+        offset=100,
+        spoiler_safe=True,
+        entities=[_entity("e_a", "옥황상제"), _entity("e_b", "인당수 용왕")],
+        relationships=[
+            Relationship(
+                id="r1",
+                source="e_a",
+                target="e_b",
+                label="명령자-수령자",
+                tone="neutral",
+                description="옥황상제의 명령을 받은 용왕",
+                revision_offset=100,
+                relation_category="work",
+                relation_role="work",
+            )
+        ],
+    )
+
+    relationship = apply_relationship_presentation(graph).relationships[0]
+
+    assert "찰스" not in relationship.relationship_summary
+    assert "배스커빌" not in relationship.relationship_summary
+    assert "저주" not in relationship.relationship_summary
+
+
 def test_presenter_builds_korean_role_pair_from_structured_story_relation():
     graph = GraphJson(
         offset=100,
@@ -141,7 +172,11 @@ def test_presenter_falls_back_to_category_label_without_hardcoded_names():
     assert relationship.relationship_summary
 
 
-def test_presenter_uses_specific_client_investigator_context():
+def test_presenter_uses_event_text_not_hardcoded_sentence_for_work_category():
+    """예전엔 role_pair_label이 "의뢰인 → 조사자"일 때 셜록 홈즈 테스트북 문장이
+    그대로 하드코딩돼 있어서, 다른 책(예: 심청전)의 관계에도 "찰스 경의 죽음과
+    가문의 저주" 같은 엉뚱한 문장이 그대로 노출되는 환각 버그가 있었다. 이제는
+    실제 event_summary 텍스트(있으면) 또는 카테고리 기반 범용 문장만 쓴다."""
     graph = GraphJson(
         offset=100,
         spoiler_safe=True,
@@ -158,6 +193,7 @@ def test_presenter_uses_specific_client_investigator_context():
                 relation_category="work",
                 relation_role="work",
                 event_name="배스커빌 사건 의뢰",
+                event_summary="모티머는 홈즈에게 사건 조사를 의뢰했다.",
             )
         ],
     )
@@ -165,6 +201,8 @@ def test_presenter_uses_specific_client_investigator_context():
     relationship = apply_relationship_presentation(graph).relationships[0]
 
     assert relationship.role_pair_label == "의뢰인 → 조사자"
+    # 하드코딩된 "찰스 경의 죽음과 가문의 저주" 문장이 아니라 실제 event_summary가 쓰인다.
+    assert "찰스" not in relationship.relationship_summary
     assert "홈즈에게" in relationship.relationship_summary
 
 

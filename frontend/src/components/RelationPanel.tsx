@@ -126,9 +126,11 @@ export function RelationPanel() {
         {graph && graph.entities.length > 0 && <RelationshipGraph graph={graph} />}
       </div>
 
-      {graph?.generated_at ? (
+      {graph?.generated_at || graph?.snapshot_boundary != null ? (
         <p className="text-right text-[11px] font-semibold text-slate-400">
-          스냅샷 마지막 갱신: {formatGeneratedAt(graph.generated_at)}
+          {graph?.generated_at ? `스냅샷 마지막 갱신: ${formatGeneratedAt(graph.generated_at)}` : null}
+          {graph?.generated_at && graph?.snapshot_boundary != null ? ' · ' : null}
+          {graph?.snapshot_boundary != null ? `기준 스냅샷: 문단 ${graph.snapshot_boundary}` : null}
         </p>
       ) : null}
 

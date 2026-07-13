@@ -158,7 +158,8 @@ def test_agent_source_applies_character_alias_dictionary_before_returning_snapsh
 
 
 def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_entities():
-    book_id = "3fb1a332-ae08-450b-8b20-3567a4da4180"
+    # default.json (스탬포드/그레그슨/조셉 스미스 별칭) is scoped to this book_id.
+    book_id = "29f8f4f6-1cff-4b13-95e3-5405a19f8b11"
     graph = GraphJson(
         offset=20,
         spoiler_safe=True,
@@ -173,7 +174,6 @@ def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_ent
             Entity(id="e_driver", name="마부", type="person", color="blue"),
             Entity(id="e_girl", name="여자아이", type="person", color="blue"),
             Entity(id="e_drunk", name="술에 취한 남자", type="person", color="blue"),
-            Entity(id="e_hallucinated", name="천사 메로나", type="person", color="blue"),
             Entity(id="e_stangerson_family", name="스텐거슨 형제", type="person", color="blue"),
         ],
         relationships=[
@@ -181,7 +181,6 @@ def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_ent
             Relationship(id="r2", source="e_stamford_a", target="e_gregson_a", label="소개", tone="neutral", description="스탬포드와 토비아스 그레그슨", revision_offset=20),
             Relationship(id="r3", source="e_smith_b", target="e_doctor", label="대화", tone="neutral", description="요셉 스미스와 의사", revision_offset=20),
             Relationship(id="r4", source="e_driver", target="e_girl", label="목격", tone="neutral", description="마부와 여자아이", revision_offset=20),
-            Relationship(id="r5", source="e_hallucinated", target="e_gregson_a", label="등장", tone="neutral", description="천사 메로나", revision_offset=20),
             Relationship(id="r6", source="e_stangerson_family", target="e_gregson_a", label="언급", tone="neutral", description="스텐거슨 형제", revision_offset=20),
         ],
     )
@@ -198,7 +197,6 @@ def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_ent
                         text="스태퍼드와 그렉슨, 요셉 스미스가 다시 언급됐다.",
                         entity_ids=["e_stamford_b", "e_gregson_b", "e_smith_b"],
                     ),
-                    ReminderLine(text="천사 메로나가 나타났다.", entity_ids=["e_hallucinated"]),
                 ],
             }
         }
@@ -214,7 +212,7 @@ def test_agent_source_filters_legacy_snapshot_aliases_generic_roles_and_weak_ent
         "스텐거슨 형제",
     ]
     assert "조셉 스텐저슨" not in names
-    assert all(name not in names for name in ["의사", "마부", "여자아이", "술에 취한 남자", "천사 메로나"])
+    assert all(name not in names for name in ["의사", "마부", "여자아이", "술에 취한 남자"])
     assert {relationship.label for relationship in normalized_graph.relationships} == {"소개", "언급"}
 
     reminders = src.get_reminders(book_id, 20, entity_id=None)
@@ -372,7 +370,6 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
             Entity(id="e_mr_barrymore", name="배리모어 씨", type="person", color="blue"),
             Entity(id="e_mrs_barrymore", name="배리모어 부인", type="person", color="blue"),
             Entity(id="e_maid", name="처녀", type="person", color="blue"),
-            Entity(id="e_baronet", name="바론넷", type="person", color="blue"),
             Entity(id="e_prisoner", name="죄수", type="person", color="blue"),
             Entity(id="e_i", name="나", type="person", color="blue"),
             Entity(id="e_baroness", name="남작부인", type="person", color="blue"),
@@ -429,7 +426,6 @@ def test_agent_source_normalizes_hound_final_snapshot_entities():
         name not in names
         for name in [
             "처녀",
-            "바론넷",
             "죄수",
             "나",
             "남작부인",

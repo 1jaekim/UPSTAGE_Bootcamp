@@ -175,19 +175,33 @@ def build_chunk_boundary_to_global_index_map(book_id: str, epub_path: str | Path
         idx: (ps[0].global_index, ps[-1].global_index) for idx, ps in by_cfi_chapter.items()
     }
 
-    # 1챕터 제목으로 이 책의 실제 파서 오프셋을 자동 계산 (책마다 표지·목차 개수가 다름)
-    ch1_title = next(
-        (ps[0].chapter_title for idx, ps in sorted(by_cfi_chapter.items()) if idx == 1), None
+    # 첫 챕터 제목으로 이 책의 실제 파서 오프셋을 자동 계산한다(책마다 표지·목차 문서
+    # 개수가 다름). book_cfi_index의 chapter_index가 항상 1부터 시작한다는 보장이
+    # 없다(예: 0부터 시작하는 책도 있음) — "idx == 1"로 고정하면 그런 책은 첫 챕터를
+    # 영영 못 찾아서 이 계산 전체가 조용히 실패한다. 실제로 존재하는 가장 작은
+    # chapter_index를 첫 챕터로 삼는다.
+    first_cfi_chapter_index = min(by_cfi_chapter.keys()) if by_cfi_chapter else None
+    ch1_title = (
+        by_cfi_chapter[first_cfi_chapter_index][0].chapter_title
+        if first_cfi_chapter_index is not None
+        else None
     )
+
     def normalize(t: str) -> str:
-        return re.sub(r"[^a-z0-9]+", "", t.lower())
+        # 예전엔 [^a-z0-9]+로 영문/숫자만 남겼는데, 그러면 한글(또는 다른 비ASCII
+        # 문자) 제목은 전부 빈 문자열이 돼서 아래 "target and ..." 조건이 항상
+        # False가 되어 이 자동 보정이 조용히 실패하고, 책마다 다른 챕터 오프셋을
+        # 무조건 PARSER_CHAPTER_OFFSET(다른 책 기준값)으로 잘못 고정해버렸다.
+        # \\w는 파이썬 re 기본 설정에서 유니코드 문자(한글 포함)도 단어 문자로
+        # 인식하므로, 어떤 언어의 제목이든 정규화가 실제로 동작한다.
+        return re.sub(r"[^\w]+", "", t.lower())
 
     computed_offset = PARSER_CHAPTER_OFFSET
-    if ch1_title:
+    if ch1_title and first_cfi_chapter_index is not None:
         target = normalize(ch1_title)
         for c in chapters:
             if target and target in normalize(c["title"]):
-                computed_offset = c["chapter_index"] - 1
+                computed_offset = c["chapter_index"] - first_cfi_chapter_index
                 break
 
     def chunk_to_global_index(chunk: dict) -> int:

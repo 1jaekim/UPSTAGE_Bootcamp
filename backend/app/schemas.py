@@ -135,6 +135,11 @@ class GraphJson(BaseModel):
     current_page: int | None = None
     total_pages: int | None = None
     spoiler_boundary_page: int | None = None
+    # 이 관계도가 실제로 어느 분석 스냅샷(경계선)을 기준으로 만들어졌는지. `offset`은
+    # 요청한 현재 위치 그대로 돌려주는 값이라, 실제로 쓰인 스냅샷이 몇 번째인지는
+    # 이 필드로만 알 수 있다 — 예: 현재 위치가 문단 100이어도 스냅샷은 16, 52, 88...
+    # 중 가장 가까운 이전 것 하나만 쓴다.
+    snapshot_boundary: int | None = None
 
 
 class ReminderLine(BaseModel):

@@ -70,7 +70,7 @@ class FixtureSource(ContentSource):
     ) -> GraphJson:
         if reveal_all:
             graph = max(self._fixture_graphs(), key=lambda g: g.offset)
-            return graph.model_copy(update={"offset": boundary_global_index})
+            return graph.model_copy(update={"offset": boundary_global_index, "snapshot_boundary": graph.offset})
 
         visible_graphs = [
             graph
@@ -79,7 +79,7 @@ class FixtureSource(ContentSource):
         ]
         graph = max(visible_graphs, key=lambda g: g.offset) if visible_graphs else _empty_graph()
         # 계약 offset 은 요청 경계선을 반영
-        return graph.model_copy(update={"offset": boundary_global_index})
+        return graph.model_copy(update={"offset": boundary_global_index, "snapshot_boundary": graph.offset})
 
     def get_reminders(
         self,
@@ -112,14 +112,7 @@ class AgentResultSource(ContentSource):
     def _canonical_name(self, name: str, alias_map: dict[str, str]) -> str:
         return alias_map.get(name, name)
 
-    def _looks_like_weak_snapshot_entity(self, name: str, alias_map: dict[str, str]) -> bool:
-        if name in alias_map or name in set(alias_map.values()):
-            return False
-        return name in {"천사 메로나"}
-
     def _should_return_entity(self, book_id: str, entity: Entity, alias_map: dict[str, str]) -> bool:
-        if self._looks_like_weak_snapshot_entity(entity.name, alias_map):
-            return False
         return should_keep_character_entity({"name": entity.name, "type": entity.type}, book_id=book_id)
 
     def _replace_alias_names_in_text(self, text: str, alias_map: dict[str, str]) -> str:
@@ -388,6 +381,9 @@ class AgentResultSource(ContentSource):
         if not entry:
             return _empty_graph().model_copy(update={"offset": boundary_global_index})
         graph: GraphJson = entry["graph"]
+        # 실제로 쓰인 스냅샷 자기 자신의 boundary(=offset) — 아래에서 graph.offset이
+        # "요청한 현재 위치"로 덮어써지기 전에 먼저 떼어둔다.
+        snapshot_boundary = graph.offset
         graph, entity_id_map, response_name_map = self._apply_alias_dictionary_to_graph(book_id, graph)
         reminder_lines = self._apply_alias_dictionary_to_reminders(
             book_id,
@@ -413,7 +409,7 @@ class AgentResultSource(ContentSource):
             reminder_entity_ids=reminder_entity_ids,
         )
         graph = apply_relationship_presentation(graph)
-        return graph.model_copy(update={"offset": boundary_global_index})
+        return graph.model_copy(update={"offset": boundary_global_index, "snapshot_boundary": snapshot_boundary})
 
     def get_reminders(
         self,

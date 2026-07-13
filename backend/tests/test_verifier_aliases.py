@@ -6,7 +6,10 @@ from agents.character_aliases import load_character_alias_map
 
 
 def test_load_default_character_alias_map():
-    alias_map = load_character_alias_map(None)
+    # default.json is scoped to the Hound of the Baskervilles book_id — pass that
+    # explicitly, since it must NOT apply to other/unknown books (see the
+    # cross-book leak regression test below).
+    alias_map = load_character_alias_map("29f8f4f6-1cff-4b13-95e3-5405a19f8b11")
 
     assert alias_map["셜록 홈스"] == "셜록 홈즈"
     assert alias_map["홈즈"] == "셜록 홈즈"
@@ -16,6 +19,15 @@ def test_load_default_character_alias_map():
     assert alias_map["그레그슨"] == "토비아스 그레그슨"
     assert alias_map["요셉 스미스"] == "조셉 스미스"
     assert "스텐거슨 형제" not in alias_map
+
+
+def test_default_character_alias_map_not_applied_to_unrelated_books():
+    """default.json은 원래 셜록 홈즈(배스커빌 가문의 개) 전용으로 만들어졌는데
+    book_id 스코프가 없어서 모든 책에 적용됐었다 — 다른 책의 인물이 우연히
+    "왓슨"/"그렉슨" 같은 이름이면 셜록 홈즈 정식 이름으로 강제 치환되는 사고가
+    났다. book_id가 없거나 다른 책이면 절대 적용되면 안 된다."""
+    assert load_character_alias_map(None) == {}
+    assert load_character_alias_map("어떤_다른_책_id") == {}
 
 
 def test_load_book_character_alias_map_merges_default_and_book_specific_aliases():

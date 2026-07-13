@@ -38,7 +38,9 @@ def _write_store(path, book_id="book_local", boundary=10):
 
 
 def test_source_local_uses_only_local_precomputed_without_supabase(tmp_path, monkeypatch):
-    book_id = _write_store(tmp_path / "local.json")
+    # default.json alias resolution ("홈즈" -> "셜록 홈즈") is scoped to this
+    # book_id, so it must be used here for the reminder-text alias assertion below.
+    book_id = _write_store(tmp_path / "local.json", book_id="29f8f4f6-1cff-4b13-95e3-5405a19f8b11")
 
     def fail_if_called():
         raise AssertionError("Supabase must not be called in SPO_SOURCE=local")

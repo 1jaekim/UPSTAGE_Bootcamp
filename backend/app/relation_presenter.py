@@ -139,38 +139,18 @@ def _summary_from_event_text(text: str | None, *, source_name: str, target_name:
     return cleaned
 
 
-def _summary_for(relationship: Relationship, source_name: str, target_name: str, role_pair_label: str, event_name: str) -> str:
-    parts = [part.strip() for part in role_pair_label.split("→", 1)]
-    source_role = parts[0]
-    target_role = parts[1] if len(parts) > 1 else parts[0]
+def _summary_for(relationship: Relationship, source_name: str, target_name: str, event_name: str) -> str:
     category = relationship.relation_category or "neutral"
     source = _short_name(source_name)
     target = _short_name(target_name)
     text = _context_text(relationship)
 
-    if role_pair_label == "주치의 → 환자":
-        return f"{source}는 {target}의 주치의로, 그의 죽음을 이상하게 여기고 사건 조사를 요청하는 계기가 된다."
-    if role_pair_label == "의뢰인 → 조사자":
-        return f"{source}는 {target}에게 찰스 경의 죽음과 가문의 저주에 대한 조사를 부탁한다."
-    if role_pair_label == "삼촌 → 상속인":
-        return f"{source}가 사망한 뒤 {target}가 배스커빌 가문의 재산과 작위를 이어받는다."
-    if role_pair_label == "은닉자 → 탈주범":
-        return f"{source}는 숨어 지내는 {target}을 돕거나 숨겨 주는 일로 사건에 얽힌다."
-    if role_pair_label == "기만당한 인물 → 기만자":
-        return f"{source}는 {target}의 말이나 계획에 속아 사건에 이용된다."
-    if role_pair_label == "가해자 → 피해자":
-        return f"{source}는 '{event_name}'에서 {target}에게 해를 끼친 핵심 인물로 드러난다."
-    if role_pair_label == "수사관 → 범인":
-        return f"{source}는 '{event_name}'을 통해 {target}를 진범(또는 공범)으로 지목하고 조사한다."
-    if role_pair_label == "보호자 → 보호 대상":
-        return f"{source}는 위험에 놓인 {target}을 동행하거나 보호하며 사건에 관여한다."
-    if role_pair_label == "기만자 → 기만당한 인물":
-        return f"{source}는 {target}을 속이거나 잘못된 판단을 하게 만들어 사건을 자기 쪽으로 끌고 간다."
-    if role_pair_label == "조력자 → 수혜자":
-        return f"{source}는 {target}에게 도움을 주며 사건의 진행에 영향을 미친다."
-    if role_pair_label == "목격자 → 피해자":
-        return f"{source}는 {target}에게 벌어진 일을 목격하거나 증언하면서 사건의 실마리를 제공한다."
-
+    # 예전엔 여기에 역할쌍 문자열별로 고정 문장이 하드코딩돼 있었다(예: "의뢰인 → 조사자"면
+    # 무조건 "찰스 경의 죽음과 가문의 저주" 운운). role_pair_label은 카테고리에서 자동으로
+    # 생성되는 범용 라벨이라 어떤 책에서든 똑같이 매칭되는데, 그 고정 문장은 셜록 홈즈
+    # 테스트북 하나를 보고 쓴 것이었다 — 그래서 전혀 다른 책(예: 심청전)의 관계에도 "찰스
+    # 경"이 그대로 튀어나오는 환각이 발생했다. 실제 사건 텍스트(event_summary)나 카테고리
+    # 기반의 범용 문장만 쓰도록 전부 제거한다.
     event_summary = _summary_from_event_text(relationship.event_summary, source_name=source_name, target_name=target_name)
     if event_summary and not any(phrase in event_summary for phrase in MECHANICAL_PHRASES):
         return event_summary
@@ -203,7 +183,7 @@ def apply_relationship_presentation(graph: GraphJson) -> GraphJson:
         event_name = _event_name(relationship)
         existing_label = (relationship.display_label or relationship.label or "").strip()
         display_label = role_pair_label if (relationship.label_is_generic or not existing_label) else existing_label
-        summary = _summary_for(relationship, source_name, target_name, role_pair_label, event_name)
+        summary = _summary_for(relationship, source_name, target_name, event_name)
         evidence = _evidence_items(relationship)
 
         relationships.append(

@@ -52,7 +52,10 @@ def _parsed_chapters(book_id: str) -> list[dict]:
 
 
 def _normalize_title(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", title.lower())
+    # [^a-z0-9]+로 영문/숫자만 남기면 한글(또는 다른 비ASCII) 제목은 전부 빈 문자열이
+    # 돼서, 이 값을 쓰는 매칭이 항상 실패한다(precompute.py의 같은 버그 참고). \w는
+    # 파이썬 re 기본 설정에서 유니코드 문자(한글 포함)도 단어 문자로 인식한다.
+    return re.sub(r"[^\w]+", "", title.lower())
 
 
 @lru_cache(maxsize=None)

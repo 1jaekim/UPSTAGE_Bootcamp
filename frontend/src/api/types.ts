@@ -78,6 +78,10 @@ export interface GraphJson {
   current_page?: number | null;
   total_pages?: number | null;
   spoiler_boundary_page?: number | null;
+  /** 이 관계도가 실제로 어느 분석 스냅샷(경계선, global_index)을 기준으로
+   *  만들어졌는지. 현재 읽는 위치(offset)와는 다를 수 있다 — 그 위치 이전의
+   *  가장 가까운 스냅샷 하나만 쓰기 때문이다. */
+  snapshot_boundary?: number | null;
 }
 
 export interface ReminderLine {
