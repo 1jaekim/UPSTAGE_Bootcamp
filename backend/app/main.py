@@ -13,7 +13,7 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import cfi_db, db, fixtures as fx
+from . import cfi_db, db, fixtures as fx, jobs
 from .content_source import ContentSource
 from .schemas import (
     Book,
@@ -111,7 +111,7 @@ def delete_book(book_id: str) -> dict:
     for path in (epub_path_for(book_id), store_path(book_id)):
         path.unlink(missing_ok=True)
 
-    _analysis_progress.pop(book_id, None)
+    jobs.pop_progress(book_id)
     cfi_db.clear_cache()
     _content_source_cache = None
 
@@ -214,55 +214,9 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     )
 
 
-# book_id별 분석 진행 상태 — 프로세스 메모리에만 두는 가벼운 진행률 표시용이라
-# (Supabase에 넣을 만큼 중요한 데이터는 아님) 서버 재시작하면 사라진다. 그래도
-# 업로드 직후 프론트에서 "지금 몇 번째 구간까지 됐는지" 보여주기엔 충분하다.
-_analysis_progress: dict[str, dict] = {}
-
-
-def _run_full_analysis(book_id: str) -> None:
-    """BuildAgent~IndirectLeakageJudge 4단계 파이프라인을 백그라운드에서 실행.
-
-    업로드 응답은 CFI 인덱싱만 끝나면 바로 나가고, 이 분석(몇 분~수십 분 소요, LLM
-    호출 다수)은 별도로 돌아간다. 완료되면 precompute_from_epub이 알아서
-    Supabase build_agent_snapshots에 적재하므로, 다음 요청부터 바로 서빙된다.
-    """
-    from agents.llm_utils import get_usage_summary, reset_usage
-    from agents.parsers.epub_parser import parse_epub
-    from agents.tools.chunk_tool import make_chunks
-    from .precompute import precompute_from_epub
-    from .upload_pipeline import epub_path_for
-
-    epub_path = str(epub_path_for(book_id))
-    parsed = parse_epub(epub_path)
-    chunks = make_chunks(parsed["chapters"])
-    last = len(chunks) - 1
-    boundaries = list(range(4, last, 5)) + [last]
-
-    _analysis_progress[book_id] = {
-        "status": "running",
-        "completed": 0,
-        "total": len(boundaries),
-        "error": None,
-    }
-
-    def _on_progress(completed: int, total: int) -> None:
-        _analysis_progress[book_id].update(completed=completed, total=total)
-
-    reset_usage()
-    try:
-        precompute_from_epub(epub_path, book_id, boundaries, on_progress=_on_progress)
-        _analysis_progress[book_id]["status"] = "done"
-    except Exception as e:  # pragma: no cover - 백그라운드 작업 실패는 로그만
-        print(f"[분석 실패] book_id={book_id}: {e}")
-        _analysis_progress[book_id].update(status="failed", error=str(e))
-    finally:
-        usage = get_usage_summary()
-        print(
-            f"[토큰 사용량] book_id={book_id} "
-            f"입력={usage['input_tokens']:,} 출력={usage['output_tokens']:,} "
-            f"호출횟수={usage['call_count']} 예상비용=${usage['estimated_cost_usd']}"
-        )
+# 분석 진행 상태와 실행은 jobs 모듈이 담당한다. 도커 구성에선 Redis 큐로 agent
+# 워커에 넘겨 별도 프로세스에서 돌리고 진행률을 Redis 로 공유하며, 로컬에선 이
+# 프로세스의 BackgroundTask + 인메모리 진행률로 폴백한다(analysis_jobs 참고).
 
 
 @app.post("/api/books/upload")
@@ -279,11 +233,11 @@ async def upload_book(file: UploadFile, background_tasks: BackgroundTasks) -> di
         raise HTTPException(status_code=422, detail=str(e)) from e
 
     if not result["reused"]:
-        background_tasks.add_task(_run_full_analysis, result["book_id"])
-    else:
+        jobs.enqueue_analysis(result["book_id"], background_tasks)
+    elif jobs.get_progress(result["book_id"])["status"] == "unknown":
         # 이미 분석까지 끝난 책을 재사용하는 경우, 프론트가 진행률 폴링을 시작해도
         # "running" 상태가 없어 헷갈리지 않도록 곧바로 done으로 표시한다.
-        _analysis_progress.setdefault(
+        jobs.set_progress(
             result["book_id"], {"status": "done", "completed": 0, "total": 0, "error": None}
         )
 
@@ -292,9 +246,7 @@ async def upload_book(file: UploadFile, background_tasks: BackgroundTasks) -> di
 
 @app.get("/api/books/{book_id}/analysis-status")
 def get_analysis_status(book_id: str) -> dict:
-    return _analysis_progress.get(
-        book_id, {"status": "unknown", "completed": 0, "total": 0, "error": None}
-    )
+    return jobs.get_progress(book_id)
 
 
 @app.get("/api/health")

@@ -9,4 +9,7 @@ python-dotenv
 python-multipart
 EbookLib
 beautifulsoup4
+lxml
 langchain-upstage
+rq
+redis

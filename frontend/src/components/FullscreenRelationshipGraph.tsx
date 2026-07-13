@@ -283,7 +283,7 @@ export function FullscreenRelationshipGraph({
       edge.removeClass('faded').addClass('focused');
       const connected = edge.connectedNodes();
       connected.removeClass('faded').addClass('neighbor');
-      connected.forEach((node) => {
+      connected.forEach((node: cytoscape.NodeSingular) => {
         cy.getElementById(`${node.id()}__caption`).removeClass('faded');
       });
       setDetail({

@@ -10,8 +10,10 @@ venv/
 spokeeper.db
 backend/spokeeper.db
 
-# Env
+# Env (실 시크릿 — 절대 커밋 금지)
 .env
+.env.*
+*.bak
 
 # Node / Frontend
 node_modules/
