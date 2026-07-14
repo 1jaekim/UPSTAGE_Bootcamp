@@ -20,6 +20,10 @@ class Entity(BaseModel):
     # BuildAgent가 본문에서 뽑은 인물 설명(직업/역할 등, 예: "슈퍼 주인"). 근거가
     # 없으면 비워둔다(추측 금지 원칙과 동일).
     description: str | None = None
+    aliases: list[str] = Field(default_factory=list)
+    # 기존 스냅샷에는 없을 수 있어 response-time에 AgentResultSource가 현재 boundary
+    # 이하의 스냅샷만 오름차순으로 훑어 보완한다.
+    first_seen_global_index: int | None = None
 
 
 class Relationship(BaseModel):
@@ -131,6 +135,15 @@ class GraphJson(BaseModel):
     relationships: list[Relationship]
     events: list[StoryEvent] = Field(default_factory=list)
     generated_at: str | None = None  # 이 스냅샷을 마지막으로 만든/갱신한 시각(ISO 8601, UTC)
+    current_global_index: int | None = None
+    current_page: int | None = None
+    total_pages: int | None = None
+    spoiler_boundary_page: int | None = None
+    # 이 관계도가 실제로 어느 분석 스냅샷(경계선)을 기준으로 만들어졌는지. `offset`은
+    # 요청한 현재 위치 그대로 돌려주는 값이라, 실제로 쓰인 스냅샷이 몇 번째인지는
+    # 이 필드로만 알 수 있다 — 예: 현재 위치가 문단 100이어도 스냅샷은 16, 52, 88...
+    # 중 가장 가까운 이전 것 하나만 쓴다.
+    snapshot_boundary: int | None = None
 
 
 class ReminderLine(BaseModel):
@@ -142,6 +155,10 @@ class Reminders(BaseModel):
     """계약 reminders"""
     offset: int
     lines: list[ReminderLine]
+    current_global_index: int | None = None
+    current_page: int | None = None
+    total_pages: int | None = None
+    spoiler_boundary_page: int | None = None
 
 
 # ── 서빙 메타 (계약 외 부수 리소스) ──────────────────────────────
@@ -187,6 +204,13 @@ class Progress(BaseModel):
     # reading_offset(global_index)에 해당하는 문단의 원본 CFI. 새로고침 시 프론트(epub.js)가
     # 이 값으로 rendition.display(cfi)를 호출해 마지막으로 읽던 위치로 복원한다.
     cfi: str | None = None
+    # 신규 위치 계약. 기존 필드는 삭제하지 않고 같은 값을 additive alias로 제공한다.
+    current_cfi: str | None = None
+    current_global_index: int
+    reading_page: int | None = None
+    current_page: int | None = None
+    total_pages: int | None = None
+    spoiler_boundary_page: int | None = None
 
 
 class ProgressUpdate(BaseModel):
@@ -196,6 +220,11 @@ class ProgressUpdate(BaseModel):
     # 서버에서 book_cfi_index 기준 global_index로 변환한다 (프론트/백엔드 CFI 파싱 로직
     # 이중 구현으로 어긋나는 걸 피하기 위해, 변환은 항상 서버에서만 한다).
     cfi: str | None = None
+    current_cfi: str | None = None
+    current_global_index: int | None = None
+    reading_page: int | None = None
+    current_page: int | None = None
+    total_pages: int | None = None
     user_id: str = "local"
     # true면 단조증가 규칙을 무시하고 spoiler_boundary를 reading_offset으로 강제 설정한다.
     # 재독(다시 읽기) 모드: 이미 도달한 지점보다 앞으로 되돌아가 스포일러를 다시 가리고 싶을 때 사용.

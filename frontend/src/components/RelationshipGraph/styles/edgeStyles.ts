@@ -18,25 +18,30 @@ export const edgeStyles = [
   {
     selector: 'edge',
     style: {
-      width: 'data(width)',
+      width: 3,
       opacity: 'data(opacity)',
       'line-color': 'data(color)',
       'target-arrow-color': 'data(color)',
       'target-arrow-shape': (edge: cytoscape.SingularElementArgument) =>
         edge.data('directed') ? 'triangle' : 'none',
       'arrow-scale': 1.1,
-      'curve-style': 'bezier',
-      'control-point-step-size': 42,
+      'curve-style': 'unbundled-bezier',
+      'control-point-distances': 'data(controlPointDistance)',
+      'control-point-weights': 0.5,
       label: 'data(visibleLabel)',
       color: '#334155',
       'font-size': 10,
       'font-weight': 800,
+      'text-rotation': 'none',
+      'text-margin-y': 18,
       'text-background-color': '#ffffff',
-      'text-background-opacity': 0.92,
-      'text-background-padding': 2,
+      'text-background-opacity': 1,
+      'text-background-padding': 4,
       'text-background-shape': 'roundrectangle',
       'overlay-opacity': 0,
       'z-index': 4,
+      'transition-property': 'opacity, width, line-color, text-opacity',
+      'transition-duration': '300ms',
     },
   },
   {
@@ -48,11 +53,14 @@ export const edgeStyles = [
     },
   },
   {
-    selector: 'edge:hover',
+    selector: 'edge.hovered',
     style: {
-      width: 5,
+      width: 4,
       opacity: 1,
       label: 'data(label)',
+      'text-background-opacity': 1,
+      'text-background-padding': 4,
+      'font-size': 11,
       'z-index': 35,
     },
   },
@@ -100,6 +108,33 @@ export const edgeStyles = [
     style: {
       display: 'element',
       'line-style': 'dashed',
+    },
+  },
+  {
+    selector: 'edge.new-edge',
+    style: {
+      opacity: 0,
+      'text-opacity': 0,
+      'transition-duration': '350ms',
+    },
+  },
+  {
+    selector: 'edge.faded',
+    style: {
+      opacity: 0.42,
+      'text-opacity': 0.55,
+      'transition-duration': '200ms',
+    },
+  },
+  {
+    selector: 'edge.focused',
+    style: {
+      width: 4,
+      opacity: 0.96,
+      'text-opacity': 1,
+      label: 'data(label)',
+      'transition-duration': '200ms',
+      'z-index': 38,
     },
   },
 ];

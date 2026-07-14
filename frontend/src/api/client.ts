@@ -94,25 +94,47 @@ export const api = {
     return http<Chapter>(`/api/books/${bookId}/chapters/${index}`);
   },
 
-  async getGraph(bookId: string, offset: number, revealAll: boolean): Promise<GraphJson> {
+  async getGraph(
+    bookId: string,
+    currentGlobalIndex: number,
+    currentPage: number,
+    totalPages: number,
+    revealAll: boolean,
+  ): Promise<GraphJson> {
     if (USE_MOCK) {
       await sleep(200);
       // 안심 모드 OFF(reveal_all)여도 데모에서는 380 응답과 동일 (MOCKS.md)
-      return structuredClone(pickGraph(offset));
+      return structuredClone(pickGraph(currentGlobalIndex));
     }
-    const q = new URLSearchParams({ offset: String(offset) });
+    const q = new URLSearchParams({
+      offset: String(currentGlobalIndex),
+      current_global_index: String(currentGlobalIndex),
+    });
+    if (currentPage > 0) q.set('current_page', String(currentPage));
+    if (totalPages > 0) q.set('total_pages', String(totalPages));
     if (revealAll) q.set('reveal_all', 'true');
     return http<GraphJson>(`/api/books/${bookId}/graph?${q}`);
   },
 
-  async getReminders(bookId: string, offset: number, entityId?: string): Promise<Reminders> {
+  async getReminders(
+    bookId: string,
+    currentGlobalIndex: number,
+    currentPage: number,
+    totalPages: number,
+    entityId?: string,
+  ): Promise<Reminders> {
     if (USE_MOCK) {
       await sleep(200);
-      const r = structuredClone(pickReminders(offset));
+      const r = structuredClone(pickReminders(currentGlobalIndex));
       if (entityId) r.lines = r.lines.filter((l) => l.entity_ids.includes(entityId));
       return r;
     }
-    const q = new URLSearchParams({ offset: String(offset) });
+    const q = new URLSearchParams({
+      offset: String(currentGlobalIndex),
+      current_global_index: String(currentGlobalIndex),
+    });
+    if (currentPage > 0) q.set('current_page', String(currentPage));
+    if (totalPages > 0) q.set('total_pages', String(totalPages));
     if (entityId) q.set('entity_id', entityId);
     return http<Reminders>(`/api/books/${bookId}/reminders?${q}`);
   },
@@ -136,21 +158,56 @@ export const api = {
 
   async putProgress(
     bookId: string,
-    args: { offset?: number; cfi?: string; force?: boolean },
+    args: {
+      offset?: number;
+      cfi?: string;
+      currentGlobalIndex?: number;
+      currentCfi?: string;
+      currentPage?: number;
+      totalPages?: number;
+      force?: boolean;
+    },
   ): Promise<Progress> {
-    const { offset = 0, cfi, force = false } = args;
+    const {
+      offset = args.currentGlobalIndex ?? 0,
+      cfi = args.currentCfi,
+      currentGlobalIndex = offset,
+      currentCfi = cfi,
+      currentPage,
+      totalPages,
+      force = false,
+    } = args;
     if (USE_MOCK) {
       await sleep(100);
       mockProgressState.reading_offset = offset;
+      mockProgressState.current_global_index = currentGlobalIndex;
+      mockProgressState.cfi = currentCfi;
+      mockProgressState.current_cfi = currentCfi;
+      mockProgressState.current_page = currentPage;
+      mockProgressState.reading_page = currentPage;
+      mockProgressState.total_pages = totalPages;
+      const previousBoundary = mockProgressState.spoiler_boundary;
       // boundary = max(기존, 신규) 단조 증가 (SPEC 불변식 5) — force=true면 재독 모드로 강제 리셋
       mockProgressState.spoiler_boundary = force
         ? offset
         : Math.max(mockProgressState.spoiler_boundary, offset);
+      if (currentPage !== undefined && (force || currentGlobalIndex >= previousBoundary)) {
+        mockProgressState.spoiler_boundary_page = currentPage;
+      }
       return { ...mockProgressState };
     }
     return http<Progress>(`/api/books/${bookId}/progress`, {
       method: 'PUT',
-      body: JSON.stringify({ reading_offset: offset, cfi, force }),
+      body: JSON.stringify({
+        reading_offset: currentGlobalIndex,
+        cfi: currentCfi,
+        current_global_index: currentGlobalIndex,
+        current_cfi: currentCfi,
+        reading_page: currentPage,
+        current_page: currentPage,
+        total_pages: totalPages,
+        force,
+      }),
     });
   },
 };

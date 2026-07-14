@@ -175,19 +175,33 @@ def build_chunk_boundary_to_global_index_map(book_id: str, epub_path: str | Path
         idx: (ps[0].global_index, ps[-1].global_index) for idx, ps in by_cfi_chapter.items()
     }
 
-    # 1챕터 제목으로 이 책의 실제 파서 오프셋을 자동 계산 (책마다 표지·목차 개수가 다름)
-    ch1_title = next(
-        (ps[0].chapter_title for idx, ps in sorted(by_cfi_chapter.items()) if idx == 1), None
+    # 첫 챕터 제목으로 이 책의 실제 파서 오프셋을 자동 계산한다(책마다 표지·목차 문서
+    # 개수가 다름). book_cfi_index의 chapter_index가 항상 1부터 시작한다는 보장이
+    # 없다(예: 0부터 시작하는 책도 있음) — "idx == 1"로 고정하면 그런 책은 첫 챕터를
+    # 영영 못 찾아서 이 계산 전체가 조용히 실패한다. 실제로 존재하는 가장 작은
+    # chapter_index를 첫 챕터로 삼는다.
+    first_cfi_chapter_index = min(by_cfi_chapter.keys()) if by_cfi_chapter else None
+    ch1_title = (
+        by_cfi_chapter[first_cfi_chapter_index][0].chapter_title
+        if first_cfi_chapter_index is not None
+        else None
     )
+
     def normalize(t: str) -> str:
-        return re.sub(r"[^a-z0-9]+", "", t.lower())
+        # 예전엔 [^a-z0-9]+로 영문/숫자만 남겼는데, 그러면 한글(또는 다른 비ASCII
+        # 문자) 제목은 전부 빈 문자열이 돼서 아래 "target and ..." 조건이 항상
+        # False가 되어 이 자동 보정이 조용히 실패하고, 책마다 다른 챕터 오프셋을
+        # 무조건 PARSER_CHAPTER_OFFSET(다른 책 기준값)으로 잘못 고정해버렸다.
+        # \\w는 파이썬 re 기본 설정에서 유니코드 문자(한글 포함)도 단어 문자로
+        # 인식하므로, 어떤 언어의 제목이든 정규화가 실제로 동작한다.
+        return re.sub(r"[^\w]+", "", t.lower())
 
     computed_offset = PARSER_CHAPTER_OFFSET
-    if ch1_title:
+    if ch1_title and first_cfi_chapter_index is not None:
         target = normalize(ch1_title)
         for c in chapters:
             if target and target in normalize(c["title"]):
-                computed_offset = c["chapter_index"] - 1
+                computed_offset = c["chapter_index"] - first_cfi_chapter_index
                 break
 
     def chunk_to_global_index(chunk: dict) -> int:
@@ -267,6 +281,17 @@ def remap_entries_to_global_index(
         if "boundary" in graph:
             graph["boundary"] = boundary_global_index
         remapped.append({**entry, "boundary": boundary_global_index, "graph": graph})
+
+    # 서로 다른 chunk 경계선이 같은 global_index로 매핑될 수 있다 — 예를 들어 두 chunk
+    # 경계 사이에 새 문단이 없으면(짧은 챕터, 챕터 경계 근처 등) 둘 다 가장 가까운 같은
+    # 문단으로 반올림된다. 이 상태로 그대로 Supabase에 upsert하면 "같은 배치 안에서
+    # 같은 행을 두 번 갱신하려 한다"는 CardinalityViolation 에러가 난다(book_id+boundary
+    # 유니크 제약). 같은 global_index면 더 나중에(더 누적된 정보를 담은) 항목만 남긴다.
+    deduped: dict[int, dict] = {}
+    for item in remapped:
+        deduped[item["boundary"]] = item
+    remapped = list(deduped.values())
+
     remapped.sort(key=lambda e: e["boundary"])
     return remapped
 
@@ -276,6 +301,33 @@ def remap_boundaries_to_global_index(
 ) -> list[dict]:
     """하위 호환용 wrapper. 새 코드에서는 `remap_entries_to_global_index`를 사용한다."""
     return remap_entries_to_global_index(book_id, epub_path, entries)
+
+
+def delete_snapshots_from_supabase(book_id: str) -> int:
+    """book_id의 기존 스냅샷 행을 전부 삭제. 재분석 시작 전에 한 번 호출한다.
+
+    upload_snapshots_to_supabase는 (book_id, boundary) upsert라, boundary 스케줄이
+    바뀌면(예: 청크 오프셋 재보정 후 재분석) 예전 스케줄의 boundary들은 새 entries에
+    안 나타나서 절대 지워지지 않고 계속 쌓인다 — floor 선택 로직이 이 스테일 스냅샷을
+    골라버리면 재분석 이전의 잘못된 그래프가 다시 노출된다. 실제로 이 문제로 재분석
+    직후에도 옛 boundary(16/52/88/124/160/217)가 새 boundary와 섞여서 표시된 사고가 있었다.
+    """
+    import psycopg2
+
+    from .config import SUPABASE_DB_URL
+
+    if not SUPABASE_DB_URL:
+        return 0
+
+    conn = psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM build_agent_snapshots WHERE book_id = %s", (book_id,))
+            deleted = cur.rowcount
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
 
 
 def upload_snapshots_to_supabase(book_id: str, entries: list[dict]) -> int:
@@ -429,6 +481,11 @@ def precompute_from_epub(
 
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
+
+    if upload_to_supabase:
+        # 새 스케줄로 재분석을 시작하기 전에 이 책의 예전 스냅샷을 전부 지운다 —
+        # 그러지 않으면 예전 boundary 스케줄의 스테일 데이터가 새 데이터와 섞인다.
+        delete_snapshots_from_supabase(book_id)
 
     # 이번 실행 전체에 걸쳐 동일한 시각을 쓴다 — 프론트에서 "이 책 데이터가 언제
     # 마지막으로 갱신됐는지"를 볼 때, 경계선마다 시각이 제각각이면 오히려 혼란스럽다.

@@ -9,7 +9,7 @@ import fcose from 'cytoscape-fcose';
 // no-op이라 안전).
 cytoscape.use(fcose);
 
-export const FIT_PADDING = 80;
+export const FIT_PADDING = 38;
 
 export function gridLayoutOptions(): LayoutOptions {
   return {
@@ -27,15 +27,17 @@ export function fcoseLayoutOptions(): LayoutOptions {
     fit: true,
     padding: FIT_PADDING,
     animate: true,
-    animationDuration: 650,
+    animationDuration: 300,
     randomize: false,
-    // 위성 설명 노드까지 감안해서 인물 노드끼리 여유 있게 떨어지도록 cose 때보다
-    // 넉넉하게 잡는다.
-    nodeSeparation: 160,
-    idealEdgeLength: 180,
-    edgeElasticity: 0.45,
+    // 기존 위치를 초기값으로 유지하면서 연결된 노드가 한 덩어리로 보이도록
+    // 거리와 반발력을 약 25% 줄인다.
+    nodeRepulsion: 2000,
+    nodeSeparation: 120,
+    idealEdgeLength: 88,
+    edgeElasticity: 0.6,
     nestingFactor: 0.1,
-    gravity: 0.25,
+    gravity: 0.45,
+    componentSpacing: 46,
     numIter: 2500,
     tile: true,
     packComponents: true,

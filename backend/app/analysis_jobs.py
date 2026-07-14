@@ -18,10 +18,10 @@ def run_full_analysis(book_id: str) -> None:
     from agents.parsers.epub_parser import parse_epub
     from agents.tools.chunk_tool import make_chunks
 
+    from .book_repository import resolve_epub_path
     from .precompute import precompute_from_epub
-    from .upload_pipeline import epub_path_for
 
-    epub_path = str(epub_path_for(book_id))
+    epub_path = str(resolve_epub_path(book_id))
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
     last = len(chunks) - 1

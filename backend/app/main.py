@@ -14,6 +14,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from . import cfi_db, db, fixtures as fx, jobs
+from .book_repository import (
+    InvalidEpubPathError,
+    UnsafeEpubPathError,
+    bootstrap_local_epubs,
+    list_registered_books,
+    resolve_epub_path,
+    unregister_local_book,
+)
 from .content_source import ContentSource
 from .schemas import (
     Book,
@@ -54,6 +62,7 @@ def get_content_source() -> ContentSource:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    bootstrap_local_epubs()
     db.init_db()
     db.seed_demo_progress()  # 데모 기본 reading_offset/spoiler_boundary(global_index)=380
     yield
@@ -74,6 +83,13 @@ def _all_books() -> dict[str, Book]:
         if row["book_id"] in books:
             continue
         books[row["book_id"]] = fx.book_for(row["book_id"], title=row["title"])
+    for metadata in list_registered_books():
+        if metadata["book_id"] in books:
+            continue
+        books[metadata["book_id"]] = fx.book_for(
+            metadata["book_id"],
+            title=metadata["title"],
+        )
     return books
 
 
@@ -102,14 +118,22 @@ def delete_book(book_id: str) -> dict:
     global _content_source_cache
 
     from .precompute import store_path
-    from .upload_pipeline import epub_path_for
+
+    try:
+        epub_path = resolve_epub_path(book_id)
+    except (FileNotFoundError, UnsafeEpubPathError, InvalidEpubPathError):
+        epub_path = None
 
     deleted = cfi_db.delete_book(book_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="책을 찾을 수 없습니다.")
 
-    for path in (epub_path_for(book_id), store_path(book_id)):
+    paths_to_delete = [store_path(book_id)]
+    if epub_path is not None:
+        paths_to_delete.append(epub_path)
+    for path in paths_to_delete:
         path.unlink(missing_ok=True)
+    unregister_local_book(book_id)
 
     jobs.pop_progress(book_id)
     cfi_db.clear_cache()
@@ -122,9 +146,10 @@ def delete_book(book_id: str) -> dict:
 def get_book_file(book_id: str):
     """epub.js가 브라우저에서 직접 렌더링할 수 있도록 원본 EPUB 바이트를 서빙한다."""
     _require_book(book_id)
-    path = Path(fx._epub_path_for(book_id))
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="원본 EPUB 파일을 찾을 수 없습니다.")
+    try:
+        path = resolve_epub_path(book_id)
+    except (FileNotFoundError, UnsafeEpubPathError, InvalidEpubPathError) as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
     return FileResponse(path, media_type="application/epub+zip", filename=path.name)
 
 
@@ -139,27 +164,49 @@ def get_chapter(book_id: str, index: int) -> Chapter:
 @app.get("/api/books/{book_id}/graph", response_model=GraphJson)
 def get_graph(
     book_id: str,
-    offset: int = Query(..., ge=0),
+    offset: int | None = Query(None, ge=0),
+    current_global_index: int | None = Query(None, ge=0),
+    current_page: int | None = Query(None, ge=1),
+    total_pages: int | None = Query(None, ge=1),
     reveal_all: bool = Query(False),
 ) -> GraphJson:
     _require_book(book_id)
     # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
     # book_cfi_index 기준 spoiler boundary global_index다.
-    boundary_global_index = offset
-    return get_content_source().get_graph(book_id, boundary_global_index, reveal_all)
+    boundary_global_index = current_global_index if current_global_index is not None else offset
+    if boundary_global_index is None:
+        raise HTTPException(status_code=422, detail="offset 또는 current_global_index가 필요합니다")
+    graph = get_content_source().get_graph(book_id, boundary_global_index, reveal_all)
+    return graph.model_copy(update={
+        "current_global_index": boundary_global_index,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "spoiler_boundary_page": current_page,
+    })
 
 
 @app.get("/api/books/{book_id}/reminders", response_model=Reminders)
 def get_reminders(
     book_id: str,
-    offset: int = Query(..., ge=0),
+    offset: int | None = Query(None, ge=0),
+    current_global_index: int | None = Query(None, ge=0),
+    current_page: int | None = Query(None, ge=1),
+    total_pages: int | None = Query(None, ge=1),
     entity_id: str | None = Query(None),
 ) -> Reminders:
     _require_book(book_id)
     # API 호환을 위해 query parameter 이름은 offset이지만, 값의 의미는
     # book_cfi_index 기준 spoiler boundary global_index다.
-    boundary_global_index = offset
-    return get_content_source().get_reminders(book_id, boundary_global_index, entity_id)
+    boundary_global_index = current_global_index if current_global_index is not None else offset
+    if boundary_global_index is None:
+        raise HTTPException(status_code=422, detail="offset 또는 current_global_index가 필요합니다")
+    reminders = get_content_source().get_reminders(book_id, boundary_global_index, entity_id)
+    return reminders.model_copy(update={
+        "current_global_index": boundary_global_index,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "spoiler_boundary_page": current_page,
+    })
 
 
 @app.get("/api/books/{book_id}/progress", response_model=Progress)
@@ -168,7 +215,7 @@ def get_progress(book_id: str, user_id: str = "local") -> Progress:
     row = db.get_progress(user_id, book_id)
     reading_global_index = row.reading_offset
     spoiler_boundary_global_index = row.spoiler_boundary
-    cfi = (
+    canonical_cfi = (
         cfi_db.cfi_for_global_index(book_id, reading_global_index)
         if reading_global_index
         else None
@@ -179,27 +226,42 @@ def get_progress(book_id: str, user_id: str = "local") -> Progress:
         # 응답 필드명은 기존 계약을 유지하지만 둘 다 book_cfi_index global_index다.
         reading_offset=reading_global_index,
         spoiler_boundary=spoiler_boundary_global_index,
-        cfi=cfi,
+        cfi=canonical_cfi,
+        current_cfi=row.current_cfi or canonical_cfi,
+        current_global_index=reading_global_index,
+        reading_page=row.reading_page,
+        current_page=row.reading_page,
+        total_pages=row.total_pages,
+        spoiler_boundary_page=row.spoiler_boundary_page,
     )
 
 
 @app.put("/api/books/{book_id}/progress", response_model=Progress)
 def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
     _require_book(book_id)
+    current_cfi = body.current_cfi or body.cfi
     reading_global_index = (
-        cfi_db.find_global_index_by_cfi(book_id, body.cfi)
-        if body.cfi
-        else body.reading_offset
+        cfi_db.find_global_index_by_cfi(book_id, current_cfi)
+        if current_cfi
+        else (
+            body.current_global_index
+            if body.current_global_index is not None
+            else body.reading_offset
+        )
     )
+    reading_page = body.current_page if body.current_page is not None else body.reading_page
     row = db.put_progress(
         body.user_id,
         book_id,
         reading_global_index,
         force=body.force,
+        reading_page=reading_page,
+        total_pages=body.total_pages,
+        current_cfi=current_cfi,
     )
     stored_reading_global_index = row.reading_offset
     stored_spoiler_boundary_global_index = row.spoiler_boundary
-    cfi = (
+    canonical_cfi = (
         cfi_db.cfi_for_global_index(book_id, stored_reading_global_index)
         if stored_reading_global_index
         else None
@@ -210,7 +272,13 @@ def put_progress(book_id: str, body: ProgressUpdate) -> Progress:
         # 응답 필드명은 기존 계약을 유지하지만 둘 다 book_cfi_index global_index다.
         reading_offset=stored_reading_global_index,
         spoiler_boundary=stored_spoiler_boundary_global_index,
-        cfi=cfi,
+        cfi=canonical_cfi,
+        current_cfi=row.current_cfi or canonical_cfi,
+        current_global_index=stored_reading_global_index,
+        reading_page=row.reading_page,
+        current_page=row.reading_page,
+        total_pages=row.total_pages,
+        spoiler_boundary_page=row.spoiler_boundary_page,
     )
 
 

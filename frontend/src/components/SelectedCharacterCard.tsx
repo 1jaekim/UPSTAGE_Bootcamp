@@ -12,15 +12,15 @@ function stars(value: number) {
 export function SelectedCharacterCard({ entity }: { entity: Entity }) {
   const value = score(entity);
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="border border-[#d8d8ca] bg-[#faf9f5] p-4">
       <div className="mb-2 text-sm font-black tracking-wide text-amber-500">{stars(value)}</div>
-      <h3 className="text-xl font-extrabold text-slate-900">{entity.name}</h3>
-      <p className="mt-1 text-sm font-semibold text-slate-500">
+      <h3 className="font-serif text-xl font-bold text-[#283126]">{entity.name}</h3>
+      <p className="mt-1 text-sm font-semibold text-[#6d7568]">
         {TYPE_LABEL[entity.type] ?? entity.type}
         {entity.importance_level === 'major' ? ' · 핵심 인물' : ' · 등장인물'}
       </p>
       {entity.description && (
-        <p className="mt-1 text-xs font-medium leading-snug text-slate-400">{entity.description}</p>
+        <p className="mt-1 text-xs font-medium leading-relaxed text-[#858d7d]">{entity.description}</p>
       )}
     </section>
   );

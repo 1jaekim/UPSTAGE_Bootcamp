@@ -14,7 +14,8 @@ import re
 from functools import lru_cache
 
 from . import cfi_db
-from .config import DEFAULT_BOOK_ID, EPUB_PATH, PARSER_CHAPTER_OFFSET
+from .book_repository import resolve_epub_path
+from .config import DEFAULT_BOOK_ID, PARSER_CHAPTER_OFFSET
 from .schemas import (
     Book,
     Chapter,
@@ -29,13 +30,8 @@ BOOK_ID = DEFAULT_BOOK_ID
 
 
 def _epub_path_for(book_id: str) -> str:
-    if book_id == DEFAULT_BOOK_ID:
-        return EPUB_PATH
-
-    from .upload_pipeline import epub_path_for
-
-    local_path = epub_path_for(book_id)
-    return str(local_path) if local_path.exists() else ""
+    """구버전 호출부 호환용 wrapper. 경로 해석은 공통 repository에 위임한다."""
+    return str(resolve_epub_path(book_id))
 
 
 # maxsize=8이었을 때는 등록된 책이 8권을 넘는 순간(업로드가 쌓이면서 자연히 넘김)
@@ -45,14 +41,14 @@ def _epub_path_for(book_id: str) -> str:
 def _parsed_chapters(book_id: str) -> list[dict]:
     from agents.parsers.epub_parser import parse_epub
 
-    path = _epub_path_for(book_id)
-    if not path:
-        return []
-    return parse_epub(path)["chapters"]
+    return parse_epub(resolve_epub_path(book_id))["chapters"]
 
 
 def _normalize_title(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", title.lower())
+    # [^a-z0-9]+로 영문/숫자만 남기면 한글(또는 다른 비ASCII) 제목은 전부 빈 문자열이
+    # 돼서, 이 값을 쓰는 매칭이 항상 실패한다(precompute.py의 같은 버그 참고). \w는
+    # 파이썬 re 기본 설정에서 유니코드 문자(한글 포함)도 단어 문자로 인식한다.
+    return re.sub(r"[^\w]+", "", title.lower())
 
 
 @lru_cache(maxsize=None)
