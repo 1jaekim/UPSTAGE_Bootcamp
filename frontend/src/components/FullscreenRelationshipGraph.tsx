@@ -223,7 +223,6 @@ function arrangeAroundFocusedNode(cy: Core, focusedNode: cytoscape.NodeSingular)
   const focusedId = focusedNode.id();
   const neighborIds = new Set(focusedNode.neighborhood('node').map((node) => node.id()));
   const layoutTargets = cy.elements().not('.node-caption');
-
   const layout = layoutTargets.layout({
     name: 'concentric',
     fit: false,
@@ -255,16 +254,13 @@ function arrangeAroundFocusedNode(cy: Core, focusedNode: cytoscape.NodeSingular)
           Math.max(1, cy.height() - 144) / bounds.h,
         )
       : cy.zoom();
-    const focusedZoom = Math.min(
-      MAX_ZOOM,
-      Math.max(1.55, fitZoom),
-    );
-    cy.animate({
-      zoom: focusedZoom,
-      center: { eles: focusedNode },
-      duration: 380,
-      easing: 'ease-out-cubic',
-    });
+    // 레이아웃 애니메이션 직후 또 다른 viewport 애니메이션을 실행하면 Cytoscape가
+    // 앞선 fit/zoom 상태를 유지하는 경우가 있다. 여기서는 뷰포트를 직접 설정해
+    // 전체 인물이 떠 있어도 선택 노드가 반드시 크게 보이도록 보장한다.
+    const focusedZoom = Math.min(MAX_ZOOM, Math.max(1.55, fitZoom));
+    cy.stop();
+    cy.zoom(focusedZoom);
+    cy.center(focusedNode);
   });
   layout.run();
 }
@@ -305,6 +301,7 @@ export function FullscreenRelationshipGraph({
 
     return {
       visibleEntities: shownEntities,
+      // 양 끝 인물이 모두 현재 표시 대상일 때만 관계선을 만든다.
       visibleRelationships: relationships.filter(
         (relationship) => shownIds.has(relationship.source) && shownIds.has(relationship.target),
       ),
