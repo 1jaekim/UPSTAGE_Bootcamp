@@ -18,6 +18,7 @@ from .book_repository import (
     InvalidEpubPathError,
     UnsafeEpubPathError,
     bootstrap_local_epubs,
+    get_local_book_metadata,
     list_registered_books,
     resolve_epub_path,
     unregister_local_book,
@@ -94,6 +95,15 @@ def _all_books() -> dict[str, Book]:
 
 
 def _require_book(book_id: str) -> Book:
+    # 페이지 이동마다 progress/graph 요청이 발생한다. 로컬 EPUB 레지스트리에 이미
+    # 등록된 책까지 매번 Supabase 전체 책 목록으로 확인하면 응답이 늦어지고, 빠르게
+    # 넘길 때 마지막 요청만 한꺼번에 반영되는 현상이 생긴다. 파일 등록 메타데이터로
+    # 즉시 확인한 뒤 CFI 문단 캐시를 재사용한다.
+    if book_id == fx.BOOK_MIST.id:
+        return fx.BOOK_MIST
+    local_metadata = get_local_book_metadata(book_id)
+    if local_metadata is not None:
+        return fx.book_for(book_id, title=local_metadata["title"])
     book = _all_books().get(book_id)
     if book is None:
         raise HTTPException(status_code=404, detail=f"book {book_id} 없음")
@@ -298,30 +308,15 @@ def _run_full_analysis(book_id: str) -> None:
     from agents.llm_utils import get_usage_summary, reset_usage
     from agents.parsers.epub_parser import parse_epub
     from agents.tools.chunk_tool import make_chunks
-    from .precompute import precompute_from_epub
+    from .precompute import build_analysis_boundaries, precompute_from_epub
     epub_path = str(resolve_epub_path(book_id))
     parsed = parse_epub(epub_path)
     chunks = make_chunks(parsed["chapters"])
-    last = len(chunks) - 1
-    # 예전엔 간격이 5청크로 고정이었다 — range(4, last, 5)는 last < 4(청크 5개
-    # 미만, 대략 6천자 미만인 짧은 책)면 start > stop이라 빈 리스트가 돼서
-    # boundaries가 [last] 하나만 남았다. 즉 책 맨 끝에서만 스냅샷이 하나 생기고,
-    # 그 전까지는 어디를 읽어도 관계도가 계속 빈 채로 보였다("점진적으로 관계도가
-    # 쌓이는" 이 기능의 핵심이 짧은 책에서는 통째로 무력화됨).
-    #
-    # 책 길이(청크 수)에 비례해서 간격을 자동으로 조절한다 — 대략 TARGET_SNAPSHOT_COUNT
-    # 개의 스냅샷이 나오도록 간격을 계산하되, MIN/MAX로 위아래를 막는다. 긴 책은
-    # 예전과 동일하게 5청크 간격(=MAX)에서 그대로 유지되고, 짧은 책은 간격이
-    # 좁아져서(최소 1청크) 스냅샷이 여러 개 생긴다.
-    MIN_SNAPSHOT_INTERVAL = 1
-    MAX_SNAPSHOT_INTERVAL = 5
-    TARGET_SNAPSHOT_COUNT = 10
-    total_chunks = last + 1
-    interval = max(
-        MIN_SNAPSHOT_INTERVAL,
-        min(MAX_SNAPSHOT_INTERVAL, round(total_chunks / TARGET_SNAPSHOT_COUNT)),
-    )
-    boundaries = list(range(interval - 1, last, interval)) + [last]
+    # Keep the teammate's progressive behavior for short books and use the
+    # finest available boundary for longer books as well. Grouping up to five
+    # chunks still caused several EPUB pages of relationships to appear at
+    # once, while one boundary per chunk preserves the actual reveal order.
+    boundaries = build_analysis_boundaries(chunks)
 
     _analysis_progress[book_id] = {
         "status": "running",

@@ -31,6 +31,27 @@ _GRAPH_POSITION_FIELDS = {
 }
 
 
+def build_analysis_boundaries(chunks: list[dict], chunks_per_snapshot: int = 1) -> list[int]:
+    """Return cumulative chunk boundaries without dropping intermediate data.
+
+    A relationship first becomes spoiler-safe at the end of the chunk that
+    introduced it.  The old upload schedule grouped five chunks per snapshot,
+    so several pages of entities and relationships appeared at once.  One
+    chunk per snapshot keeps the stored boundary aligned with the finest
+    position that the analysis pipeline currently knows.
+    """
+
+    if chunks_per_snapshot <= 0:
+        raise ValueError("chunks_per_snapshot must be greater than zero")
+    offsets = [int(chunk["offset"]) for chunk in chunks]
+    if not offsets:
+        return []
+    boundaries = offsets[chunks_per_snapshot - 1 :: chunks_per_snapshot]
+    if not boundaries or boundaries[-1] != offsets[-1]:
+        boundaries.append(offsets[-1])
+    return boundaries
+
+
 def _build_single_entry(
     chunk_boundary: int,
     result: dict,

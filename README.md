@@ -229,6 +229,10 @@ SPO_BOOK_ID=your_default_book_id
 
 # development enables the single-EPUB fallback in the safe path resolver
 SPO_ENV=development
+
+# Optional analysis granularity (defaults shown)
+SPO_CHUNK_SIZE=600
+SPO_CHUNK_OVERLAP=100
 ```
 
 Content source modes:

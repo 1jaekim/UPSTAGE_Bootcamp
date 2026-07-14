@@ -64,7 +64,10 @@ export function useGraph(
   spoilerSafe: boolean,
 ) {
   return useQuery({
-    queryKey: ['graph', bookId, currentGlobalIndex, currentPage, totalPages, spoilerSafe],
+    // currentPage는 표시용 파생값이다. global index가 아직 이전 값인 상태에서 page만
+    // 먼저 바뀌었다고 같은 graph를 재요청하지 않는다. progress 응답으로 실제
+    // currentGlobalIndex가 확정되는 즉시 최신 page 메타와 함께 한 번만 조회한다.
+    queryKey: ['graph', bookId, currentGlobalIndex, spoilerSafe],
     queryFn: () => api.getGraph(bookId, currentGlobalIndex, currentPage, totalPages, !spoilerSafe),
   });
 }
@@ -77,7 +80,7 @@ export function useReminders(
   entityId?: string,
 ) {
   return useQuery({
-    queryKey: ['reminders', bookId, currentGlobalIndex, currentPage, totalPages, entityId ?? null],
+    queryKey: ['reminders', bookId, currentGlobalIndex, entityId ?? null],
     queryFn: () => api.getReminders(bookId, currentGlobalIndex, currentPage, totalPages, entityId),
   });
 }

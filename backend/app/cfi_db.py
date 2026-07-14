@@ -63,7 +63,11 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
             chapter_title=row["chapter_title"] or f"Chapter {row['chapter_index']}",
             paragraph_index=row["paragraph_index"],
             cfi_raw=row["cfi_raw"],
-            cfi_path=list(row["cfi_path"]),
+            # 기존 DB cfi_path는 인덱서의 ``!/2/4/...`` 형식을 그대로 담고 있다.
+            # epub.js relocated CFI(``!/4/...``)와 동일한 규칙으로 비교하기 위해
+            # 원본 CFI에서 정규화 경로를 다시 만든다. DB 마이그레이션 없이 기존
+            # 인덱스도 즉시 안전하게 읽을 수 있다.
+            cfi_path=cfi_to_path(row["cfi_raw"]),
             text_preview=row["text_preview"],
         )
         for i, row in enumerate(rows)
@@ -79,31 +83,6 @@ def cfi_for_global_index(book_id: str, global_index: int) -> str | None:
     return paragraphs[clamped].cfi_raw
 
 
-def _normalize_live_cfi_path(path: list[int]) -> list[int]:
-    """epub.js가 실시간으로 주는 CFI와 book_cfi_index에 저장된 CFI는 트리 깊이가
-    다르다 — book_cfi_index는 `epub-cfi-resolver`(Node) 라이브러리로 오프라인
-    생성했는데, 이 라이브러리는 `<html>`이 `#document`의 몇 번째 자식인지까지
-    스텝으로 넣는다(항상 첫 문서 자식이라 값은 늘 2로 고정). 반면 epub.js 자신의
-    `EpubCFI.pathTo()`(epubjs/src/epubcfi.js)는 `currentNode.parentNode`가
-    `#document`가 되는 순간(=currentNode가 `<html>`) 루프를 멈추고 `<html>`용
-    스텝을 아예 안 만든다 — 그래서 epub.js가 준 실시간 CFI는 저장된 CFI보다
-    스텝이 정확히 하나(spine indirection 뒤, 첫 스텝) 적다.
-
-    이 어긋남을 그냥 두면 이진탐색이 실시간 CFI를 해당 챕터의 "모든 문단보다
-    뒤"로 취급해버려서(스텝 하나가 부족한 만큼 첫 비교 자리에서 항상 더 크게
-    비교됨), 챕터 안 어느 위치를 읽어도 그 챕터/책의 맨 끝 문단으로 잘못
-    매칭된다 — 실제로 심청전 하권에서 이 버그로 재현 확인함 (스포일러 경계선이
-    책 끝까지 튀어서 다시 안 내려오는 사고로 이어짐, spoiler_boundary는
-    단조증가라 한 번 튀면 계속 최댓값에 고정됨).
-
-    spine indirection(`/6/{spine_pos}`)은 정확히 앞 두 정수(스텝+오프셋)이므로,
-    그 바로 뒤에 book_cfi_index 쪽 관례와 맞춰 `<html>` 스텝(2, 0)을 끼워 넣는다.
-    """
-    if len(path) < 4:
-        return path
-    return path[:4] + [2, 0] + path[4:]
-
-
 def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
     """epub.js가 준 원본 CFI 문자열을 이 책의 global_index로 변환한다.
 
@@ -111,7 +90,9 @@ def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
     그 위치보다 앞선 문단 중 가장 마지막 것의 global_index를 반환한다(cfi_path 배열의
     사전식 비교가 곧 문서 순서와 같다는 성질 이용, book_cfi_index README에서 검증됨).
     """
-    target = _normalize_live_cfi_path(cfi_to_path(raw_cfi))
+    # cfi_to_path canonicalizes both the indexer's !/2/4/... form and
+    # epub.js's !/4/... form, so no one-sided path insertion is necessary.
+    target = cfi_to_path(raw_cfi)
     paragraphs = get_paragraphs(book_id)
     if not paragraphs:
         return 0

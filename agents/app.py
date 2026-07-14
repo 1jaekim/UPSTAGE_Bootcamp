@@ -42,7 +42,7 @@ if uploaded_file is not None:
     if st.sidebar.button("EPUB 파싱 및 Chunk 생성"):
         with st.spinner("EPUB를 분석하는 중입니다..."):
             parsed_book = parse_epub(epub_path)
-            chunks = make_chunks(parsed_book["chapters"], chunk_size=1200)
+            chunks = make_chunks(parsed_book["chapters"])
 
             st.session_state.book_title = parsed_book["title"]
             st.session_state.chunks = chunks

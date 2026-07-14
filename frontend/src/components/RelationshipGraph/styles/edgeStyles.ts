@@ -25,7 +25,7 @@ export const edgeStyles = [
       'target-arrow-shape': (edge: cytoscape.SingularElementArgument) =>
         edge.data('directed') ? 'triangle' : 'none',
       'arrow-scale': 1.1,
-      'curve-style': 'unbundled-bezier',
+      'curve-style': 'data(curveStyle)',
       'control-point-distances': 'data(controlPointDistance)',
       'control-point-weights': 0.5,
       label: 'data(visibleLabel)',
