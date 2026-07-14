@@ -18,6 +18,7 @@ from .book_repository import (
     InvalidEpubPathError,
     UnsafeEpubPathError,
     bootstrap_local_epubs,
+    get_local_book_metadata,
     list_registered_books,
     resolve_epub_path,
     unregister_local_book,
@@ -94,6 +95,15 @@ def _all_books() -> dict[str, Book]:
 
 
 def _require_book(book_id: str) -> Book:
+    # 페이지 이동마다 progress/graph 요청이 발생한다. 로컬 EPUB 레지스트리에 이미
+    # 등록된 책까지 매번 Supabase 전체 책 목록으로 확인하면 응답이 늦어지고, 빠르게
+    # 넘길 때 마지막 요청만 한꺼번에 반영되는 현상이 생긴다. 파일 등록 메타데이터로
+    # 즉시 확인한 뒤 CFI 문단 캐시를 재사용한다.
+    if book_id == fx.BOOK_MIST.id:
+        return fx.BOOK_MIST
+    local_metadata = get_local_book_metadata(book_id)
+    if local_metadata is not None:
+        return fx.book_for(book_id, title=local_metadata["title"])
     book = _all_books().get(book_id)
     if book is None:
         raise HTTPException(status_code=404, detail=f"book {book_id} 없음")

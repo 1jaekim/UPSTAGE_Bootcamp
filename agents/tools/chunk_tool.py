@@ -1,10 +1,39 @@
-def make_chunks(chapters: list[dict], chunk_size: int = 1200, overlap: int = 150) -> list[dict]:
+import os
+
+
+DEFAULT_CHUNK_SIZE = 600
+DEFAULT_CHUNK_OVERLAP = 100
+
+
+def _configured_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return int(raw)
+    except ValueError as error:
+        raise ValueError(f"{name} must be an integer: {raw}") from error
+
+
+def make_chunks(
+    chapters: list[dict],
+    chunk_size: int | None = None,
+    overlap: int | None = None,
+) -> list[dict]:
     """
     EPUB에서 파싱된 chapter 목록을 chunk 단위로 분할한다.
 
     각 chunk는 SpoKeeper의 읽기 위치 기준이 되는 offset을 가진다.
     overlap을 두어 chunk 경계에서 문맥이 끊기는 문제를 줄인다.
+    기본값은 페이지별 관계도 갱신이 너무 성기지 않도록 600/100으로 두고,
+    SPO_CHUNK_SIZE/SPO_CHUNK_OVERLAP 환경변수로 책 특성에 맞게 조정할 수 있다.
     """
+    chunk_size = chunk_size if chunk_size is not None else _configured_int(
+        "SPO_CHUNK_SIZE", DEFAULT_CHUNK_SIZE
+    )
+    overlap = overlap if overlap is not None else _configured_int(
+        "SPO_CHUNK_OVERLAP", DEFAULT_CHUNK_OVERLAP
+    )
     if chunk_size <= 0:
         raise ValueError("chunk_size는 0보다 커야 합니다.")
 

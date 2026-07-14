@@ -132,8 +132,13 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
     const pairKey = [source, target].sort().join('::');
     const pairIndex = pairEdgeIndexes.get(pairKey) ?? 0;
     pairEdgeIndexes.set(pairKey, pairIndex + 1);
-    const curveLevel = Math.floor(pairIndex / 2) + 1;
-    const curveDirection = pairIndex % 2 === 0 ? 1 : -1;
+    // 한 인물 쌍의 첫 관계는 가장 짧고 자연스러운 직선으로 표시한다. 같은 쌍에
+    // 관계가 더 있을 때만 두 번째 선부터 좌우 곡선으로 벌려 겹침을 피한다.
+    // 기존 42px 곡률보다 완만한 28px 간격을 사용해 선이 과하게 휘지 않게 한다.
+    const curvedIndex = Math.max(0, pairIndex - 1);
+    const curveLevel = Math.floor(curvedIndex / 2) + 1;
+    const curveDirection = curvedIndex % 2 === 0 ? 1 : -1;
+    const curveStyle = pairIndex === 0 ? 'straight' : 'unbundled-bezier';
 
     const category = relationship.relation_category ?? 'neutral';
     const relationScore = relationship.relation_importance_score ?? (relationship.relation_importance_level === 'major' ? 4 : 2);
@@ -158,7 +163,8 @@ function makeElements(entities: Entity[], relationships: Relationship[]) {
         directed: relationship.directionality === 'directed',
         width: majorLabel ? 3 : 2,
         opacity: majorLabel ? 0.82 : 0.38,
-        controlPointDistance: curveLevel * curveDirection * 42,
+        curveStyle,
+        controlPointDistance: curveLevel * curveDirection * 28,
         detail: relationDetail(relationship),
         eventName: relationship.event_name ?? '',
       },
@@ -213,6 +219,52 @@ function applyNodeFocus(cy: Core, node: cytoscape.NodeSingular) {
   });
 }
 
+function arrangeAroundFocusedNode(cy: Core, focusedNode: cytoscape.NodeSingular) {
+  const focusedId = focusedNode.id();
+  const neighborIds = new Set(focusedNode.neighborhood('node').map((node) => node.id()));
+  const layoutTargets = cy.elements().not('.node-caption');
+  const layout = layoutTargets.layout({
+    name: 'concentric',
+    fit: false,
+    animate: true,
+    animationDuration: 420,
+    minNodeSpacing: 72,
+    avoidOverlap: true,
+    startAngle: -Math.PI / 2,
+    clockwise: true,
+    concentric: (node: cytoscape.NodeSingular) => {
+      if (node.id() === focusedId) return 100;
+      if (neighborIds.has(node.id())) return 50;
+      return 0;
+    },
+    levelWidth: () => 1,
+  });
+
+  layout.one('layoutstop', () => {
+    syncAllCaptionPositions(cy);
+    const focusElements = focusedNode.union(focusedNode.neighborhood());
+    if (focusElements.length === 0) return;
+    // 이웃이 많을 때 fit만 사용하면 모든 이웃을 화면에 넣으려고 오히려 크게
+    // 축소된다. fit으로 계산한 배율을 참고하되 최소 1.55배는 보장하고, 화면의
+    // 중심도 선택 노드 자체에 맞춰 클릭한 인물과 연결선이 확실히 보이게 한다.
+    const bounds = focusElements.boundingBox();
+    const fitZoom = bounds.w > 0 && bounds.h > 0
+      ? Math.min(
+          Math.max(1, cy.width() - 144) / bounds.w,
+          Math.max(1, cy.height() - 144) / bounds.h,
+        )
+      : cy.zoom();
+    // 레이아웃 애니메이션 직후 또 다른 viewport 애니메이션을 실행하면 Cytoscape가
+    // 앞선 fit/zoom 상태를 유지하는 경우가 있다. 여기서는 뷰포트를 직접 설정해
+    // 전체 인물이 떠 있어도 선택 노드가 반드시 크게 보이도록 보장한다.
+    const focusedZoom = Math.min(MAX_ZOOM, Math.max(1.55, fitZoom));
+    cy.stop();
+    cy.zoom(focusedZoom);
+    cy.center(focusedNode);
+  });
+  layout.run();
+}
+
 export function FullscreenRelationshipGraph({
   open,
   onClose,
@@ -232,9 +284,33 @@ export function FullscreenRelationshipGraph({
   const [detail, setDetail] = useState<Detail | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [activeGroup, setActiveGroup] = useState<CharacterGroupId | 'all'>('all');
+  const [showMinorCharacters, setShowMinorCharacters] = useState(false);
+  const { visibleEntities, visibleRelationships, minorCharacterCount } = useMemo(() => {
+    const majorEntities = entities.filter(
+      (entity) => entity.importance_level === 'major' || scoreOf(entity) >= 3,
+    );
+    // 책의 아주 초반처럼 아직 major 판정을 받은 인물이 없으면 인물 선택 목록과
+    // 동일하게 중요도 상위 4명을 기본 그래프에 보여 빈 화면이 되지 않게 한다.
+    const defaultEntities = majorEntities.length > 0
+      ? majorEntities
+      : [...entities]
+          .sort((a, b) => scoreOf(b) - scoreOf(a) || a.name.localeCompare(b.name))
+          .slice(0, 4);
+    const shownEntities = showMinorCharacters ? entities : defaultEntities;
+    const shownIds = new Set(shownEntities.map((entity) => entity.id));
+
+    return {
+      visibleEntities: shownEntities,
+      // 양 끝 인물이 모두 현재 표시 대상일 때만 관계선을 만든다.
+      visibleRelationships: relationships.filter(
+        (relationship) => shownIds.has(relationship.source) && shownIds.has(relationship.target),
+      ),
+      minorCharacterCount: Math.max(0, entities.length - defaultEntities.length),
+    };
+  }, [entities, relationships, showMinorCharacters]);
   const { elements, nodeCount, edgeCount, groups } = useMemo(
-    () => makeElements(entities, relationships),
-    [entities, relationships],
+    () => makeElements(visibleEntities, visibleRelationships),
+    [visibleEntities, visibleRelationships],
   );
 
   const fitVisibleNodes = () => {
@@ -290,6 +366,7 @@ export function FullscreenRelationshipGraph({
     cy.on('tap', 'node', (event: EventObject) => {
       if (event.target.hasClass('node-caption')) return;
       applyNodeFocus(cy, event.target);
+      arrangeAroundFocusedNode(cy, event.target);
       setDetail(null);
       setSelectedEntityId(event.target.id());
     });
@@ -324,6 +401,10 @@ export function FullscreenRelationshipGraph({
         clearFocus(cy);
         setDetail(null);
         setSelectedEntityId(null);
+        runFullscreenLayout(cy, () => {
+          syncAllCaptionPositions(cy);
+          fitVisibleNodes();
+        });
       }
     });
 
@@ -399,16 +480,23 @@ export function FullscreenRelationshipGraph({
     });
   }, [activeGroup, open, elements]);
 
+  useEffect(() => {
+    if (!open) {
+      setShowMinorCharacters(false);
+      setActiveGroup('all');
+    }
+  }, [open]);
+
   if (!open) return null;
 
-  const selectedEntity = entities.find((entity) => entity.id === selectedEntityId) ?? null;
+  const selectedEntity = visibleEntities.find((entity) => entity.id === selectedEntityId) ?? null;
   const selectedRelationships = selectedEntity
-    ? relationships.filter(
+    ? visibleRelationships.filter(
         (relationship) =>
           relationship.source === selectedEntity.id || relationship.target === selectedEntity.id,
       )
     : [];
-  const entityNames = new Map(entities.map((entity) => [entity.id, entity.name]));
+  const entityNames = new Map(visibleEntities.map((entity) => [entity.id, entity.name]));
 
   const zoom = (factor: number) => {
     const cy = cyRef.current;
@@ -436,6 +524,19 @@ export function FullscreenRelationshipGraph({
             className="h-10 w-72 border-x-0 border-t-0 border-b border-[#d8d8ca] bg-transparent px-1 text-sm font-semibold text-[#4d574b] outline-none transition focus:border-[#283126]"
           />
           <div className="flex flex-wrap justify-end gap-2">
+            {minorCharacterCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowMinorCharacters((value) => !value)}
+                className={`h-9 border px-3 text-xs font-bold transition ${
+                  showMinorCharacters
+                    ? 'border-[#283126] bg-[#283126] text-white'
+                    : 'border-[#d8d8ca] bg-transparent text-[#4d574b] hover:border-[#283126]'
+                }`}
+              >
+                기타 등장인물 {showMinorCharacters ? '접기' : '보기'} ({minorCharacterCount})
+              </button>
+            )}
             <button type="button" onClick={() => zoom(1 / 1.18)} className="h-9 w-9 border border-[#d8d8ca] bg-transparent text-sm font-bold text-[#4d574b]">-</button>
             <button type="button" onClick={() => zoom(1.18)} className="h-9 w-9 border border-[#d8d8ca] bg-transparent text-sm font-bold text-[#4d574b]">+</button>
             <button type="button" onClick={fitVisibleNodes} className="h-9 border border-[#d8d8ca] bg-transparent px-3 text-xs font-bold text-[#4d574b]">Fit</button>
@@ -446,12 +547,12 @@ export function FullscreenRelationshipGraph({
         <div className="grid h-[calc(90vh-120px)] min-h-[600px] grid-cols-[minmax(0,1fr)_320px]">
           <div className="relative min-w-0">
           <div ref={containerRef} className="absolute inset-0 h-full w-full bg-[radial-gradient(circle,#d2d6c8_1px,transparent_1px)] bg-[length:24px_24px] bg-[#fbfaf5]" />
-          {entities.length === 0 && (
+          {visibleEntities.length === 0 && (
             <div className="absolute inset-0 grid place-items-center bg-slate-50 text-sm font-semibold text-slate-400">
               현재 위치까지 표시할 인물이 없습니다.
             </div>
           )}
-          {entities.length > 0 && nodeCount === 0 && (
+          {visibleEntities.length > 0 && nodeCount === 0 && (
             <div className="absolute inset-0 grid place-items-center bg-slate-50 text-sm font-semibold text-slate-400">
               표시 가능한 인물 정보가 없습니다.
             </div>

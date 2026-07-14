@@ -59,6 +59,15 @@ opfDoc.querySelectorAll('manifest item').forEach(item => {
 function cfiToPath(cfi) {
   let inner = cfi.trim().replace(/^epubcfi\((.*)\)$/, '$1');
   inner = inner.replace(/\[[^\]]*\]/g, '');
+  const bangIndex = inner.indexOf('!');
+  if (bangIndex >= 0) {
+    const packagePath = inner.slice(0, bangIndex + 1);
+    // epub-cfi-resolver는 content path를 !/2/4/...로 생성하지만 epub.js의
+    // relocated 이벤트는 같은 위치를 !/4/...로 보고한다. document-root 단계
+    // /2를 제거해 런타임 CFI와 동일한 정렬 키를 저장한다.
+    const contentPath = inner.slice(bangIndex + 1).replace(/^\/2(?=\/4(?:\/|$))/, '');
+    inner = packagePath + contentPath;
+  }
   inner = inner.replace(/!/g, '/');
   const steps = [];
   for (const token of inner.split('/')) {

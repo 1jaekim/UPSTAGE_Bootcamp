@@ -63,7 +63,11 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
             chapter_title=row["chapter_title"] or f"Chapter {row['chapter_index']}",
             paragraph_index=row["paragraph_index"],
             cfi_raw=row["cfi_raw"],
-            cfi_path=list(row["cfi_path"]),
+            # 기존 DB cfi_path는 인덱서의 ``!/2/4/...`` 형식을 그대로 담고 있다.
+            # epub.js relocated CFI(``!/4/...``)와 동일한 규칙으로 비교하기 위해
+            # 원본 CFI에서 정규화 경로를 다시 만든다. DB 마이그레이션 없이 기존
+            # 인덱스도 즉시 안전하게 읽을 수 있다.
+            cfi_path=cfi_to_path(row["cfi_raw"]),
             text_preview=row["text_preview"],
         )
         for i, row in enumerate(rows)
@@ -86,6 +90,8 @@ def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
     그 위치보다 앞선 문단 중 가장 마지막 것의 global_index를 반환한다(cfi_path 배열의
     사전식 비교가 곧 문서 순서와 같다는 성질 이용, book_cfi_index README에서 검증됨).
     """
+    # cfi_to_path canonicalizes both the indexer's !/2/4/... form and
+    # epub.js's !/4/... form, so no one-sided path insertion is necessary.
     target = cfi_to_path(raw_cfi)
     paragraphs = get_paragraphs(book_id)
     if not paragraphs:
