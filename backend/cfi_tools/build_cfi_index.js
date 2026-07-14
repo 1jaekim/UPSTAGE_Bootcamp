@@ -5,6 +5,11 @@
 //
 // 셜록 홈즈 EPUB 전용이던 원본 스크립트를 일반화: 'div.chapter' 래퍼가 없는 EPUB도
 // 처리할 수 있도록 문서 body 전체의 <p>를 대상으로 하는 폴백을 추가했다.
+//
+// 일부 EPUB(특히 국내 웹소설 변환본)은 실제 문단마다 <p>를 쓰지 않고, 챕터 전체를
+// <p> 하나에 담고 <br/>로만 줄바꿈한다. 이런 경우 실제 <p> 개수가 항상 1이라
+// "표지/목차 스킵" 휴리스틱(문단 3개 미만이면 챕터 아님)에 걸려 챕터 전체가
+// 통째로 스킵되므로, 그 경우 <p> 내부 텍스트 노드를 문단 단위로 취급하는 폴백을 둔다.
 const fs = require('fs');
 const path = require('path');
 const { JSDOM } = require('jsdom');
@@ -54,6 +59,15 @@ opfDoc.querySelectorAll('manifest item').forEach(item => {
 function cfiToPath(cfi) {
   let inner = cfi.trim().replace(/^epubcfi\((.*)\)$/, '$1');
   inner = inner.replace(/\[[^\]]*\]/g, '');
+  const bangIndex = inner.indexOf('!');
+  if (bangIndex >= 0) {
+    const packagePath = inner.slice(0, bangIndex + 1);
+    // epub-cfi-resolver는 content path를 !/2/4/...로 생성하지만 epub.js의
+    // relocated 이벤트는 같은 위치를 !/4/...로 보고한다. document-root 단계
+    // /2를 제거해 런타임 CFI와 동일한 정렬 키를 저장한다.
+    const contentPath = inner.slice(bangIndex + 1).replace(/^\/2(?=\/4(?:\/|$))/, '');
+    inner = packagePath + contentPath;
+  }
   inner = inner.replace(/!/g, '/');
   const steps = [];
   for (const token of inner.split('/')) {
@@ -90,17 +104,25 @@ itemrefs.forEach((itemrefNode) => {
   const container = doc.querySelector('div.chapter') || doc.body;
   if (!container) return;
 
-  const paragraphs = Array.from(container.querySelectorAll('p'));
-  if (paragraphs.length < 3) return; // 목차/표지 등 스킵
+  // <p> 태그 자체가 문단 단위인 일반적인 경우와, <p> 하나에 <br/>로만 줄바꿈된
+  // 경우를 모두 다룬다 — 각 <p>의 자식 텍스트 노드를 전부 모으면, 후자에서는
+  // <br/> 사이사이의 텍스트 노드가 자연히 별도 문단으로 잡힌다.
+  const paragraphTextNodes = [];
+  Array.from(container.querySelectorAll('p')).forEach((p) => {
+    Array.from(p.childNodes).forEach((child) => {
+      if (child.nodeType === 3 && child.textContent && child.textContent.trim()) {
+        paragraphTextNodes.push(child);
+      }
+    });
+  });
+  if (paragraphTextNodes.length < 3) return; // 목차/표지 등 스킵
 
   const heading = container.querySelector('h1, h2, h3');
   const chapterTitle = heading
     ? heading.textContent.trim().replace(/\s+/g, ' ')
     : `chapter_${chapterCounter}`;
 
-  paragraphs.forEach((p, paraIdx) => {
-    const textNode = p.firstChild;
-    if (!textNode || !textNode.textContent || !textNode.textContent.trim()) return;
+  paragraphTextNodes.forEach((textNode, paraIdx) => {
     try {
       const cfiRaw = CFI.generate([
         { node: itemrefNode, offset: 0 },
@@ -120,7 +142,7 @@ itemrefs.forEach((itemrefNode) => {
     }
   });
 
-  console.log(`챕터 ${chapterCounter} [${chapterTitle}] - 문단 ${paragraphs.length}개 처리 (spine idref=${idref})`);
+  console.log(`챕터 ${chapterCounter} [${chapterTitle}] - 문단 ${paragraphTextNodes.length}개 처리 (spine idref=${idref})`);
   chapterCounter++;
 });
 

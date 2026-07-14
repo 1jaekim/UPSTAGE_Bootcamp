@@ -4,6 +4,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 from agents.config import UPSTAGE_API_KEY
 from agents.build_agent import extract_json_from_text
+from agents.llm_utils import invoke_with_retry
 
 
 INDIRECT_LEAKAGE_JUDGE_SYSTEM_PROMPT = """
@@ -42,13 +43,15 @@ def judge_reminders(lines: list[dict]) -> list[dict]:
     if not lines:
         return []
 
-    llm = ChatUpstage(
+    llm_factory = lambda: ChatUpstage(
         model="solar-pro2",
         api_key=UPSTAGE_API_KEY,
         temperature=0,
+        timeout=120,
     )
 
-    response = llm.invoke(
+    response = invoke_with_retry(
+        llm_factory,
         [
             SystemMessage(content=INDIRECT_LEAKAGE_JUDGE_SYSTEM_PROMPT),
             HumanMessage(
@@ -58,7 +61,7 @@ def judge_reminders(lines: list[dict]) -> list[dict]:
 {json.dumps([l.get("text", "") for l in lines], ensure_ascii=False, indent=2)}
 """
             ),
-        ]
+        ],
     )
 
     result = extract_json_from_text(response.content)

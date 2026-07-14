@@ -11,18 +11,18 @@ export function SpoilerModeToggle() {
       role="switch"
       aria-checked={spoilerSafe}
       onClick={() => setSpoilerSafe(!spoilerSafe)}
-      className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition hover:border-slate-300"
-      title={spoilerSafe ? '안심 모드 ON — 경계선 뒤는 숨김' : '안심 모드 OFF — 전체 공개(reveal_all)'}
+      className="group hidden items-center gap-2 border-0 bg-transparent px-0 py-1.5 text-xs font-bold text-[#6d7568] transition hover:text-[#283126] xl:flex"
+      title={spoilerSafe ? '안심 모드 ON — 아직 읽지 않은 내용은 숨김' : '안심 모드 OFF — 전체 내용 표시'}
     >
       <span
-        className={`inline-flex h-4 w-4 items-center justify-center rounded-full transition ${
-          spoilerSafe ? 'bg-safe' : 'bg-slate-300'
+        className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full transition ${
+          spoilerSafe ? 'bg-[#52745d]' : 'bg-[#b9b9ad]'
         }`}
         aria-hidden
       >
         <span className="h-1.5 w-1.5 rounded-full bg-white" />
       </span>
-      <span className={spoilerSafe ? 'text-slate-700' : 'text-slate-400'}>
+      <span className={spoilerSafe ? 'text-[#4d574b]' : 'text-[#9aa38f]'}>
         안심 모드 {spoilerSafe ? 'ON' : 'OFF'}
       </span>
     </button>

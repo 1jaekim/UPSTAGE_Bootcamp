@@ -1,5 +1,5 @@
 // ── EPUB 뷰어 (구성: main app.py '📖 간이 EPUB 뷰어') ──────────────
-// 읽기 위치(offset)를 포함하는 챕터 본문을 보여준다. 스타일은 기존 리더 카드 유지.
+// 현재 읽기 위치를 포함하는 챕터 본문을 보여준다. 스타일은 기존 리더 카드 유지.
 import { useMemo } from 'react';
 import { useBook, useChapter } from '../api/hooks';
 import { useSpoStore } from '../store';
@@ -9,7 +9,7 @@ export function EpubViewer() {
   const readingOffset = useSpoStore((s) => s.readingOffset);
   const { data: book } = useBook(bookId);
 
-  // 현재 offset을 포함하는 챕터 선택
+  // 현재 읽기 위치를 포함하는 챕터 선택
   const currentChapter = useMemo(() => {
     if (!book) return undefined;
     return (
@@ -34,8 +34,8 @@ export function EpubViewer() {
             <h3 className="text-xl font-bold text-slate-800">{book.title}</h3>
             <p className="mt-1 text-xs text-slate-400">
               {currentChapter
-                ? `Chapter ${currentChapter.index} · ${currentChapter.title} / Offset ${readingOffset}`
-                : `Offset ${readingOffset}`}
+                ? `Chapter ${currentChapter.index} · ${currentChapter.title}`
+                : '현재 읽기 위치'}
             </p>
           </>
         )}

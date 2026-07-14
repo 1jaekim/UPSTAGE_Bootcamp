@@ -2,7 +2,7 @@
 
 /* ── SpoKeeper 스타일 토큰 (SPEC §2) ───────────────────────────── */
 @theme {
-  --color-accent: #4f46e5;
+  --color-accent: #283126;
   --color-node-blue: #2f3edb;
   --color-node-dark: #2c3242;
   --color-safe: #22c55e;
@@ -13,7 +13,7 @@
 
 :root {
   color-scheme: light;
-  font-family: 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto,
+  font-family: 'Noto Sans KR', 'Pretendard', system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
 }
 
@@ -25,8 +25,44 @@ body,
 }
 
 body {
-  background: #f6f7fb;
-  color: #1e2330;
+  overflow: hidden;
+  background: #f2f1ec;
+  color: #20231f;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.reader-page iframe {
+  background: #fffdfa;
+}
+
+input[type='range'] {
+  accent-color: #283126;
+}
+
+.reading-progress::-webkit-slider-thumb {
+  width: 10px;
+  height: 10px;
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: #283126;
+}
+
+.reading-progress::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: #283126;
 }
 
 /* reduced-motion 존중 (F4) */

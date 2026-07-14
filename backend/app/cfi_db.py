@@ -34,7 +34,10 @@ def _connect():
     return psycopg2.connect(SUPABASE_DB_URL, connect_timeout=10)
 
 
-@lru_cache(maxsize=8)
+# maxsize=8이었을 때는 등록된 책이 8권을 넘으면 /api/books가 전체 책을 순회할 때마다
+# LRU 캐시가 계속 밀려나서(스래싱) 캐시가 사실상 안 먹혀 매 요청마다 Supabase에 새
+# 연결을 맺느라 몇 초씩 걸렸다 — 책 수가 작고 자연히 유계라 무제한으로 둔다.
+@lru_cache(maxsize=None)
 def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
     """book_id의 전체 문단을 cfi_path 순서(=global_index)로 반환. 결과는 캐시됨."""
     conn = _connect()
@@ -60,7 +63,11 @@ def get_paragraphs(book_id: str) -> tuple[CfiParagraph, ...]:
             chapter_title=row["chapter_title"] or f"Chapter {row['chapter_index']}",
             paragraph_index=row["paragraph_index"],
             cfi_raw=row["cfi_raw"],
-            cfi_path=list(row["cfi_path"]),
+            # 기존 DB cfi_path는 인덱서의 ``!/2/4/...`` 형식을 그대로 담고 있다.
+            # epub.js relocated CFI(``!/4/...``)와 동일한 규칙으로 비교하기 위해
+            # 원본 CFI에서 정규화 경로를 다시 만든다. DB 마이그레이션 없이 기존
+            # 인덱스도 즉시 안전하게 읽을 수 있다.
+            cfi_path=cfi_to_path(row["cfi_raw"]),
             text_preview=row["text_preview"],
         )
         for i, row in enumerate(rows)
@@ -83,6 +90,8 @@ def find_global_index_by_cfi(book_id: str, raw_cfi: str) -> int:
     그 위치보다 앞선 문단 중 가장 마지막 것의 global_index를 반환한다(cfi_path 배열의
     사전식 비교가 곧 문서 순서와 같다는 성질 이용, book_cfi_index README에서 검증됨).
     """
+    # cfi_to_path canonicalizes both the indexer's !/2/4/... form and
+    # epub.js's !/4/... form, so no one-sided path insertion is necessary.
     target = cfi_to_path(raw_cfi)
     paragraphs = get_paragraphs(book_id)
     if not paragraphs:
@@ -133,6 +142,22 @@ def set_storage_path(book_id: str, storage_path: str) -> None:
         with conn.cursor() as cur:
             cur.execute("UPDATE books SET storage_path=%s WHERE book_id=%s", (storage_path, book_id))
         conn.commit()
+    finally:
+        conn.close()
+
+
+def get_book_storage_path(book_id: str) -> str | None:
+    """books.storage_path를 반환하고, 해당 book_id가 없으면 None을 반환한다."""
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute("SELECT storage_path FROM books WHERE book_id = %s", (book_id,))
+            except psycopg2.errors.InvalidTextRepresentation:
+                conn.rollback()
+                return None
+            row = cur.fetchone()
+            return str(row[0]).strip() if row and row[0] else None
     finally:
         conn.close()
 
@@ -209,5 +234,26 @@ def insert_paragraphs(book_id: str, rows: list[dict]) -> int:
             cur.execute("UPDATE books SET status='ready' WHERE book_id=%s", (book_id,))
         conn.commit()
         return len(rows)
+    finally:
+        conn.close()
+
+
+def delete_book(book_id: str) -> bool:
+    """books row를 삭제한다. book_cfi_index/build_agent_snapshots/user_reading_position은
+    전부 book_id에 ON DELETE CASCADE가 걸려있어 자동으로 같이 삭제된다.
+    실제로 삭제된 행이 있었으면 True, 애초에 없던 book_id면 False.
+    """
+    conn = _connect()
+    try:
+        with conn.cursor() as cur:
+            try:
+                cur.execute("DELETE FROM books WHERE book_id = %s", (book_id,))
+            except psycopg2.errors.InvalidTextRepresentation:
+                # book_id가 UUID 형식이 아니면(존재할 수 없는 id) 그냥 "없음"으로 취급.
+                conn.rollback()
+                return False
+            deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
     finally:
         conn.close()

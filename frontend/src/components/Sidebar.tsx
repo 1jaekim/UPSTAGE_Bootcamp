@@ -1,7 +1,7 @@
 // ── 사이드바 (구성: main app.py) : 브랜드 · EPUB 업로드 · 읽기 위치 슬라이더 ──
 // 스타일은 기존 React 디자인 토큰(accent·slate·rounded)을 그대로 따른다.
 import { useEffect, useRef, useState } from 'react';
-import { useBook, useBooks, useProgress, usePutProgress, useUploadBook } from '../api/hooks';
+import { useBooks, useProgress, usePutProgress, useUploadBook } from '../api/hooks';
 import { useSpoStore } from '../store';
 import { SpoilerModeToggle } from './SpoilerModeToggle';
 
@@ -9,7 +9,6 @@ export function Sidebar() {
   const selectedBookId = useSpoStore((s) => s.selectedBookId);
   const setSelectedBookId = useSpoStore((s) => s.setSelectedBookId);
   const { data: books } = useBooks();
-  const { data: book } = useBook(selectedBookId);
   const { data: progress } = useProgress(selectedBookId);
   const putProgress = usePutProgress(selectedBookId);
   const uploadBook = useUploadBook();
@@ -18,6 +17,8 @@ export function Sidebar() {
   const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
   const currentPage = useSpoStore((s) => s.currentPage);
   const totalPages = useSpoStore((s) => s.totalPages);
+  const latestCfi = useSpoStore((s) => s.latestCfi);
+  const requestPage = useSpoStore((s) => s.requestPage);
 
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -36,21 +37,15 @@ export function Sidebar() {
 
   // 최초 progress → store 동기화
   useEffect(() => {
-    if (progress) setProgress(progress.reading_offset, progress.spoiler_boundary);
+    if (progress) setProgress(
+      progress.reading_offset,
+      progress.spoiler_boundary,
+      progress.current_page,
+      progress.total_pages,
+      progress.spoiler_boundary_page,
+      progress.current_cfi,
+    );
   }, [progress, setProgress]);
-
-  const total = book?.total_offset ?? 430;
-
-  // 슬라이더로 읽기 위치(offset) 변경 → PUT progress → 경계선 갱신.
-  // 이제 BuildAgent 경계선이 CFI global_index 기준 35개 지점으로 촘촘히 재정렬되어
-  // 있어서(챕터당 여러 개), 매 이동마다 갱신해도 실제로는 가장 가까운 경계선으로만
-  // 스냅되므로 챕터 단위로 묶어 트리거를 늦출 필요가 없다.
-  const onSlide = (value: number) => {
-    setProgress(value, Math.max(useSpoStore.getState().spoilerBoundary, value));
-    putProgress.mutate(value, {
-      onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary),
-    });
-  };
 
   return (
     <aside className="flex h-full w-72 shrink-0 flex-col gap-6 overflow-y-auto border-r border-slate-200 bg-white/80 px-4 py-5 backdrop-blur">
@@ -124,11 +119,12 @@ export function Sidebar() {
 
         <input
           type="range"
-          min={0}
-          max={total}
-          step={5}
-          value={readingOffset}
-          onChange={(e) => onSlide(Number(e.target.value))}
+          min={1}
+          max={Math.max(totalPages, 1)}
+          step={1}
+          value={Math.max(currentPage, 1)}
+          onChange={(e) => requestPage(Number(e.target.value))}
+          disabled={totalPages <= 0}
           className="w-full accent-accent"
         />
 
@@ -145,13 +141,28 @@ export function Sidebar() {
             type="button"
             onClick={() => {
               putProgress.mutate(
-                { offset: readingOffset, force: true },
-                { onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary) },
+                {
+                  currentGlobalIndex: readingOffset,
+                  currentCfi: latestCfi ?? undefined,
+                  currentPage,
+                  totalPages,
+                  force: true,
+                },
+                {
+                  onSuccess: (p) => setProgress(
+                    p.reading_offset,
+                    p.spoiler_boundary,
+                    p.current_page,
+                    p.total_pages,
+                    p.spoiler_boundary_page,
+                    p.current_cfi,
+                  ),
+                },
               );
             }}
             className="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
           >
-            📖 이 위치(offset {readingOffset})부터 다시 보기
+            📖 현재 읽기 위치로 이동하기
           </button>
         )}
       </section>

@@ -1,10 +1,10 @@
 // ── SpoKeeper Panel (구성: main app.py '🧠 SpoKeeper Panel') ────────
 // '현재 위치까지 분석' → 추출된 인물 / 관계 / 사건(리마인드) / 로그.
 // 데이터는 master의 계약(useGraph·useReminders)을 그대로 사용, 스타일 유지.
-import { useState } from 'react';
-import { TYPE_LABEL } from '../lib/constants';
+import { useMemo, useState } from 'react';
 import { useGraph, useReminders, usePutProgress } from '../api/hooks';
 import { useSpoStore } from '../store';
+import { CharacterImportanceList } from './CharacterImportanceList';
 import { RelationshipGraph } from './RelationshipGraph';
 import { RelationshipList } from './RelationshipList';
 
@@ -19,23 +19,49 @@ function SectionTitle({ icon, children }: { icon: string; children: React.ReactN
 
 export function SpoKeeperPanel() {
   const bookId = useSpoStore((s) => s.selectedBookId);
-  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
+  const currentGlobalIndex = useSpoStore((s) => s.currentGlobalIndex);
   const spoilerSafe = useSpoStore((s) => s.spoilerSafe);
   const analyzed = useSpoStore((s) => s.analyzed);
   const setAnalyzed = useSpoStore((s) => s.setAnalyzed);
   const latestCfi = useSpoStore((s) => s.latestCfi);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
   const setProgress = useSpoStore((s) => s.setProgress);
   const putProgress = usePutProgress(bookId);
   const [syncing, setSyncing] = useState(false);
+  const [showMinorRelations, setShowMinorRelations] = useState(false);
 
-  const { data: graph, isLoading: gLoading } = useGraph(bookId, spoilerBoundary, spoilerSafe);
-  const { data: reminders, isLoading: rLoading } = useReminders(bookId, spoilerBoundary);
+  const { data: graph, isLoading: gLoading } = useGraph(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+    spoilerSafe,
+  );
+  const { data: reminders, isLoading: rLoading } = useReminders(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+  );
 
   const loading = gLoading || rLoading || syncing;
   const isEmpty = !!graph && graph.entities.length === 0;
+  const visibleGraph = useMemo(() => {
+    if (!graph) return undefined;
+    if (showMinorRelations) return graph;
+    return {
+      ...graph,
+      relationships: graph.relationships.filter(
+        (relationship) => relationship.relation_importance_level !== 'minor',
+      ),
+    };
+  }, [graph, showMinorRelations]);
+  const minorRelationCount =
+    graph?.relationships.filter((relationship) => relationship.relation_importance_level === 'minor').length ?? 0;
 
-  // 평소엔 10페이지마다만 경계선이 갱신되지만, 이 버튼을 누르는 순간만은
-  // "현재 위치"라는 이름에 맞게 진짜 현재 페이지의 CFI로 강제 동기화한다.
+  // 페이지 이동 때도 동기화하지만, 분석 버튼 시점의 CFI/page/global_index 묶음을
+  // 다시 확정한 뒤 관계와 리마인드 쿼리를 갱신한다.
   const onAnalyze = () => {
     if (!latestCfi) {
       setAnalyzed(true);
@@ -43,10 +69,17 @@ export function SpoKeeperPanel() {
     }
     setSyncing(true);
     putProgress.mutate(
-      { cfi: latestCfi },
+      { currentCfi: latestCfi, currentPage, totalPages },
       {
         onSuccess: (p) => {
-          setProgress(p.reading_offset, p.spoiler_boundary);
+          setProgress(
+            p.reading_offset,
+            p.spoiler_boundary,
+            p.current_page,
+            p.total_pages,
+            p.spoiler_boundary_page,
+            p.current_cfi,
+          );
           setAnalyzed(true);
           setSyncing(false);
         },
@@ -64,7 +97,7 @@ export function SpoKeeperPanel() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
         <p className="mb-3 text-xs leading-5 text-slate-500">
-          현재 읽기 위치(offset {spoilerBoundary}) 기준으로 인물·관계·사건을 분석합니다.
+          현재 읽은 위치까지 인물·관계·사건을 분석합니다.
         </p>
 
         <button
@@ -99,33 +132,30 @@ export function SpoKeeperPanel() {
           </div>
         )}
 
-        {analyzed && !loading && graph && !isEmpty && (
+        {analyzed && !loading && graph && visibleGraph && !isEmpty && (
           <div className="mt-6 space-y-6">
             {/* 👤 추출된 인물 */}
             <div>
               <SectionTitle icon="👤">추출된 인물 {graph.entities.length}</SectionTitle>
-              <ul className="flex flex-wrap gap-1.5">
-                {graph.entities.map((e) => (
-                  <li
-                    key={e.id}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700"
-                  >
-                    {e.name}
-                    <span className="ml-1 text-[10px] text-slate-400">
-                      {TYPE_LABEL[e.type] ?? e.type}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <CharacterImportanceList entities={graph.entities} />
             </div>
 
             {/* 🔗 추출된 관계 */}
             <div>
-              <SectionTitle icon="🔗">추출된 관계 {graph.relationships.length}</SectionTitle>
+              <SectionTitle icon="🔗">추출된 관계 {visibleGraph.relationships.length}</SectionTitle>
               <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50/60 p-2">
-                <RelationshipGraph graph={graph} />
+                <RelationshipGraph graph={visibleGraph} />
               </div>
-              <RelationshipList graph={graph} />
+              {minorRelationCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowMinorRelations((value) => !value)}
+                  className="mb-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+                >
+                  기타 관계 {showMinorRelations ? '숨기기' : `보기 (${minorRelationCount})`}
+                </button>
+              )}
+              <RelationshipList graph={visibleGraph} />
             </div>
 
             {/* 📌 추출된 사건 (리마인드) */}
@@ -156,11 +186,11 @@ export function SpoKeeperPanel() {
               <pre className="overflow-x-auto rounded-xl bg-slate-900 px-3 py-2.5 text-[11px] leading-5 text-slate-100">
 {JSON.stringify(
   {
-    offset: spoilerBoundary,
-    spoiler_safe: spoilerSafe,
-    entity_count: graph.entities.length,
-    relation_count: graph.relationships.length,
-    event_count: reminders?.lines.length ?? 0,
+    분석범위: '현재 읽은 위치까지',
+    안심모드: spoilerSafe ? '켜짐' : '꺼짐',
+    인물수: graph.entities.length,
+    관계수: visibleGraph.relationships.length,
+    사건수: reminders?.lines.length ?? 0,
   },
   null,
   2,

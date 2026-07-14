@@ -1,29 +1,16 @@
-// ── 리더 뷰 (F1): 본문 + 페이지네이션 + offset 추적 → PUT progress
-import { useEffect, useMemo, useState } from 'react';
+// ── Legacy 리더 뷰 ─────────────────────────────────────────────
+// 실제 독서 진행률/스포일러 경계는 EpubJsReader의 CFI → 서버 global_index 변환 경로만
+// 사용한다. 이 컴포넌트는 과거 데모 본문 표시용으로만 남기며 progress API를 호출하지 않는다.
+import { useMemo, useState } from 'react';
 import { BOOK_ID } from '../lib/constants';
-import { useBook, useChapter, useProgress, usePutProgress } from '../api/hooks';
-import { useSpoStore } from '../store';
-
-/** 챕터 내 페이지(문단) 위치를 offset으로 보간 */
-function pageOffset(start: number, end: number, pageIdx: number, pageCount: number) {
-  const frac = (pageIdx + 1) / pageCount;
-  return Math.round(start + (end - start) * frac);
-}
+import { useBook, useChapter } from '../api/hooks';
 
 export function ReaderView() {
   const { data: book } = useBook(BOOK_ID);
-  const { data: progress } = useProgress(BOOK_ID);
-  const putProgress = usePutProgress(BOOK_ID);
-  const setProgress = useSpoStore((s) => s.setProgress);
 
   const [chapterIndex, setChapterIndex] = useState(3); // 데모 기본: 챕터3
   const [page, setPage] = useState(0);
   const { data: chapter, isLoading } = useChapter(BOOK_ID, chapterIndex);
-
-  // 최초 progress 로드 → store 동기화
-  useEffect(() => {
-    if (progress) setProgress(progress.reading_offset, progress.spoiler_boundary);
-  }, [progress, setProgress]);
 
   // 문단 단위 페이지
   const pages = useMemo(
@@ -31,16 +18,6 @@ export function ReaderView() {
     [chapter],
   );
   const pageCount = Math.max(pages.length, 1);
-
-  // 현재 페이지 → offset 계산 후 progress 갱신 (읽은 위치 추적)
-  useEffect(() => {
-    if (!chapter) return;
-    const off = pageOffset(chapter.start_offset, chapter.end_offset, page, pageCount);
-    putProgress.mutate(off, {
-      onSuccess: (p) => setProgress(p.reading_offset, p.spoiler_boundary),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapter, page, pageCount]);
 
   const goChapter = (idx: number) => {
     setChapterIndex(idx);

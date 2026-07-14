@@ -1,58 +1,56 @@
-// ── 리마인드 패널 (F3): 경계선까지의 요약 라인 ─────────────────
-import { BOOK_ID } from '../lib/constants';
 import { useReminders } from '../api/hooks';
 import { useSpoStore } from '../store';
-import { SlideOverPanel } from './SlideOverPanel';
 
 export function ReminderPanel() {
-  const spoilerBoundary = useSpoStore((s) => s.spoilerBoundary);
-  const { data, isLoading, isError } = useReminders(BOOK_ID, spoilerBoundary);
-
-  const isEmpty = !!data && data.lines.length === 0;
+  const bookId = useSpoStore((s) => s.selectedBookId);
+  const currentGlobalIndex = useSpoStore((s) => s.currentGlobalIndex);
+  const currentPage = useSpoStore((s) => s.currentPage);
+  const totalPages = useSpoStore((s) => s.totalPages);
+  const { data, isLoading, isError } = useReminders(
+    bookId,
+    currentGlobalIndex,
+    currentPage,
+    totalPages,
+  );
 
   return (
-    <SlideOverPanel title="리마인드" subtitle={`경계선 offset ${spoilerBoundary}까지의 줄거리`}>
-      <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs leading-5 text-indigo-700">
-        읽은 지점까지의 핵심만 다시 짚어드려요. 스포일러는 포함하지 않습니다.
+    <div className="space-y-4">
+      <div className="border border-[#cfd8c5] bg-[#f2f6ed] px-3 py-2 text-xs font-semibold leading-5 text-[#4d574b]">
+        {currentPage > 0
+          ? `현재 ${currentPage}페이지 기준으로 공개된 사건만 요약합니다.`
+          : '페이지 계산 중 · 현재 위치까지 공개된 사건만 요약합니다.'}
       </div>
 
-      {isLoading && (
+      {isLoading ? (
         <div className="space-y-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />
+          {[0, 1, 2].map((index) => (
+            <div key={index} className="h-16 animate-pulse rounded-xl bg-slate-100" />
           ))}
         </div>
-      )}
+      ) : null}
 
-      {isError && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
-          리마인드를 불러오지 못했어요.
+      {isError ? (
+        <div className="border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-600">
+          요약을 불러오지 못했습니다.
         </div>
-      )}
+      ) : null}
 
-      {isEmpty && (
-        <div className="grid place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-12 text-center">
-          <div className="mb-2 text-3xl" aria-hidden>📖</div>
-          <p className="text-sm font-medium text-slate-600">아직 정리할 내용이 없어요.</p>
-          <p className="mt-1 text-xs text-slate-400">조금 더 읽으면 줄거리를 요약해 드립니다.</p>
+      {data && data.lines.length === 0 ? (
+        <div className="grid min-h-[280px] place-items-center border border-dashed border-[#d8d8ca] bg-[#faf9f5] px-4 text-center text-sm font-semibold text-[#858d7d]">
+          아직 정리할 사건이 없습니다.
         </div>
-      )}
+      ) : null}
 
-      {data && !isEmpty && (
-        <ol className="space-y-2">
-          {data.lines.map((line, i) => (
-            <li
-              key={i}
-              className="flex gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-            >
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent/10 text-xs font-bold text-accent">
-                {i + 1}
-              </span>
-              <p className="text-sm leading-6 text-slate-700">{line.text}</p>
+      {data && data.lines.length > 0 ? (
+        <ol className="grid gap-3">
+          {data.lines.map((line, index) => (
+            <li key={`${line.text}-${index}`} className="border-b border-[#dedbd1] bg-transparent px-0 py-4 last:border-b-0">
+              <div className="mb-2 text-xs font-bold text-[#31533e]">Reminder {index + 1}</div>
+              <p className="text-sm leading-6 text-[#4d574b]">{line.text}</p>
             </li>
           ))}
         </ol>
-      )}
-    </SlideOverPanel>
+      ) : null}
+    </div>
   );
 }

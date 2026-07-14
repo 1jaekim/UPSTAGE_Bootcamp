@@ -14,7 +14,8 @@ import re
 from functools import lru_cache
 
 from . import cfi_db
-from .config import DEFAULT_BOOK_ID, EPUB_PATH, PARSER_CHAPTER_OFFSET
+from .book_repository import resolve_epub_path
+from .config import DEFAULT_BOOK_ID, PARSER_CHAPTER_OFFSET
 from .schemas import (
     Book,
     Chapter,
@@ -29,30 +30,28 @@ BOOK_ID = DEFAULT_BOOK_ID
 
 
 def _epub_path_for(book_id: str) -> str:
-    if book_id == DEFAULT_BOOK_ID:
-        return EPUB_PATH
-
-    from .upload_pipeline import epub_path_for
-
-    local_path = epub_path_for(book_id)
-    return str(local_path) if local_path.exists() else ""
+    """구버전 호출부 호환용 wrapper. 경로 해석은 공통 repository에 위임한다."""
+    return str(resolve_epub_path(book_id))
 
 
-@lru_cache(maxsize=8)
+# maxsize=8이었을 때는 등록된 책이 8권을 넘는 순간(업로드가 쌓이면서 자연히 넘김)
+# 매 요청마다 LRU 캐시가 밀려나면서(스래싱) 사실상 캐시가 하나도 안 먹혀 API가
+# 몇 초씩 걸리는 문제가 있었다 — 책 수가 작고 자연스럽게 유계(bounded)라 무제한으로 둔다.
+@lru_cache(maxsize=None)
 def _parsed_chapters(book_id: str) -> list[dict]:
     from agents.parsers.epub_parser import parse_epub
 
-    path = _epub_path_for(book_id)
-    if not path:
-        return []
-    return parse_epub(path)["chapters"]
+    return parse_epub(resolve_epub_path(book_id))["chapters"]
 
 
 def _normalize_title(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", title.lower())
+    # [^a-z0-9]+로 영문/숫자만 남기면 한글(또는 다른 비ASCII) 제목은 전부 빈 문자열이
+    # 돼서, 이 값을 쓰는 매칭이 항상 실패한다(precompute.py의 같은 버그 참고). \w는
+    # 파이썬 re 기본 설정에서 유니코드 문자(한글 포함)도 단어 문자로 인식한다.
+    return re.sub(r"[^\w]+", "", title.lower())
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=None)
 def _parser_chapter_offset(book_id: str, first_cfi_title: str) -> int:
     """cfi_db의 chapter_index=1 제목을 epub_parser 결과에서 찾아 두 인덱싱 체계의
     오프셋을 자동으로 맞춘다 (책마다 표지·목차 문서 개수가 달라서 고정값을 쓰면 안 됨).
@@ -73,7 +72,7 @@ def _chapter_text(book_id: str, cfi_chapter_index: int, cfi_chapter_title: str) 
     return None
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=None)
 def book_for(book_id: str, title: str = "", author: str = "—") -> Book:
     paragraphs = cfi_db.get_paragraphs(book_id)
 

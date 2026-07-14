@@ -21,7 +21,10 @@ from __future__ import annotations
 import hashlib
 from typing import Iterable
 
-from .schemas import Entity, GraphJson, Relationship, ReminderLine
+from agents.character_entity_filter import filter_generic_role_entities
+from agents.build_agent import normalize_event
+
+from .schemas import Entity, GraphJson, Relationship, ReminderLine, StoryEvent
 
 # 관계 라벨 → tone 약한 휴리스틱 (근거 없는 강한 추측은 하지 않음)
 _TENSE_HINTS = ("적", "추적", "압박", "의혹", "은폐", "배신", "대립", "감시", "위협")
@@ -30,6 +33,7 @@ _ALLY_HINTS = ("동료", "동맹", "협력", "친구", "가족", "연인", "동�
 _VALID_TYPES = {"person", "ship", "org", "place"}
 _VALID_COLORS = {"blue", "dark"}
 _VALID_TONES = {"neutral", "ally", "tense"}
+_VALID_RELATION_KINDS = {"personal", "action"}
 
 
 def entity_id(name: str) -> str:
@@ -65,10 +69,13 @@ def to_graph_json(
 
     revision_offsets: 관계 id → 최초 등장 경계선. 없으면 boundary 로 채운다.
     """
+    build_result = filter_generic_role_entities(build_result)
     revision_offsets = revision_offsets or {}
     entities: dict[str, Entity] = {}
 
-    def ensure_entity(name: str, *, type_: str | None = None, color: str | None = None) -> str:
+    def ensure_entity(
+        name: str, *, type_: str | None = None, color: str | None = None, description: str | None = None
+    ) -> str:
         name = (name or "").strip()
         if not name:
             return ""
@@ -79,11 +86,19 @@ def to_graph_json(
                 name=name,
                 type=type_ if type_ in _VALID_TYPES else "person",
                 color=color if color in _VALID_COLORS else "blue",
+                description=(description or "").strip() or None,
             )
+        elif description and not entities[eid].description:
+            entities[eid] = entities[eid].model_copy(update={"description": description.strip()})
         return eid
 
     for ch in build_result.get("characters", []):
-        ensure_entity(ch.get("name", ""), type_=ch.get("type"), color=ch.get("color"))
+        ensure_entity(
+            ch.get("name", ""),
+            type_=ch.get("type"),
+            color=ch.get("color"),
+            description=ch.get("description"),
+        )
 
     relationships: list[Relationship] = []
     for rel in build_result.get("relations", []):
@@ -93,6 +108,7 @@ def to_graph_json(
             continue
         label = (rel.get("relation") or "").strip()
         rid = _relation_id(src, tgt, label)
+        relation_kind = rel.get("relation_kind")
         relationships.append(
             Relationship(
                 id=rid,
@@ -102,6 +118,30 @@ def to_graph_json(
                 tone=_infer_tone(label, rel.get("tone")),
                 description=(rel.get("evidence") or rel.get("description") or label).strip(),
                 revision_offset=revision_offsets.get(rid, boundary),
+                relation_kind=relation_kind if relation_kind in _VALID_RELATION_KINDS else None,
+            )
+        )
+
+    events: list[StoryEvent] = []
+    for event in build_result.get("events", []):
+        normalized_event = normalize_event(event, current_offset=boundary)
+        participants = []
+        for participant in normalized_event.get("participants", []):
+            name = participant.get("character_name", "")
+            if not name:
+                continue
+            ensure_entity(name)
+            participants.append(participant)
+        if not participants:
+            continue
+        events.append(
+            StoryEvent.model_validate(
+                {
+                    **normalized_event,
+                    "participants": participants,
+                    "first_seen_chunk_offset": normalized_event.get("first_seen_chunk_offset", boundary),
+                    "last_seen_chunk_offset": normalized_event.get("last_seen_chunk_offset", boundary),
+                }
             )
         )
 
@@ -110,17 +150,24 @@ def to_graph_json(
         spoiler_safe=spoiler_safe,
         entities=list(entities.values()),
         relationships=relationships,
+        events=events,
     )
 
 
 def to_reminder_lines(build_result: dict) -> list[ReminderLine]:
     """events → reminders. 각 사건 요약을 한 줄로, participants 를 entity id 로 매핑."""
+    build_result = filter_generic_role_entities(build_result)
     lines: list[ReminderLine] = []
     for ev in build_result.get("events", []):
-        text = (ev.get("summary") or "").strip()
+        normalized_event = normalize_event(ev)
+        text = (normalized_event.get("event_summary") or normalized_event.get("summary") or "").strip()
         if not text:
             continue
-        ids = [entity_id(p) for p in ev.get("participants", []) if (p or "").strip()]
+        ids = [
+            entity_id(p.get("character_name", "") if isinstance(p, dict) else p)
+            for p in normalized_event.get("participants", [])
+            if ((p.get("character_name", "") if isinstance(p, dict) else p) or "").strip()
+        ]
         lines.append(ReminderLine(text=text, entity_ids=ids))
     return lines
 
