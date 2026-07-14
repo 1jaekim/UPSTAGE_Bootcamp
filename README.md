@@ -1,5 +1,11 @@
 # 🍀 SpoKeeper
 
+<div align="right">
+
+[🇺🇸 English Version](#-english-version)
+
+</div>
+
 > **"읽기 위치가 스포일러의 경계가 됩니다."**
 
 ---
@@ -260,12 +266,12 @@ Offset을 기준으로 미래 내용을 차단하여 스포일러를 방지합�
 
 ## 6. 팀원 소개
 
-| 이름   | 역할    | GitHub     |
-| ---- | ----- | ---------- |
-| 김원재 | 백앤드 및 아키택쳐  | @1jaekim |
-| 양준서 | 프로젝트 메니저  | @Seojun02 |
-| 최정재 | 에이전트 생성 | @Giseulg |
-| 현지민 | UX UI | @jmmom0320 |
+| 이름  | 역할         | GitHub     |
+| --- | ---------- | ---------- |
+| 김원재 | 백엔드 및 아키텍처 | @1jaekim   |
+| 양준서 | 프로젝트 매니저   | @Seojun02  |
+| 최정재 | AI 에이전트 개발 | @Giseulg   |
+| 현지민 | UX/UI      | @jmmom0320 |
 
 ---
 
@@ -278,3 +284,293 @@ Offset을 기준으로 미래 내용을 차단하여 스포일러를 방지합�
 * **참고한 문서:** 추가 예정
 * **참고한 오픈소스:** 추가 예정
 * **기타 자료:** 추가 예정
+
+---
+
+# 🇺🇸 English Version
+
+<details>
+<summary><b>🇺🇸 Click to view the English version</b></summary>
+
+<br>
+
+> **"Your reading position becomes the boundary against spoilers."**
+
+---
+
+## 1. Project Introduction
+
+**SpoKeeper** is an AI-powered **Spoiler-Safe Reading Assistant** that provides a **Character Relationship Graph (Context Graph)** and **Context Reminder** based only on the content of a novel that the user has read so far.
+
+Existing AI summarization services and RAG-based search systems may reference the entire book, which can unintentionally expose users to spoilers.
+
+SpoKeeper aims to enhance the reading experience while preventing access to future content by restricting information based on the user's **current reading position (Offset)** and using a **Multi-Agent Workflow**.
+
+Users simply upload an EPUB novel and read it as usual.
+
+SpoKeeper automatically analyzes the following information that has appeared up to the user's current reading position:
+
+* Characters
+* Character relationships
+* Major events
+
+Based only on the content read so far, it provides:
+
+* Character Relationship Graph
+* Context Reminder
+
+---
+
+## 2. Problem Definition
+
+The biggest challenge when using AI while reading is **spoilers**.
+
+| Problem                           | Description                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| Spoiler Exposure                  | AI may reveal future events or characters                                            |
+| Difficulty Remembering Characters | It becomes increasingly difficult to remember character relationships in long novels |
+| Difficulty Remembering the Story  | Readers may forget previous events when returning to a book after a long break       |
+
+Existing AI summarization services and RAG-based search systems may reference the entire book, potentially exposing users to future events or characters they have not yet encountered.
+
+SpoKeeper solves these problems by providing information **only up to the user's current reading position**.
+
+---
+
+## 3. Problem Solution
+
+SpoKeeper defines the user's **current reading position (Offset)** as the boundary against spoilers.
+
+When a user uploads an EPUB novel, SpoKeeper analyzes the text and chapters and extracts characters, relationships, and events that have appeared only up to the user's current reading position.
+
+A **Multi-Agent Workflow** then prevents information beyond the current Offset from being exposed to the user.
+
+### Spoiler Guard
+
+#### 1. VerifierAgent (First Guard)
+
+Among the results retrieved by the RetrieverAgent, only information that satisfies the following condition is allowed to pass:
+
+> **Information Offset ≤ User Offset**
+
+#### 2. ReminderWriterAgent
+
+The ReminderWriterAgent generates reminders using only information at or below the current Offset.
+
+It does not perform speculation, interpretation, or prediction of future events.
+
+#### 3. Render Guard (Planned)
+
+The generated results are verified again based on the Offset to ensure that no future information is included.
+
+#### 4. IndirectLeakageJudge (Planned)
+
+In addition to direct spoilers, the IndirectLeakageJudge evaluates elements such as:
+
+* Implications
+* Foreshadowing
+* Expressions that may suggest future events
+
+Based on the evaluation result, one of the following actions is selected:
+
+* `PASS`
+* `REWRITE`
+* `SUPPRESS`
+
+### Agent Workflow
+
+```text
+                 EPUB
+                   │
+             ParserAgent
+                   │
+             ChunkAgent
+                   │
+              ChromaDB
+                   │
+      Incremental BuildAgent
+                   │
+             BuildAgent
+                   │
+         Knowledge Graph
+        ┌──────────┴──────────┐
+        ▼                     ▼
+ CharacterProfiler      Graph Viewer
+        │
+        ▼
+ Avatar Prompt (Planned)
+
+────────────────────────────────────
+
+       RetrieverAgent
+              │
+              ▼
+      VerifierAgent
+              │
+              ▼
+    ReminderWriterAgent
+              │
+              ▼
+ IndirectLeakageJudge (Planned)
+              │
+              ▼
+      Render Guard (Planned)
+              │
+              ▼
+             User
+```
+
+### Project Structure
+
+The repository consists of three main directories: `frontend`, `backend`, and `agents`.
+
+```text
+.
+├── frontend/                # React + Vite (Reading UI, Graph, Reminder)
+│   ├── src/
+│   │   ├── api/             # Unified contract types, client, and hooks
+│   │   └── components/
+│   └── vite.config.ts       # /api → 127.0.0.1:8000 proxy
+│
+├── backend/                 # FastAPI serving (graph_json, reminders, progress contract)
+│   ├── app/
+│   │   ├── main.py          # Routes + source injection (_make_source)
+│   │   ├── schemas.py       # Unified contract schemas
+│   │   ├── content_source.py# FixtureSource / AgentResultSource
+│   │   ├── agent_adapter.py # Agent output → contract conversion
+│   │   ├── precompute.py    # Boundary-based build results → contract JSON storage
+│   │   └── db.py, fixtures.py
+│   ├── scripts/make_demo_store.py
+│   └── tests/
+│
+└── agents/                  # AI Agent Pipeline (Solar-Pro2 + LangChain)
+    ├── build_agent.py       # Character, relationship, and event extraction (+ incremental build)
+    ├── character_profiler_agent.py
+    ├── parsers/epub_parser.py
+    ├── tools/chunk_tool.py
+    ├── config.py
+    ├── app.py               # Streamlit prototype
+    ├── data/books/          # EPUB samples
+    └── requirements.txt
+```
+
+**Execution:** All commands should be run from the repository root directory.
+
+The `agents` and `backend` modules use the repository root as the `sys.path` base.
+
+```python
+from agents.build_agent import ...
+from backend.app...
+```
+
+### Tech Stack
+
+#### AI
+
+* Upstage Solar-Pro2
+* LangChain
+
+#### Vector Database
+
+* ChromaDB
+
+#### Backend
+
+* Python
+* Streamlit (Prototype)
+
+#### Planned
+
+* FastAPI
+* React
+
+---
+
+## 4. Core Features
+
+### EPUB Parser
+
+Automatically extracts text and chapters from EPUB files.
+
+### AI BuildAgent
+
+Automatically analyzes characters, relationships, and events.
+
+### Knowledge Graph
+
+Visualizes character relationships that have appeared up to the user's current reading position.
+
+### Context Reminder
+
+Naturally summarizes the story only up to the user's current reading position.
+
+### Spoiler Guard
+
+Prevents spoilers by blocking future information based on the user's current Offset.
+
+### Development Status
+
+| Feature                | Status |
+| ---------------------- | ------ |
+| EPUB Parser            | ✅      |
+| Chunk Generator        | ✅      |
+| ChromaDB               | ✅      |
+| Incremental BuildAgent | ✅      |
+| BuildAgent             | ✅      |
+| CharacterProfilerAgent | ✅      |
+| Graph Viewer           | ✅      |
+| VerifierAgent          | ✅      |
+| ReminderWriterAgent    | 🚧     |
+| Render Guard           | 🚧     |
+| IndirectLeakageJudge   | 🚧     |
+| AvatarGeneratorAgent   | 🚧     |
+
+### Expected Benefits
+
+#### For Readers
+
+* Easier understanding of character relationships
+* Reduced burden of remembering previous story details
+* A spoiler-free reading experience
+
+#### For AI Services
+
+* Offset-based access control
+* Multi-Agent Workflow
+* Knowledge Graph-based relationship management
+* Safe AI-powered reading assistance through the Spoiler Guard architecture
+
+---
+
+## 5. Demo Video
+
+Demo videos and other materials showcasing the project can be found below.
+
+* **Demo Video:** Coming soon
+* **Deployment URL:** Coming soon
+* **Additional Demo Materials:** Coming soon
+
+---
+
+## 6. Team Members
+
+| Name          | Role                   | GitHub     |
+| ------------- | ---------------------- | ---------- |
+| Wonjae Kim    | Backend & Architecture | @1jaekim   |
+| Junseo Yang   | Project Manager        | @Seojun02  |
+| Jeongjae Choi | AI Agent Development   | @Giseulg   |
+| Jimin Hyun    | UX/UI                  | @jmmom0320 |
+
+---
+
+## 7. References / Presentation Materials
+
+Materials that provide additional information about the project are listed below.
+
+* **Presentation:** Coming soon
+* **Project Plan:** Coming soon
+* **Reference Documents:** Coming soon
+* **Open Source References:** Coming soon
+* **Other Materials:** Coming soon
+
+</details>
